@@ -44,7 +44,7 @@ export function LoginForm({
         await signIn.authenticateWithRedirect({
           strategy: OAUTH_STRATEGY[provider],
           redirectUrl: "/sign-in/sso-callback",
-          redirectUrlComplete: "/",
+          redirectUrlComplete: "/dashboard",
         });
       } catch (error) {
         console.error("Failed to authenticate with Clerk", error);

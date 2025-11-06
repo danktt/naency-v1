@@ -1,6 +1,6 @@
 "use client";
 import { IconTableFilled } from "@tabler/icons-react";
-import { GalleryVerticalEnd } from "lucide-react";
+
 import DotGrid from "@/components/DotGrid";
 import { LoginForm } from "@/components/forms/login-form";
 
