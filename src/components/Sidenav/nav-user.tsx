@@ -37,7 +37,7 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
-  const { signOut } = useClerk();
+  const { signOut, openUserProfile, openOrganizationProfile } = useClerk();
 
   const initials =
     user.name
@@ -98,7 +98,12 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(event) => {
+                  event.preventDefault();
+                  openUserProfile();
+                }}
+              >
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>

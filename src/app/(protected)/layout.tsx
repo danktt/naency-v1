@@ -1,16 +1,8 @@
 import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/nextjs";
 import type { ReactNode } from "react";
-
-import { AppSidebar } from "@/components/app-sidebar";
 import { BreadcrumbComponent } from "@/components/Breadcrumb";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { AppSidebar } from "@/components/Sidebar";
+import { ToggleTheme } from "@/components/ToggleTheme";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -26,13 +18,18 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
           <AppSidebar />
           <SidebarInset>
             <header className="flex h-16 shrink-0 items-center gap-2">
-              <div className="flex items-center gap-2 px-4">
-                <SidebarTrigger className="-ml-1" />
-                <Separator
-                  orientation="vertical"
-                  className="mr-2 data-[orientation=vertical]:h-4"
-                />
-                <BreadcrumbComponent />
+              <div className="flex items-center  px-4 justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <SidebarTrigger className="-ml-1" />
+                  <Separator
+                    orientation="vertical"
+                    className="mr-2 data-[orientation=vertical]:h-4"
+                  />
+                  <BreadcrumbComponent />
+                </div>
+                <div className="ml-auto">
+                  <ToggleTheme />
+                </div>
               </div>
             </header>
             <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

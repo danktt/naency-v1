@@ -5,7 +5,6 @@ import { IconTableFilled } from "@tabler/icons-react";
 import {
   BookOpen,
   Bot,
-  Command,
   Frame,
   LifeBuoy,
   PieChart,
@@ -17,10 +16,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
 import { useMemo } from "react";
-import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
-import { NavSecondary } from "@/components/nav-secondary";
-import { NavUser } from "@/components/nav-user";
+import { NavMain } from "@/components/Sidenav/nav-main";
+import { NavProjects } from "@/components/Sidenav/nav-projects";
+import { NavSecondary } from "@/components/Sidenav/nav-secondary";
+import { NavUser } from "@/components/Sidenav/nav-user";
 import {
   Sidebar,
   SidebarContent,
