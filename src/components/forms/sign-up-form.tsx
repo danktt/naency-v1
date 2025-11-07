@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth, useSignIn } from "@clerk/nextjs";
+import { useAuth, useSignUp } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -22,11 +22,11 @@ const OAUTH_STRATEGY = {
   apple: "oauth_apple",
 } as const;
 
-export function LoginForm({
+export function SignUpForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
-  const { isLoaded, signIn } = useSignIn();
+  const { isLoaded, signUp } = useSignUp();
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const router = useRouter();
   const [pendingProvider, setPendingProvider] = useState<OAuthProvider | null>(
@@ -36,7 +36,7 @@ export function LoginForm({
 
   const handleProviderClick = useCallback(
     async (provider: OAuthProvider) => {
-      if (!isAuthLoaded || !isLoaded || !signIn) {
+      if (!isAuthLoaded || !isLoaded || !signUp) {
         return;
       }
 
@@ -50,9 +50,9 @@ export function LoginForm({
         setErrorMessage(null);
         setPendingProvider(provider);
 
-        await signIn.authenticateWithRedirect({
+        await signUp.authenticateWithRedirect({
           strategy: OAUTH_STRATEGY[provider],
-          redirectUrl: "/sign-in/sso-callback",
+          redirectUrl: "/sign-up/sso-callback",
           redirectUrlComplete: "/dashboard",
         });
       } catch (error) {
@@ -60,8 +60,7 @@ export function LoginForm({
 
         const clerkError =
           typeof error === "object" && error && "errors" in error
-            ? // ClerkError JSON response shape
-              (error as {
+            ? (error as {
                 errors?: Array<{
                   message?: string;
                   longMessage?: string;
@@ -93,7 +92,7 @@ export function LoginForm({
         setPendingProvider(null);
       }
     },
-    [isAuthLoaded, isLoaded, isSignedIn, router, signIn],
+    [isAuthLoaded, isLoaded, isSignedIn, router, signUp],
   );
 
   const isButtonDisabled =
@@ -103,9 +102,9 @@ export function LoginForm({
     <form className={cn("flex flex-col gap-6", className)} {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Login to your account</h1>
+          <h1 className="text-2xl font-bold">Create your account</h1>
           <p className="text-muted-foreground text-sm text-balance">
-            Choose a provider below to continue
+            Choose a provider below to get started
           </p>
         </div>
         <Field className="space-y-3">
@@ -115,18 +114,12 @@ export function LoginForm({
             className="gap-2"
             disabled={isButtonDisabled}
             onClick={() => handleProviderClick("google")}
+            isLoading={pendingProvider === "google"}
           >
-            {pendingProvider === "google" ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Redirecting...
-              </>
-            ) : (
-              <>
-                <GoogleIcon />
-                Continue with Google
-              </>
-            )}
+            <GoogleIcon />
+            {pendingProvider === "google"
+              ? "Redirecting..."
+              : "Continue with Google"}
           </Button>
           <Button
             variant="outline"
@@ -134,18 +127,12 @@ export function LoginForm({
             className="gap-2"
             disabled={isButtonDisabled}
             onClick={() => handleProviderClick("apple")}
+            isLoading={pendingProvider === "apple"}
           >
-            {pendingProvider === "apple" ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Redirecting...
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <AppleIcon />
-                Continue with Apple
-              </div>
-            )}
+            <AppleIcon />
+            {pendingProvider === "apple"
+              ? "Redirecting..."
+              : "Continue with Apple"}
           </Button>
         </Field>
         {errorMessage ? (
@@ -154,9 +141,9 @@ export function LoginForm({
           </FieldError>
         ) : null}
         <FieldDescription className="text-center">
-          Don&apos;t have an account?{" "}
-          <a href="/sign-up" className="underline underline-offset-4">
-            Sign up
+          Already have an account?{" "}
+          <a href="/sign-in" className="underline underline-offset-4">
+            Sign in
           </a>
         </FieldDescription>
       </FieldGroup>
