@@ -1,10 +1,12 @@
 "use client";
+
 import { IconTableFilled } from "@tabler/icons-react";
 
-import { LoginForm } from "@/components/forms/login-form";
+import DotGrid from "@/components/DotGrid";
+import { SignUpForm } from "@/components/forms/sign-up-form";
 import Silk from "@/components/Silk";
 
-export default function LoginPage() {
+export default function SignUpPage() {
   return (
     <div className="grid min-h-svh lg:grid-cols-3">
       <div className="flex flex-col gap-4 p-6 md:p-10 col-span-1">
@@ -16,7 +18,7 @@ export default function LoginPage() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
-            <LoginForm />
+            <SignUpForm />
           </div>
         </div>
       </div>
@@ -28,7 +30,9 @@ export default function LoginPage() {
           noiseIntensity={1.5}
           rotation={0}
         />
+        <DotGrid />
       </div>
     </div>
   );
 }
+
