@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
 ## Getting Started
 
-First, run the development server:
+Install dependencies and start the dev server with pnpm:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app runs on [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Set the Neon connection string in `.env.local` (already added):
 
-## Learn More
+```
+DATABASE_URL=postgres://...
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Database (Drizzle + Neon)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Drizzle is configured via `drizzle.config.ts` and leverages Neon through `src/server/db/client.ts`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Common commands:
 
-## Deploy on Vercel
+```bash
+# Generate SQL migrations based on schema changes
+pnpm db:generate
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Push the current schema directly to the database
+pnpm db:push
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Explore and edit the database in a local web UI
+pnpm db:studio
+```
+
+The default schema includes a `tasks` table in `src/server/db/schema.ts`. Update this file to evolve your data model.
+
+## tRPC + TanStack Query
+
+tRPC is exposed at `/api/trpc` through the App Router. The React Query client and providers are wired in `src/app/provider.tsx`.
+
+Use the generated hooks anywhere in client components:
+
+```tsx
+"use client";
+
+import { trpc } from "@/lib/trpc/client";
+
+export function TaskList() {
+  const { data } = trpc.task.list.useQuery();
+
+  if (!data) return <p>Loading...</p>;
+
+  return (
+    <ul>
+      {data.map((task) => (
+        <li key={task.id}>{task.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+Create new tasks with the mutation:
+
+```tsx
+const utils = trpc.useUtils();
+const mutation = trpc.task.create.useMutation({
+  onSuccess: () => utils.task.list.invalidate(),
+});
+
+mutation.mutate({ title: "My new task" });
+```
+
+Refer to `src/server/api/routers/task.ts` for more examples.
