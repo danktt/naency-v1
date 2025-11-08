@@ -9,8 +9,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 
-const CATEGORY_EMPTY_MESSAGE = "Nenhuma categoria cadastrada";
+const CATEGORY_EMPTY_MESSAGE = "No categories registered";
 
 type CategorySource = {
   id: string;
@@ -75,7 +76,7 @@ const buildCategoryOptions = (
     }
 
     const parent = byId.get(category.parent_id);
-    const parentName = parent?.name ?? "Categoria";
+    const parentName = parent?.name ?? "Category";
     options.push({
       value: category.id,
       label: `${parentName} • ${category.name}`,
@@ -128,18 +129,18 @@ export function CategoriesSelect({
     }
 
     if (isLoading) {
-      return "Carregando categorias...";
+      return "Loading categories...";
     }
 
     if (isError) {
-      return "Não foi possível carregar as categorias";
+      return "Unable to load categories";
     }
 
     if (!options.length) {
       return CATEGORY_EMPTY_MESSAGE;
     }
 
-    return "Selecione uma categoria";
+    return "Select a category";
   }, [placeholder, isLoading, isError, options.length]);
 
   const isSelectDisabled = disabled || isLoading;
@@ -150,17 +151,21 @@ export function CategoriesSelect({
       onValueChange={handleValueChange}
       disabled={isSelectDisabled}
     >
-      <SelectTrigger id={id} onBlur={onBlur} className={className}>
+      <SelectTrigger
+        id={id}
+        onBlur={onBlur}
+        className={cn("w-full", className)}
+      >
         <SelectValue placeholder={selectPlaceholder} />
       </SelectTrigger>
       <SelectContent>
         {isLoading ? (
           <SelectItem value="__loading" disabled>
-            Carregando categorias...
+            Loading categories...
           </SelectItem>
         ) : isError ? (
           <SelectItem value="__error" disabled>
-            Erro ao carregar categorias
+            Error loading categories
           </SelectItem>
         ) : options.length ? (
           options.map((option) => (
