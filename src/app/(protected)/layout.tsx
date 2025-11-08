@@ -2,6 +2,7 @@ import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/nextjs";
 import type { ReactNode } from "react";
 import { BreadcrumbComponent } from "@/components/Breadcrumb";
 import { DatePicker } from "@/components/DatePicker";
+import OnboardingAnimationModal from "@/components/onboarding/OnboardingAnimationModal";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { AppSidebar } from "@/components/Sidebar";
 import { ToggleTheme } from "@/components/ToggleTheme";
@@ -39,7 +40,8 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
               {children}
             </div>
           </SidebarInset>
-          <OnboardingModal />
+          {/* <OnboardingModal /> */}
+          <OnboardingAnimationModal />
         </SidebarProvider>
       </SignedIn>
       <SignedOut>
