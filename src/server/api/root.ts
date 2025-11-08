@@ -1,9 +1,12 @@
-import { taskRouter } from "./routers/task";
+import { accountsRouter } from "./routers/accounts";
+import { categoriesRouter } from "./routers/categories";
+import { financialGroupsRouter } from "./routers/financialGroups";
 import { createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
-  task: taskRouter,
+  accounts: accountsRouter,
+  categories: categoriesRouter,
+  financialGroups: financialGroupsRouter,
 });
 
 export type AppRouter = typeof appRouter;
-

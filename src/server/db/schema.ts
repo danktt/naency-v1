@@ -16,7 +16,7 @@ export const transactionType = pgEnum("transaction_type", [
   "income",
   "transfer",
 ]);
-export const accountType = pgEnum("account_type", [
+export const accountType = pgEnum("account_type_v2", [
   "checking",
   "credit",
   "investment",

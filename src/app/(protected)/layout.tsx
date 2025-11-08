@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { BreadcrumbComponent } from "@/components/Breadcrumb";
 import { AppSidebar } from "@/components/Sidebar";
 import { ToggleTheme } from "@/components/ToggleTheme";
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -36,6 +37,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
               {children}
             </div>
           </SidebarInset>
+          <OnboardingModal />
         </SidebarProvider>
       </SignedIn>
       <SignedOut>
