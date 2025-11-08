@@ -44,11 +44,13 @@ function Button({
   isLoading = false,
   disabled,
   children,
+  icon,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
     isLoading?: boolean;
+    icon?: React.ReactNode;
   }) {
   const Comp = asChild ? Slot : "button";
 
@@ -70,6 +72,7 @@ function Button({
           <span className="sr-only">Loading</span>
         </>
       ) : null}
+      {icon}
       {children}
     </Comp>
   );

@@ -1,17 +1,15 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { IconTableFilled } from "@tabler/icons-react";
 import {
-  BookOpen,
-  Bot,
-  Frame,
-  LifeBuoy,
-  PieChart,
-  Send,
-  Settings2,
-  SquareTerminal,
-} from "lucide-react";
+  IconCreditCard,
+  IconCurrencyDollar,
+  IconLayoutDashboard,
+  IconTableFilled,
+  IconTransfer,
+  IconWallet,
+} from "@tabler/icons-react";
+import { Bot, Frame, LifeBuoy, PieChart, Send } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
@@ -39,22 +37,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         title: "Dashboard",
         url: "/dashboard",
-        icon: SquareTerminal,
+        icon: IconLayoutDashboard,
       },
       {
-        title: "Automations",
-        url: "/automations",
-        icon: Bot,
+        title: "Incomes",
+        url: "/incomes",
+        icon: IconCurrencyDollar,
       },
       {
-        title: "Models",
-        url: "/models",
-        icon: BookOpen,
+        title: "Expenses",
+        url: "/expenses",
+        icon: IconWallet,
       },
       {
-        title: "Settings",
-        url: "/settings",
-        icon: Settings2,
+        title: "Transfers",
+        url: "/transfers",
+        icon: IconTransfer,
+      },
+      {
+        title: "Provisions",
+        url: "/provisions",
+        icon: IconCreditCard,
       },
     ];
 

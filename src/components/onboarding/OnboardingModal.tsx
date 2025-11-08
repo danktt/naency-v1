@@ -66,6 +66,7 @@ type FinancialGroupResult = {
     owner_id: string;
   };
   wasCreated: boolean;
+  onboardingCompleted: boolean;
 };
 
 type CreateAccountMutation = {
@@ -161,7 +162,6 @@ export function OnboardingModal() {
   const { user, isLoaded, isSignedIn } = useUser();
   const [currentStep, setCurrentStep] = useState<Step>("welcome");
   const [isOpen, setIsOpen] = useState(false);
-  const [hasStoredCompletion, setHasStoredCompletion] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("checking");
   const [initialBalance, setInitialBalance] = useState("0");
@@ -178,7 +178,6 @@ export function OnboardingModal() {
     CATEGORY_DEFAULT_COLOR_BY_TYPE.expense,
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const hasMountedRef = useRef(false);
   const fetchedUserIdRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
   const [financialGroupResult, setFinancialGroupResult] =
@@ -188,12 +187,13 @@ export function OnboardingModal() {
 
   const { mutateAsync: getOrCreateGroup, isPending: isCheckingFinancialGroup } =
     trpc.financialGroups.getOrCreate.useMutation();
+  const { mutateAsync: completeOnboarding } =
+    trpc.financialGroups.completeOnboarding.useMutation();
 
   const userId = user?.id ?? null;
   const userEmail = user?.primaryEmailAddress?.emailAddress;
   const userName =
     user?.fullName ?? user?.firstName ?? user?.username ?? "Usuário";
-  const onboardingStorageKey = userId ? `onboarding_done_${userId}` : null;
 
   const { mutateAsync: createAccount, isPending: isCreatingAccount } =
     extendedTrpc.accounts.create.useMutation();
@@ -202,44 +202,14 @@ export function OnboardingModal() {
     extendedTrpc.categories.importDefaults.useMutation();
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    hasMountedRef.current = true;
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    if (!onboardingStorageKey) {
-      setHasStoredCompletion(false);
-      setFinancialGroupResult(null);
+    if (!isLoaded || !isSignedIn || !userId) {
       fetchedUserIdRef.current = null;
+      setFinancialGroupResult(null);
       setSelectedDefaultCategories(createInitialCategorySelection());
       setCustomCategories([]);
       setNewCategoryName("");
       setNewCategoryType("expense");
       setNewCategoryColor(CATEGORY_DEFAULT_COLOR_BY_TYPE.expense);
-      return;
-    }
-
-    const stored = window.localStorage.getItem(onboardingStorageKey);
-    setHasStoredCompletion(stored === "true");
-    setFinancialGroupResult(null);
-    fetchedUserIdRef.current = null;
-    setSelectedDefaultCategories(createInitialCategorySelection());
-    setCustomCategories([]);
-    setNewCategoryName("");
-    setNewCategoryType("expense");
-    setNewCategoryColor(CATEGORY_DEFAULT_COLOR_BY_TYPE.expense);
-  }, [onboardingStorageKey]);
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || !userId) {
-      fetchedUserIdRef.current = null;
       return;
     }
 
@@ -250,6 +220,11 @@ export function OnboardingModal() {
     let isActive = true;
     fetchedUserIdRef.current = userId;
     setFinancialGroupResult(null);
+    setSelectedDefaultCategories(createInitialCategorySelection());
+    setCustomCategories([]);
+    setNewCategoryName("");
+    setNewCategoryType("expense");
+    setNewCategoryColor(CATEGORY_DEFAULT_COLOR_BY_TYPE.expense);
 
     getOrCreateGroup({
       email: userEmail ?? undefined,
@@ -281,11 +256,7 @@ export function OnboardingModal() {
       return false;
     }
 
-    if (!hasMountedRef.current) {
-      return false;
-    }
-
-    if (hasStoredCompletion) {
+    if (!financialGroupResult) {
       return false;
     }
 
@@ -293,18 +264,8 @@ export function OnboardingModal() {
       return false;
     }
 
-    if (!financialGroupResult) {
-      return false;
-    }
-
-    return financialGroupResult.wasCreated;
-  }, [
-    financialGroupResult,
-    hasStoredCompletion,
-    isCheckingFinancialGroup,
-    isLoaded,
-    isSignedIn,
-  ]);
+    return !financialGroupResult.onboardingCompleted;
+  }, [financialGroupResult, isLoaded, isSignedIn, isCheckingFinancialGroup]);
 
   const stepTitle = STEP_TITLES[currentStep];
   const stepDescription = STEP_DESCRIPTIONS[currentStep];
@@ -529,23 +490,17 @@ export function OnboardingModal() {
     }
   };
 
-  const handleFinish = () => {
-    if (typeof window !== "undefined" && onboardingStorageKey) {
-      window.localStorage.setItem(onboardingStorageKey, "true");
+  const handleFinish = async () => {
+    try {
+      await completeOnboarding();
+      setFinancialGroupResult((previous) =>
+        previous ? { ...previous, onboardingCompleted: true } : previous,
+      );
+      queryClient.invalidateQueries({ queryKey: ["financialGroups"] });
+      closeModal();
+    } catch (error) {
+      console.error("Erro ao finalizar onboarding:", error);
     }
-
-    setHasStoredCompletion(true);
-    queryClient
-      .invalidateQueries({ queryKey: ["financialGroups"] })
-      .catch(() => {});
-
-    queryClient
-      .invalidateQueries({ queryKey: ["bankAccounts"] })
-      .catch(() => {});
-
-    queryClient.invalidateQueries({ queryKey: ["categories"] }).catch(() => {});
-
-    closeModal();
   };
 
   if (!isOpen) {

@@ -58,34 +58,38 @@ export default function DashboardPage() {
                 Track the latest updates across automations and teams.
               </p>
             </div>
-            <button className="text-primary inline-flex items-center gap-1 text-sm font-medium">
+            <button
+              type="button"
+              className="text-primary inline-flex items-center gap-1 text-sm font-medium"
+            >
               View all
               <ArrowUpRight className="size-4" />
             </button>
           </div>
           <div className="space-y-4 px-6 py-5">
-            {["Automation sync deployed", "New prompt published", "Dataset refreshed"].map(
-              (item) => (
-                <div
-                  key={item}
-                  className="border-border/60 flex items-start justify-between rounded-md border px-4 py-3"
-                >
-                  <div>
-                    <p className="font-medium text-sm">{item}</p>
-                    <p className="text-muted-foreground text-xs">
-                      2 hours ago · by you
-                    </p>
-                  </div>
-                  <span className="bg-muted text-muted-foreground inline-flex rounded-full px-2 py-0.5 text-xs">
-                    workspace
-                  </span>
+            {[
+              "Automation sync deployed",
+              "New prompt published",
+              "Dataset refreshed",
+            ].map((item) => (
+              <div
+                key={item}
+                className="border-border/60 flex items-start justify-between rounded-md border px-4 py-3"
+              >
+                <div>
+                  <p className="font-medium text-sm">{item}</p>
+                  <p className="text-muted-foreground text-xs">
+                    2 hours ago · by you
+                  </p>
                 </div>
-              ),
-            )}
+                <span className="bg-muted text-muted-foreground inline-flex rounded-full px-2 py-0.5 text-xs">
+                  workspace
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
     </div>
   );
 }
-

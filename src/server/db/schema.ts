@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 // ==== ENUMS ====
+
 export const transactionType = pgEnum("transaction_type", [
   "expense",
   "income",
@@ -39,6 +40,9 @@ export const users = pgTable("users", {
   clerk_id: varchar("clerk_id", { length: 191 }).notNull().unique(),
   name: varchar("name", { length: 191 }).notNull(),
   email: varchar("email", { length: 191 }).notNull(),
+  onboarding_completed: boolean("onboarding_completed")
+    .default(false)
+    .notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -29,9 +29,9 @@ export const financialGroupsRouter = createTRPCRouter({
         where: eq(users.clerk_id, clerkId),
       });
 
-      let userId = existingUser?.id;
+      let user = existingUser;
 
-      if (!existingUser) {
+      if (!user) {
         const [newUser] = await ctx.db
           .insert(users)
           .values({
@@ -39,18 +39,27 @@ export const financialGroupsRouter = createTRPCRouter({
             clerk_id: clerkId,
             name: input.name,
             email: input.email ?? "",
+            onboarding_completed: false,
           })
-          .returning({ id: users.id });
+          .returning();
 
-        userId = newUser.id;
+        user = newUser;
+      }
+
+      if (!user) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       }
 
       const existingGroup = await ctx.db.query.financial_groups.findFirst({
-        where: eq(financial_groups.owner_id, userId!),
+        where: eq(financial_groups.owner_id, user.id),
       });
 
       if (existingGroup) {
-        return { group: existingGroup, wasCreated: false };
+        return {
+          group: existingGroup,
+          wasCreated: false,
+          onboardingCompleted: user.onboarding_completed ?? false,
+        };
       }
 
       const groupId = uuidv4();
@@ -60,19 +69,31 @@ export const financialGroupsRouter = createTRPCRouter({
         .values({
           id: groupId,
           name: "Financeiro Pessoal",
-          owner_id: userId!,
+          owner_id: user.id,
         })
         .returning();
 
       await ctx.db.insert(financial_group_members).values({
         id: uuidv4(),
         group_id: groupId,
-        user_id: userId!,
+        user_id: user.id,
         role: "owner",
       });
 
-      return { group: newGroup, wasCreated: true };
+      return { group: newGroup, wasCreated: true, onboardingCompleted: false };
     }),
+  completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+    const clerkId = ctx.userId;
+
+    if (!clerkId) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    await ctx.db
+      .update(users)
+      .set({ onboarding_completed: true })
+      .where(eq(users.clerk_id, clerkId));
+
+    return { success: true };
+  }),
 });
-
-

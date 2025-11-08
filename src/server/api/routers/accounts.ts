@@ -1,18 +1,26 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
-import {
-  bank_accounts,
-  financial_groups,
-  users,
-} from "../../db/schema";
+import { bank_accounts } from "../../db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { requireUserAndGroup } from "../utils/getUserAndGroup";
 
 const accountTypeSchema = z.enum(["checking", "credit", "investment"]);
 
 export const accountsRouter = createTRPCRouter({
+  list: protectedProcedure.query(async ({ ctx }) => {
+    const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+    const accounts = await ctx.db.query.bank_accounts.findMany({
+      where: eq(bank_accounts.group_id, groupId),
+    });
+
+    return accounts.sort((a, b) =>
+      a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }),
+    );
+  }),
   create: protectedProcedure
     .input(
       z.object({
@@ -23,62 +31,48 @@ export const accountsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const clerkId = ctx.userId;
+      const { db } = ctx;
+      const { groupId } = await requireUserAndGroup(db, ctx.userId);
 
-      if (!clerkId) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-
-      const user = await ctx.db.query.users.findFirst({
-        where: eq(users.clerk_id, clerkId),
+      // 🔹 Impede duplicação de contas com o mesmo nome dentro do grupo
+      const existing = await db.query.bank_accounts.findFirst({
+        where: and(
+          eq(bank_accounts.group_id, groupId),
+          eq(bank_accounts.name, input.name),
+        ),
       });
 
-      if (!user) {
+      if (existing) {
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Usuário não encontrado.",
+          code: "CONFLICT",
+          message: "Já existe uma conta com esse nome neste grupo.",
         });
       }
 
-      const group = await ctx.db.query.financial_groups.findFirst({
-        where: eq(financial_groups.owner_id, user.id),
-      });
-
-      if (!group) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "Grupo financeiro não encontrado.",
-        });
-      }
-
-      const accountId = uuidv4();
-
-      const balanceInReais =
+      const balanceValue =
         Number.isFinite(input.initialBalance) && input.initialBalance > 0
           ? (input.initialBalance / 100).toFixed(2)
           : "0";
 
-      const [account] = await ctx.db
+      const [account] = await db
         .insert(bank_accounts)
         .values({
-          id: accountId,
-          group_id: group.id,
-          name: input.name,
+          id: uuidv4(),
+          group_id: groupId,
+          name: input.name.trim(),
           type: input.type,
-          initial_balance: balanceInReais,
-          color: input.color ?? "#4F46E5",
+          initial_balance: balanceValue,
+          color: input.color ?? "#6366F1",
         })
         .returning();
 
       if (!account) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Não foi possível criar a conta.",
+          message: "Erro inesperado ao criar conta.",
         });
       }
 
       return account;
     }),
 });
-
-

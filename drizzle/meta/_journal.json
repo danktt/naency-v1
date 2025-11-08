@@ -15,6 +15,13 @@
       "when": 1762561801721,
       "tag": "0001_curvy_sebastian_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762570699919,
+      "tag": "0002_stiff_toro",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,4 @@
-import { TRPCError } from "@trpc/server";
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
@@ -8,8 +7,9 @@ import {
   DEFAULT_CATEGORY_TEMPLATES,
 } from "@/config/defaultCategories";
 
-import { categories, financial_groups, users } from "../../db/schema";
+import { categories } from "../../db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { requireUserAndGroup } from "../utils/getUserAndGroup";
 
 const categoryInputSchema: z.ZodType<CategoryTemplate> = z.lazy(() =>
   z.object({
@@ -22,6 +22,39 @@ const categoryInputSchema: z.ZodType<CategoryTemplate> = z.lazy(() =>
 );
 
 export const categoriesRouter = createTRPCRouter({
+  list: protectedProcedure
+    .input(
+      z
+        .object({
+          type: z.enum(["expense", "income"]).optional(),
+          includeInactive: z.boolean().optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      const filters = [eq(categories.group_id, groupId)];
+
+      if (!input?.includeInactive) {
+        filters.push(eq(categories.is_active, true));
+      }
+
+      if (input?.type) {
+        filters.push(eq(categories.type, input.type));
+      }
+
+      const where =
+        filters.length === 1 ? filters[0] : and(...filters);
+
+      const rows = await ctx.db.query.categories.findMany({
+        where,
+      });
+
+      return rows.sort((a, b) =>
+        a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }),
+      );
+    }),
   importDefaults: protectedProcedure
     .input(
       z
@@ -32,38 +65,12 @@ export const categoriesRouter = createTRPCRouter({
         .optional(),
     )
     .mutation(async ({ ctx, input }) => {
-      const clerkId = ctx.userId;
-
-      if (!clerkId) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-
-      const user = await ctx.db.query.users.findFirst({
-        where: eq(users.clerk_id, clerkId),
-      });
-
-      if (!user) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Usuário não encontrado.",
-        });
-      }
-
-      const group = await ctx.db.query.financial_groups.findFirst({
-        where: eq(financial_groups.owner_id, user.id),
-      });
-
-      if (!group) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "Grupo financeiro não encontrado.",
-        });
-      }
+      const { user, groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
 
       const [{ value: existingCategories }] = await ctx.db
         .select({ value: count() })
         .from(categories)
-        .where(eq(categories.group_id, group.id));
+        .where(eq(categories.group_id, groupId));
 
       if (existingCategories > 0 && !input?.overwrite) {
         return { inserted: 0, skipped: true };
@@ -72,7 +79,7 @@ export const categoriesRouter = createTRPCRouter({
       if (existingCategories > 0) {
         await ctx.db
           .delete(categories)
-          .where(eq(categories.group_id, group.id));
+          .where(eq(categories.group_id, groupId));
       }
 
       const categoriesToInsert =
@@ -88,7 +95,7 @@ export const categoriesRouter = createTRPCRouter({
 
         await ctx.db.insert(categories).values({
           id: categoryId,
-          group_id: group.id,
+          group_id: groupId,
           parent_id: parentId,
           name: category.name,
           type: category.type,
