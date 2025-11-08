@@ -1,9 +1,10 @@
 import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/nextjs";
 import type { ReactNode } from "react";
 import { BreadcrumbComponent } from "@/components/Breadcrumb";
+import { DatePicker } from "@/components/DatePicker";
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { AppSidebar } from "@/components/Sidebar";
 import { ToggleTheme } from "@/components/ToggleTheme";
-import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -29,6 +30,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
                   <BreadcrumbComponent />
                 </div>
                 <div className="ml-auto">
+                  <DatePicker />
                   <ToggleTheme />
                 </div>
               </div>

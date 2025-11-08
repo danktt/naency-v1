@@ -6,12 +6,26 @@ import * as React from "react";
 import { DataTable } from "@/components/Table";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc/client";
+import { useDateStore } from "@/stores/useDateStore";
 
 import { createIncomeColumns } from "./columnsDef";
 
 export function IncomesTable() {
+  const dateRange = useDateStore((state) => state.dateRange);
+
+  const queryInput = React.useMemo(
+    () => ({
+      type: "income" as const,
+      dateRange: {
+        from: dateRange.from,
+        to: dateRange.to,
+      },
+    }),
+    [dateRange],
+  );
+
   const { data, isLoading, isError, refetch, isRefetching } =
-    trpc.transactions.list.useQuery({ type: "income" });
+    trpc.transactions.list.useQuery(queryInput);
 
   const columns = React.useMemo(() => createIncomeColumns(), []);
 

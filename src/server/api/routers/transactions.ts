@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
@@ -33,10 +33,16 @@ const createTransactionSchema = z.object({
   attachmentUrl: z.string().url("Informe uma URL válida.").optional(),
 });
 
+const dateRangeSchema = z.object({
+  from: z.coerce.date(),
+  to: z.coerce.date(),
+});
+
 const listTransactionsSchema = z
   .object({
     type: transactionTypeSchema.default("income"),
     limit: z.number().int().min(1).max(100).optional(),
+    dateRange: dateRangeSchema.optional(),
   })
   .optional();
 
@@ -47,6 +53,17 @@ export const transactionsRouter = createTRPCRouter({
       const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
       const type = input?.type ?? "income";
       const limit = input?.limit ?? 50;
+      const dateRange = input?.dateRange;
+
+      const whereConditions = [
+        eq(transactions.group_id, groupId),
+        eq(transactions.type, type),
+      ];
+
+      if (dateRange) {
+        whereConditions.push(gte(transactions.date, dateRange.from));
+        whereConditions.push(lte(transactions.date, dateRange.to));
+      }
 
       const items = await ctx.db
         .select({
@@ -70,9 +87,7 @@ export const transactionsRouter = createTRPCRouter({
           ),
         )
         .leftJoin(categories, eq(categories.id, transactions.category_id))
-        .where(
-          and(eq(transactions.group_id, groupId), eq(transactions.type, type)),
-        )
+        .where(and(...whereConditions))
         .orderBy(desc(transactions.date))
         .limit(limit);
 
