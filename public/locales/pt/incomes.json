@@ -1,0 +1,95 @@
+{
+  "header": {
+    "title": "Receitas",
+    "subtitle": "Gerencie suas receitas."
+  },
+  "metrics": {
+    "totalIncomes": {
+      "title": "Receitas totais",
+      "change": "R$ 100,00"
+    },
+    "totalExpenses": {
+      "title": "Despesas totais",
+      "change": "R$ 100,00"
+    },
+    "netBalance": {
+      "title": "Saldo líquido",
+      "change": "R$ 100,00"
+    }
+  },
+  "form": {
+    "trigger": "Criar receita",
+    "title": "Criar receita",
+    "description": "Preencha as informações abaixo para registrar uma receita.",
+    "mode": {
+      "label": "Tipo de transação",
+      "unique": "Única",
+      "installment": "Parcelada",
+      "recurring": "Recorrente"
+    },
+    "dates": {
+      "help": "Defina quando esta receita deve ser recebida ou iniciar a recorrência.",
+      "receivedDate": "Data de recebimento",
+      "firstInstallment": "Data da primeira parcela",
+      "totalInstallments": "Total de parcelas",
+      "recurring": {
+        "frequencyLabel": "Frequência da recorrência",
+        "frequencyPlaceholder": "Selecione a frequência",
+        "daily": "Diária",
+        "weekly": "Semanal",
+        "monthly": "Mensal",
+        "yearly": "Anual",
+        "startDate": "Data de início",
+        "endDate": "Data de término (opcional)"
+      },
+      "selectDate": "Selecione uma data"
+    },
+    "details": {
+      "help": "Forneça as informações principais para acompanhar e reportar esta receita.",
+      "amount": "Valor",
+      "account": "Conta",
+      "accountLoading": "Carregando contas...",
+      "accountPlaceholder": "Selecione uma conta",
+      "accountEmpty": "Nenhuma conta cadastrada",
+      "description": "Descrição",
+      "descriptionPlaceholder": "ex.: Salário, freelancer, bônus...",
+      "method": "Forma de pagamento",
+      "methodPlaceholder": "Selecione uma forma",
+      "category": "Categoria"
+    },
+    "extras": {
+      "help": "Adicione detalhes opcionais ou informações de apoio para esta receita.",
+      "receipt": "Comprovante (URL)"
+    },
+    "keepOpen": "Manter aberto",
+    "cancel": "Cancelar",
+    "submit": "Criar",
+    "toast": {
+      "success": "Receita registrada com sucesso.",
+      "error": "Não foi possível registrar a receita."
+    },
+    "validation": {
+      "description": "Informe uma descrição.",
+      "amount": "Informe um valor maior que zero.",
+      "account": "Selecione uma conta.",
+      "category": "Selecione uma categoria.",
+      "attachment": "Informe uma URL válida.",
+      "totalInstallments": "Informe pelo menos duas parcelas."
+    },
+    "paymentMethods": {
+      "pix": "Pix",
+      "transfer": "Transferência",
+      "debit": "Débito",
+      "credit": "Crédito",
+      "cash": "Dinheiro",
+      "boleto": "Boleto",
+      "investment": "Investimento"
+    },
+    "modes": {
+      "unique": "única",
+      "installment": "parcelada",
+      "recurring": "recorrente"
+    }
+  }
+}
+

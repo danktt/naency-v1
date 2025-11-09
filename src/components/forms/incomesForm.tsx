@@ -3,10 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { enUS, ptBR } from "date-fns/locale";
 import { AnimatePresence, motion } from "framer-motion";
+import type { TFunction } from "i18next";
 import * as React from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -26,7 +28,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -52,7 +53,6 @@ import { cn } from "@/lib/utils";
 import { useDateStore } from "@/stores/useDateStore";
 import { Checkbox } from "../ui/checkbox";
 import { ScrollArea } from "../ui/scroll-area";
-import { Separator } from "../ui/separator";
 
 const paymentMethodValues = [
   "pix",
@@ -68,39 +68,46 @@ type PaymentMethodValue = (typeof paymentMethodValues)[number];
 
 const paymentMethodOptions: Array<{
   value: PaymentMethodValue;
-  label: string;
+  labelKey: `form.paymentMethods.${PaymentMethodValue}`;
 }> = [
-  { value: "pix", label: "Pix" },
-  { value: "transfer", label: "Transfer" },
-  { value: "debit", label: "Debit" },
-  { value: "credit", label: "Credit" },
-  { value: "cash", label: "Cash" },
-  { value: "boleto", label: "Boleto" },
-  { value: "investment", label: "Investment" },
+  { value: "pix", labelKey: "form.paymentMethods.pix" },
+  { value: "transfer", labelKey: "form.paymentMethods.transfer" },
+  { value: "debit", labelKey: "form.paymentMethods.debit" },
+  { value: "credit", labelKey: "form.paymentMethods.credit" },
+  { value: "cash", labelKey: "form.paymentMethods.cash" },
+  { value: "boleto", labelKey: "form.paymentMethods.boleto" },
+  { value: "investment", labelKey: "form.paymentMethods.investment" },
 ];
 
-const createIncomeFormSchema = z.object({
-  description: z.string().min(1, "Enter a description."),
-  amount: z.number().int().min(1, "Enter an amount greater than zero."),
-  date: z.date(),
-  accountId: z.string().uuid("Select an account."),
-  categoryId: z.string().uuid("Select a category."),
-  method: z.enum(paymentMethodValues),
-  attachmentUrl: z
-    .string()
-    .trim()
-    .refine(
-      (value) => value.length === 0 || isValidUrl(value),
-      "Enter a valid URL.",
-    ),
-  mode: z.enum(["unique", "installment", "recurring"]),
-  totalInstallments: z.number().int().min(2).optional(),
-  recurrenceType: z.enum(["daily", "weekly", "monthly", "yearly"]).optional(),
-  startDate: z.date().optional(),
-  endDate: z.date().optional(),
-});
+const createIncomeFormSchema = (t: TFunction<"incomes">) =>
+  z.object({
+    description: z.string().min(1, t("form.validation.description")),
+    amount: z.number().int().min(1, t("form.validation.amount")),
+    date: z.date(),
+    accountId: z.string().uuid(t("form.validation.account")),
+    categoryId: z.string().uuid(t("form.validation.category")),
+    method: z.enum(paymentMethodValues),
+    attachmentUrl: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value.length === 0 || isValidUrl(value),
+        t("form.validation.attachment"),
+      ),
+    mode: z.enum(["unique", "installment", "recurring"]),
+    totalInstallments: z
+      .number()
+      .int()
+      .min(2, t("form.validation.totalInstallments"))
+      .optional(),
+    recurrenceType: z.enum(["daily", "weekly", "monthly", "yearly"]).optional(),
+    startDate: z.date().optional(),
+    endDate: z.date().optional(),
+  });
 
-type CreateIncomeFormValues = z.infer<typeof createIncomeFormSchema>;
+type CreateIncomeFormValues = z.infer<
+  ReturnType<typeof createIncomeFormSchema>
+>;
 
 const getDefaultValues = (): CreateIncomeFormValues => ({
   description: "",
@@ -126,6 +133,7 @@ function isValidUrl(value: string) {
 }
 
 export function IncomesForm() {
+  const { t, i18n } = useTranslation("incomes");
   const [isOpen, setIsOpen] = React.useState(false);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
   const [isStartDatePopoverOpen, setIsStartDatePopoverOpen] =
@@ -134,21 +142,23 @@ export function IncomesForm() {
   const [keepOpen, setKeepOpen] = React.useState(false);
   const keepOpenId = React.useId();
 
+  const locale = React.useMemo(
+    () => (i18n.language?.startsWith("pt") ? ptBR : enUS),
+    [i18n.language],
+  );
+
+  const schema = React.useMemo(() => createIncomeFormSchema(t), [t]);
+
   const dateRange = useDateStore((state) => state.dateRange);
   const utils = trpc.useUtils();
   const keepOpenRef = React.useRef(keepOpen);
-  const defaultDateRef = React.useRef(new Date());
 
   React.useEffect(() => {
     keepOpenRef.current = keepOpen;
   }, [keepOpen]);
 
-  React.useEffect(() => {
-    defaultDateRef.current = new Date();
-  }, [dateRange.to]);
-
   const form = useForm<CreateIncomeFormValues>({
-    resolver: zodResolver(createIncomeFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: getDefaultValues(),
     mode: "onSubmit",
   });
@@ -160,7 +170,7 @@ export function IncomesForm() {
   const createIncomeMutation = trpc.transactions.create.useMutation({
     onSuccess: async () => {
       await utils.transactions.list.invalidate({ type: "income" });
-      toast.success("Income successfully registered.");
+      toast.success(t("form.toast.success"));
       form.reset(getDefaultValues());
       setIsDatePopoverOpen(false);
       setIsStartDatePopoverOpen(false);
@@ -171,8 +181,7 @@ export function IncomesForm() {
         setIsOpen(false);
       }
     },
-    onError: (error) =>
-      toast.error(error.message ?? "Could not register the income."),
+    onError: (error) => toast.error(error.message ?? t("form.toast.error")),
   });
 
   const handleOpenChange = React.useCallback(
@@ -233,7 +242,9 @@ export function IncomesForm() {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button icon={<IconPlus className="size-4" />}>Create Income</Button>
+        <Button icon={<IconPlus className="size-4" />}>
+          {t("form.trigger")}
+        </Button>
       </DialogTrigger>
 
       <DialogContent
@@ -251,10 +262,8 @@ export function IncomesForm() {
               {/* Header */}
               <div className="sm:px-4 px-4 pt-6 pb-4 space-y-4 shrink-0">
                 <DialogHeader className="px-0 text-left">
-                  <DialogTitle>Create Income</DialogTitle>
-                  <DialogDescription>
-                    Fill in the information below to create an income entry.
-                  </DialogDescription>
+                  <DialogTitle>{t("form.title")}</DialogTitle>
+                  <DialogDescription>{t("form.description")}</DialogDescription>
                 </DialogHeader>
 
                 {/* Mode Tabs */}
@@ -264,7 +273,7 @@ export function IncomesForm() {
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <FormLabel className="text-sm font-medium">
-                        Transaction type
+                        {t("form.mode.label")}
                       </FormLabel>
                       <FormControl>
                         <Tabs
@@ -278,19 +287,19 @@ export function IncomesForm() {
                         >
                           <TabsList className="grid w-full grid-cols-3 rounded-xl bg-muted/60 p-1">
                             <TabsTrigger value="unique" className="rounded-lg">
-                              Unique
+                              {t("form.mode.unique")}
                             </TabsTrigger>
                             <TabsTrigger
                               value="installment"
                               className="rounded-lg"
                             >
-                              Installment
+                              {t("form.mode.installment")}
                             </TabsTrigger>
                             <TabsTrigger
                               value="recurring"
                               className="rounded-lg"
                             >
-                              Recurring
+                              {t("form.mode.recurring")}
                             </TabsTrigger>
                           </TabsList>
                         </Tabs>
@@ -302,13 +311,12 @@ export function IncomesForm() {
               </div>
 
               {/* Scrollable Content */}
-              <ScrollArea className="flex-1 sm:px-4 px-4     overflow-y-auto ">
+              <ScrollArea className="flex-1 sm:px-4 px-4 overflow-y-auto">
                 <div className="space-y-6 px-1 pb-1">
                   {/* === Dates Section === */}
                   <section className="space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      Configure when this income should be received or start
-                      recurring.
+                      {t("form.dates.help")}
                     </p>
                     <AnimatePresence initial={false} mode="wait">
                       {isUnique && (
@@ -320,7 +328,9 @@ export function IncomesForm() {
                               const selectedDate = field.value;
                               return (
                                 <FormItem>
-                                  <FormLabel>Received date</FormLabel>
+                                  <FormLabel>
+                                    {t("form.dates.receivedDate")}
+                                  </FormLabel>
                                   <FormControl>
                                     <Popover
                                       open={isDatePopoverOpen}
@@ -338,9 +348,9 @@ export function IncomesForm() {
                                           <IconCalendar className="mr-2 h-4 w-4" />
                                           {selectedDate
                                             ? format(selectedDate, "PPP", {
-                                                locale: ptBR,
+                                                locale,
                                               })
-                                            : "Select a date"}
+                                            : t("form.dates.selectDate")}
                                           <IconChevronDown className="ml-auto h-4 w-4" />
                                         </Button>
                                       </PopoverTrigger>
@@ -360,7 +370,7 @@ export function IncomesForm() {
                                           defaultMonth={
                                             selectedDate ?? dateRange.to
                                           }
-                                          locale={ptBR}
+                                          locale={locale}
                                         />
                                       </PopoverContent>
                                     </Popover>
@@ -385,7 +395,9 @@ export function IncomesForm() {
                               const selectedDate = field.value;
                               return (
                                 <FormItem>
-                                  <FormLabel>First installment date</FormLabel>
+                                  <FormLabel>
+                                    {t("form.dates.firstInstallment")}
+                                  </FormLabel>
                                   <FormControl>
                                     <Popover
                                       open={isDatePopoverOpen}
@@ -403,9 +415,9 @@ export function IncomesForm() {
                                           <IconCalendar className="mr-2 h-4 w-4" />
                                           {selectedDate
                                             ? format(selectedDate, "PPP", {
-                                                locale: ptBR,
+                                                locale,
                                               })
-                                            : "Select a date"}
+                                            : t("form.dates.selectDate")}
                                           <IconChevronDown className="ml-auto h-4 w-4" />
                                         </Button>
                                       </PopoverTrigger>
@@ -425,7 +437,7 @@ export function IncomesForm() {
                                           defaultMonth={
                                             selectedDate ?? dateRange.to
                                           }
-                                          locale={ptBR}
+                                          locale={locale}
                                         />
                                       </PopoverContent>
                                     </Popover>
@@ -439,7 +451,9 @@ export function IncomesForm() {
                             name="totalInstallments"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Total installments</FormLabel>
+                                <FormLabel>
+                                  {t("form.dates.totalInstallments")}
+                                </FormLabel>
                                 <FormControl>
                                   <NumberInputCounter
                                     value={field.value}
@@ -462,39 +476,45 @@ export function IncomesForm() {
                           {...motionProps}
                           className="grid gap-4 sm:grid-cols-2 md:grid-cols-3"
                         >
-                          {/* Frequency */}
                           <FormField
                             control={form.control}
                             name="recurrenceType"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Recurrence frequency</FormLabel>
+                                <FormLabel>
+                                  {t("form.dates.recurring.frequencyLabel")}
+                                </FormLabel>
                                 <Select
                                   value={field.value}
                                   onValueChange={field.onChange}
                                 >
                                   <FormControl>
                                     <SelectTrigger className="w-full">
-                                      <SelectValue placeholder="Select frequency" />
+                                      <SelectValue
+                                        placeholder={t(
+                                          "form.dates.recurring.frequencyPlaceholder",
+                                        )}
+                                      />
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="daily">Daily</SelectItem>
+                                    <SelectItem value="daily">
+                                      {t("form.dates.recurring.daily")}
+                                    </SelectItem>
                                     <SelectItem value="weekly">
-                                      Weekly
+                                      {t("form.dates.recurring.weekly")}
                                     </SelectItem>
                                     <SelectItem value="monthly">
-                                      Monthly
+                                      {t("form.dates.recurring.monthly")}
                                     </SelectItem>
                                     <SelectItem value="yearly">
-                                      Yearly
+                                      {t("form.dates.recurring.yearly")}
                                     </SelectItem>
                                   </SelectContent>
                                 </Select>
                               </FormItem>
                             )}
                           />
-                          {/* Start Date */}
                           <FormField
                             control={form.control}
                             name="startDate"
@@ -502,7 +522,9 @@ export function IncomesForm() {
                               const selected = field.value;
                               return (
                                 <FormItem>
-                                  <FormLabel>Start date</FormLabel>
+                                  <FormLabel>
+                                    {t("form.dates.recurring.startDate")}
+                                  </FormLabel>
                                   <FormControl>
                                     <Popover
                                       open={isStartDatePopoverOpen}
@@ -520,9 +542,9 @@ export function IncomesForm() {
                                           <IconCalendar className="mr-2 h-4 w-4" />
                                           {selected
                                             ? format(selected, "PPP", {
-                                                locale: ptBR,
+                                                locale,
                                               })
-                                            : "Select a date"}
+                                            : t("form.dates.selectDate")}
                                           <IconChevronDown className="ml-auto h-4 w-4" />
                                         </Button>
                                       </PopoverTrigger>
@@ -542,7 +564,7 @@ export function IncomesForm() {
                                           defaultMonth={
                                             selected ?? dateRange.to
                                           }
-                                          locale={ptBR}
+                                          locale={locale}
                                         />
                                       </PopoverContent>
                                     </Popover>
@@ -551,7 +573,6 @@ export function IncomesForm() {
                               );
                             }}
                           />
-                          {/* End Date */}
                           <FormField
                             control={form.control}
                             name="endDate"
@@ -559,7 +580,9 @@ export function IncomesForm() {
                               const selected = field.value;
                               return (
                                 <FormItem>
-                                  <FormLabel>End date (optional)</FormLabel>
+                                  <FormLabel>
+                                    {t("form.dates.recurring.endDate")}
+                                  </FormLabel>
                                   <FormControl>
                                     <Popover
                                       open={isEndDatePopoverOpen}
@@ -577,9 +600,9 @@ export function IncomesForm() {
                                           <IconCalendar className="mr-2 h-4 w-4" />
                                           {selected
                                             ? format(selected, "PPP", {
-                                                locale: ptBR,
+                                                locale,
                                               })
-                                            : "Select a date"}
+                                            : t("form.dates.selectDate")}
                                           <IconChevronDown className="ml-auto h-4 w-4" />
                                         </Button>
                                       </PopoverTrigger>
@@ -599,7 +622,7 @@ export function IncomesForm() {
                                             form.getValues("startDate") ??
                                             dateRange.to
                                           }
-                                          locale={ptBR}
+                                          locale={locale}
                                         />
                                       </PopoverContent>
                                     </Popover>
@@ -616,18 +639,17 @@ export function IncomesForm() {
                   {/* === Details Section === */}
                   <section className="space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      Provide the main information used for tracking and
-                      reporting this income.
+                      {t("form.details.help")}
                     </p>
                     <div className="grid gap-4 md:grid-cols-2">
-                      {/* Amount */}
                       <FormField
                         control={form.control}
                         name="amount"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              Amount <span className="text-destructive">*</span>
+                              {t("form.details.amount")}{" "}
+                              <span className="text-destructive">*</span>
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -645,14 +667,13 @@ export function IncomesForm() {
                           </FormItem>
                         )}
                       />
-                      {/* Account */}
                       <FormField
                         control={form.control}
                         name="accountId"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              Account{" "}
+                              {t("form.details.account")}{" "}
                               <span className="text-destructive">*</span>
                             </FormLabel>
                             <Select
@@ -666,10 +687,10 @@ export function IncomesForm() {
                                   <SelectValue
                                     placeholder={
                                       accountsQuery.isLoading
-                                        ? "Loading accounts..."
+                                        ? t("form.details.accountLoading")
                                         : hasAccounts
-                                          ? "Select an account"
-                                          : "No account registered"
+                                          ? t("form.details.accountPlaceholder")
+                                          : t("form.details.accountEmpty")
                                     }
                                   />
                                 </SelectTrigger>
@@ -688,16 +709,19 @@ export function IncomesForm() {
                           </FormItem>
                         )}
                       />
-                      {/* Description */}
                       <FormField
                         control={form.control}
                         name="description"
                         render={({ field }) => (
                           <FormItem className="md:col-span-2">
-                            <FormLabel>Description</FormLabel>
+                            <FormLabel>
+                              {t("form.details.description")}
+                            </FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="e.g.: Salary, freelance, bonus..."
+                                placeholder={t(
+                                  "form.details.descriptionPlaceholder",
+                                )}
                                 autoComplete="off"
                                 {...field}
                               />
@@ -705,20 +729,23 @@ export function IncomesForm() {
                           </FormItem>
                         )}
                       />
-                      {/* Method */}
                       <FormField
                         control={form.control}
                         name="method"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Payment method</FormLabel>
+                            <FormLabel>{t("form.details.method")}</FormLabel>
                             <Select
                               value={field.value}
                               onValueChange={field.onChange}
                             >
                               <FormControl>
                                 <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Select a method" />
+                                  <SelectValue
+                                    placeholder={t(
+                                      "form.details.methodPlaceholder",
+                                    )}
+                                  />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -727,7 +754,7 @@ export function IncomesForm() {
                                     key={option.value}
                                     value={option.value}
                                   >
-                                    {option.label}
+                                    {t(option.labelKey)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -735,13 +762,12 @@ export function IncomesForm() {
                           </FormItem>
                         )}
                       />
-                      {/* Category */}
                       <FormField
                         control={form.control}
                         name="categoryId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Category</FormLabel>
+                            <FormLabel>{t("form.details.category")}</FormLabel>
                             <FormControl>
                               <CategoriesSelect
                                 type="income"
@@ -759,15 +785,14 @@ export function IncomesForm() {
                   {/* === Extras Section === */}
                   <section className="space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      Add optional details or supporting information for this
-                      income.
+                      {t("form.extras.help")}
                     </p>
                     <FormField
                       control={form.control}
                       name="attachmentUrl"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Receipt (URL)</FormLabel>
+                          <FormLabel>{t("form.extras.receipt")}</FormLabel>
                           <FormControl>
                             <Input
                               type="url"
@@ -785,7 +810,7 @@ export function IncomesForm() {
               </ScrollArea>
 
               {/* === Footer === */}
-              <div className="sm:px-4 px-4 py-4  rounded-b-lg">
+              <div className="sm:px-4 px-4 py-4 rounded-b-lg">
                 <div className="flex sm:flex-row flex-col gap-4">
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -796,9 +821,9 @@ export function IncomesForm() {
                     />
                     <FormLabel
                       htmlFor={keepOpenId}
-                      className="text-sm text-muted-foreground text-nowrap"
+                      className="text-sm text-muted-foreground whitespace-nowrap"
                     >
-                      Keep open
+                      {t("form.keepOpen")}
                     </FormLabel>
                   </div>
                   <DialogFooter className="flex w-full flex-col-reverse gap-2 px-0 sm:flex-row sm:items-center sm:justify-end">
@@ -809,7 +834,7 @@ export function IncomesForm() {
                         className="flex-1 sm:flex-none"
                         disabled={isSubmitting}
                       >
-                        Cancel
+                        {t("form.cancel")}
                       </Button>
                     </DialogClose>
                     <Button
@@ -818,7 +843,7 @@ export function IncomesForm() {
                       disabled={isSubmitting || isFormDisabled}
                       isLoading={isSubmitting}
                     >
-                      Create
+                      {t("form.submit")}
                     </Button>
                   </DialogFooter>
                 </div>

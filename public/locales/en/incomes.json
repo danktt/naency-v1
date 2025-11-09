@@ -1,0 +1,95 @@
+{
+  "header": {
+    "title": "Incomes",
+    "subtitle": "Manage your incomes."
+  },
+  "metrics": {
+    "totalIncomes": {
+      "title": "Total incomes",
+      "change": "R$ 100.00"
+    },
+    "totalExpenses": {
+      "title": "Total expenses",
+      "change": "R$ 100.00"
+    },
+    "netBalance": {
+      "title": "Net balance",
+      "change": "R$ 100.00"
+    }
+  },
+  "form": {
+    "trigger": "Create income",
+    "title": "Create income",
+    "description": "Fill in the information below to create an income entry.",
+    "mode": {
+      "label": "Transaction type",
+      "unique": "Unique",
+      "installment": "Installment",
+      "recurring": "Recurring"
+    },
+    "dates": {
+      "help": "Configure when this income should be received or start recurring.",
+      "receivedDate": "Received date",
+      "firstInstallment": "First installment date",
+      "totalInstallments": "Total installments",
+      "recurring": {
+        "frequencyLabel": "Recurrence frequency",
+        "frequencyPlaceholder": "Select frequency",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "startDate": "Start date",
+        "endDate": "End date (optional)"
+      },
+      "selectDate": "Select a date"
+    },
+    "details": {
+      "help": "Provide the main information used for tracking and reporting this income.",
+      "amount": "Amount",
+      "account": "Account",
+      "accountLoading": "Loading accounts...",
+      "accountPlaceholder": "Select an account",
+      "accountEmpty": "No account registered",
+      "description": "Description",
+      "descriptionPlaceholder": "e.g.: Salary, freelance, bonus...",
+      "method": "Payment method",
+      "methodPlaceholder": "Select a method",
+      "category": "Category"
+    },
+    "extras": {
+      "help": "Add optional details or supporting information for this income.",
+      "receipt": "Receipt (URL)"
+    },
+    "keepOpen": "Keep open",
+    "cancel": "Cancel",
+    "submit": "Create",
+    "toast": {
+      "success": "Income successfully registered.",
+      "error": "Could not register the income."
+    },
+    "validation": {
+      "description": "Enter a description.",
+      "amount": "Enter an amount greater than zero.",
+      "account": "Select an account.",
+      "category": "Select a category.",
+      "attachment": "Enter a valid URL.",
+      "totalInstallments": "Enter at least two installments."
+    },
+    "paymentMethods": {
+      "pix": "Pix",
+      "transfer": "Transfer",
+      "debit": "Debit",
+      "credit": "Credit",
+      "cash": "Cash",
+      "boleto": "Boleto",
+      "investment": "Investment"
+    },
+    "modes": {
+      "unique": "unique",
+      "installment": "installment",
+      "recurring": "recurring"
+    }
+  }
+}
+

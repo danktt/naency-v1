@@ -5,16 +5,21 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 
 import enDashboard from "../../../public/locales/en/dashboard.json";
+import enIncomes from "../../../public/locales/en/incomes.json";
 import ptDashboard from "../../../public/locales/pt/dashboard.json";
+import ptIncomes from "../../../public/locales/pt/incomes.json";
 
 export const defaultNS = "dashboard";
+const namespaces = ["dashboard", "incomes"];
 
 const resources: Resource = {
   en: {
     [defaultNS]: enDashboard,
+    incomes: enIncomes,
   },
   pt: {
     [defaultNS]: ptDashboard,
+    incomes: ptIncomes,
   },
 };
 
@@ -24,6 +29,7 @@ if (!i18n.isInitialized) {
     .use(initReactI18next)
     .init({
       resources,
+      ns: namespaces,
       fallbackLng: "en",
       supportedLngs: ["en", "pt"],
       defaultNS,
