@@ -2,7 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconArrowRight } from "@tabler/icons-react";
+import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, Plus, Trash2 } from "lucide-react";
@@ -45,7 +45,14 @@ import {
 } from "@/config/defaultCategories";
 import { formatCentsBRL, parseCurrencyToCents } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
-import { Form } from "../ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../ui/form";
 
 type AccountType = "checking" | "credit" | "investment";
 
@@ -703,7 +710,7 @@ export default function OnboardingAnimationModal() {
                     ref={welcomeRef}
                     key="welcome-step"
                     {...motionDivProps}
-                    className="w-full h-full min-w-[400px] max-w-[400px]"
+                    className="w-full h-full max-w-[400px]"
                     onAnimationComplete={onAnimationComplete}
                   >
                     <DialogHeader>
@@ -740,290 +747,112 @@ export default function OnboardingAnimationModal() {
                     ref={accountRef}
                     key="account-step"
                     {...motionDivProps}
+                    className="w-full h-full  max-w-[500px]"
+                    onAnimationComplete={onAnimationComplete}
                   >
-                    <DialogHeader className="space-y-2 text-left">
+                    <DialogHeader>
                       <p className="text-sm text-muted-foreground">
                         {greetingMessage}
                       </p>
-                      <DialogTitle className="text-xl font-semibold">
-                        {stepTitle}
+                      <DialogTitle>
+                        Vamos configurar sua primeira conta bancária
                       </DialogTitle>
-                      {stepDescription ? (
-                        <DialogDescription>{stepDescription}</DialogDescription>
-                      ) : null}
                     </DialogHeader>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="accountName">Nome da conta</Label>
-                        <Input
-                          id="accountName"
-                          placeholder="Ex: Nubank"
-                          value={accountName}
-                          onChange={(event) =>
-                            setAccountName(event.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="accountType">Tipo</Label>
-                        <Select
-                          value={accountType}
-                          onValueChange={(value) =>
-                            setAccountType(value as AccountType)
-                          }
-                        >
-                          <SelectTrigger id="accountType" className="w-full">
-                            <SelectValue placeholder="Selecione o tipo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="checking">
-                              Conta corrente
-                            </SelectItem>
-                            <SelectItem value="credit">
-                              Cartão de crédito
-                            </SelectItem>
-                            <SelectItem value="investment">
-                              Investimento
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="initialBalance">Saldo inicial</Label>
-                        <Input
-                          id="initialBalance"
-                          inputMode="numeric"
-                          placeholder="R$ 0,00"
-                          value={formatCentsBRL(Number(initialBalance ?? 0))}
-                          onChange={(e) => {
-                            const cents = parseCurrencyToCents(e.target.value);
-                            setInitialBalance(cents.toString());
-                          }}
-                        />
-                      </div>
+                    <div className="my-6 space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome da conta</FormLabel>
+                            <FormControl>
+                              <Input
+                                autoComplete="off"
+                                placeholder="Ex: Nubank, Bradesco, Itaú, etc."
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="initialBalance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Saldo inicial</FormLabel>
+                            <FormControl>
+                              <Input
+                                value={formatCentsBRL(Number(field.value ?? 0))}
+                                onChange={(event) => {
+                                  const cents = parseCurrencyToCents(
+                                    event.target.value,
+                                  );
+                                  field.onChange(cents);
+                                }}
+                                onBlur={field.onBlur}
+                                inputMode="numeric"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tipo de conta</FormLabel>
+                            <FormControl>
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="checking">
+                                    Conta bancária
+                                  </SelectItem>
+                                  <SelectItem value="credit">
+                                    Cartão de crédito
+                                  </SelectItem>
+                                  <SelectItem value="investment">
+                                    Conta de investimento
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="mt-6 flex justify-between">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => goToStep("welcome", -1)}
+                        className="group"
+                      >
+                        Voltar{" "}
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => goToStep("categories", 1)}
+                        className="group"
+                      >
+                        Próximo{" "}
+                        <IconArrowRight className="size-4 group-hover:translate-x-1 transition-transform duration-300" />
+                      </Button>
                     </div>
                   </motion.div>
                 )}
 
                 {currentStep === "categories" && (
-                  <motion.div
-                    ref={categoriesRef}
-                    key="categories-step"
-                    {...motionDivProps}
-                  >
-                    <DialogHeader className="space-y-2 text-left">
-                      <p className="text-sm text-muted-foreground">
-                        {greetingMessage}
-                      </p>
-                      <DialogTitle className="text-xl font-semibold">
-                        {stepTitle}
-                      </DialogTitle>
-                      {stepDescription ? (
-                        <DialogDescription>{stepDescription}</DialogDescription>
-                      ) : null}
-                    </DialogHeader>
-
-                    <ScrollArea className="max-h-[420px]">
-                      <div className="space-y-6 pr-4">
-                        <div className="grid gap-4">
-                          {DEFAULT_CATEGORY_TEMPLATES.map((category) => {
-                            const parentKey = createCategoryKey(category.name);
-                            const isParentSelected = Boolean(
-                              selectedDefaultCategories[parentKey],
-                            );
-
-                            return (
-                              <Card
-                                key={parentKey}
-                                className="border border-border/70 bg-background shadow-none"
-                              >
-                                <CardHeader className="gap-4 pb-2">
-                                  <div className="flex flex-col gap-2">
-                                    <div className="flex items-start gap-3">
-                                      <Checkbox
-                                        id={`category-${parentKey}`}
-                                        checked={isParentSelected}
-                                        onCheckedChange={(checked) =>
-                                          toggleParentCategory(
-                                            category,
-                                            Boolean(checked),
-                                          )
-                                        }
-                                      />
-                                      <div className="space-y-1">
-                                        <CardTitle className="flex items-center gap-2 text-base">
-                                          <span
-                                            aria-hidden="true"
-                                            className="inline-flex size-2.5 rounded-full"
-                                            style={{
-                                              backgroundColor: category.color,
-                                            }}
-                                          />
-                                          {category.name}
-                                        </CardTitle>
-                                        <CardDescription>
-                                          {category.type === "expense"
-                                            ? "Despesa"
-                                            : "Receita"}{" "}
-                                          ·{" "}
-                                          {(category.children?.length ?? 0) > 0
-                                            ? `${
-                                                category.children?.length ?? 0
-                                              } subcategorias`
-                                            : "Sem subcategorias"}
-                                        </CardDescription>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </CardHeader>
-                                {category.children?.length ? (
-                                  <CardContent className="space-y-2 pt-0">
-                                    {category.children.map((child) => {
-                                      const childKey = createCategoryKey(
-                                        child.name,
-                                        category.name,
-                                      );
-                                      const isChildSelected = Boolean(
-                                        selectedDefaultCategories[childKey],
-                                      );
-
-                                      return (
-                                        <label
-                                          key={childKey}
-                                          htmlFor={`category-${childKey}`}
-                                          className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border/70 bg-muted/40 px-4 py-2 text-sm"
-                                        >
-                                          <div className="flex items-center gap-3">
-                                            <Checkbox
-                                              id={`category-${childKey}`}
-                                              checked={isChildSelected}
-                                              onCheckedChange={(checked) =>
-                                                toggleChildCategory(
-                                                  category,
-                                                  child,
-                                                  Boolean(checked),
-                                                )
-                                              }
-                                            />
-                                            <span>{child.name}</span>
-                                          </div>
-                                          <Badge
-                                            variant="outline"
-                                            className="text-xs font-medium"
-                                          >
-                                            {child.type === "expense"
-                                              ? "Despesa"
-                                              : "Receita"}
-                                          </Badge>
-                                        </label>
-                                      );
-                                    })}
-                                  </CardContent>
-                                ) : null}
-                              </Card>
-                            );
-                          })}
-                        </div>
-
-                        <div className="space-y-4 rounded-lg border border-dashed border-border/70 bg-muted/20 p-4">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <h3 className="text-sm font-medium">
-                              Adicionar categorias personalizadas
-                            </h3>
-                            {customCategories.length > 0 ? (
-                              <Badge variant="secondary" className="text-xs">
-                                {customCategories.length} adicionada
-                                {customCategories.length > 1 ? "s" : ""}
-                              </Badge>
-                            ) : null}
-                          </div>
-                          <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
-                            <Input
-                              placeholder="Nome da categoria"
-                              value={newCategoryName}
-                              onChange={(event) =>
-                                setNewCategoryName(event.target.value)
-                              }
-                            />
-                            <Select
-                              value={newCategoryType}
-                              onValueChange={(value: "expense" | "income") => {
-                                setNewCategoryType(value);
-                                setNewCategoryColor(
-                                  CATEGORY_DEFAULT_COLOR_BY_TYPE[value],
-                                );
-                              }}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Tipo" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="expense">Despesa</SelectItem>
-                                <SelectItem value="income">Receita</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <div className="flex items-center gap-2 rounded-md border border-border/70 bg-background px-3">
-                              <span className="text-xs text-muted-foreground">
-                                Cor
-                              </span>
-                              <Input
-                                type="color"
-                                className="h-9 w-12 border-0 bg-transparent px-0"
-                                value={newCategoryColor}
-                                onChange={(event) =>
-                                  setNewCategoryColor(event.target.value)
-                                }
-                              />
-                            </div>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              className="w-full sm:w-auto"
-                              onClick={handleAddCustomCategory}
-                            >
-                              <Plus className="size-4" />
-                              Adicionar
-                            </Button>
-                          </div>
-
-                          {customCategories.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {customCategories.map((category) => (
-                                <Badge
-                                  key={category.id}
-                                  variant="outline"
-                                  className="flex items-center gap-2 rounded-full px-3 py-1 text-xs"
-                                >
-                                  <span
-                                    aria-hidden="true"
-                                    className="inline-flex size-2.5 rounded-full"
-                                    style={{
-                                      backgroundColor: category.color,
-                                    }}
-                                  />
-                                  <span>{category.name}</span>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    onClick={() =>
-                                      handleRemoveCustomCategory(category.id)
-                                    }
-                                    aria-label={`Remover ${category.name}`}
-                                  >
-                                    <Trash2 className="size-3.5" />
-                                  </Button>
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    </ScrollArea>
-                  </motion.div>
+                  
                 )}
 
                 {currentStep === "final" && (
