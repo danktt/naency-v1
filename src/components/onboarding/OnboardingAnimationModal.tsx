@@ -2,10 +2,11 @@
 
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
+import type { CheckedState } from "@radix-ui/react-checkbox";
+import { IconArrowRight } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, ChevronLeft, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -13,24 +14,16 @@ import z from "zod";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -45,6 +38,7 @@ import {
 } from "@/config/defaultCategories";
 import { formatCentsBRL, parseCurrencyToCents } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import {
   Form,
   FormControl,
@@ -158,16 +152,19 @@ const CATEGORY_DEFAULT_COLOR_BY_TYPE: Record<"expense" | "income", string> = {
 const createCategoryKey = (name: string, parentName?: string) =>
   parentName ? `${parentName}::${name}` : name;
 
-const createInitialCategorySelection = (): CategorySelectionMap => {
+const createInitialCategorySelection = (
+  checked = true,
+): CategorySelectionMap => {
   const initialSelection: CategorySelectionMap = {};
 
   for (const category of DEFAULT_CATEGORY_TEMPLATES) {
     const parentKey = createCategoryKey(category.name);
-    initialSelection[parentKey] = true;
+    initialSelection[parentKey] = checked;
 
     if (category.children?.length) {
       for (const child of category.children) {
-        initialSelection[createCategoryKey(child.name, category.name)] = true;
+        initialSelection[createCategoryKey(child.name, category.name)] =
+          checked;
       }
     }
   }
@@ -175,10 +172,18 @@ const createInitialCategorySelection = (): CategorySelectionMap => {
   return initialSelection;
 };
 
-const getPreviousStep = (current: Step): Step | null => {
-  const currentIndex = steps.indexOf(current);
-  return currentIndex > 0 ? steps[currentIndex - 1] : null;
+const createInitialExpansionState = () => {
+  const initialExpansion: Record<string, boolean> = {};
+
+  for (const category of DEFAULT_CATEGORY_TEMPLATES) {
+    const parentKey = createCategoryKey(category.name);
+    initialExpansion[parentKey] = true;
+  }
+
+  return initialExpansion;
 };
+
+// Removed unused getPreviousStep helper
 
 const slideVariants = {
   enter: (direction: number) => ({
@@ -208,14 +213,17 @@ export default function OnboardingAnimationModal() {
   const { user, isLoaded, isSignedIn } = useUser();
   const [currentStep, setCurrentStep] = useState<Step>("welcome");
   const [isOpen, setIsOpen] = useState(false);
+  const [accountWasCreated, setAccountWasCreated] = useState(false);
   const [accountName, setAccountName] = useState("");
-  const [accountType, setAccountType] = useState<AccountType>("checking");
   const [initialBalance, setInitialBalance] = useState("0");
   const [selectedDefaultCategories, setSelectedDefaultCategories] =
     useState<CategorySelectionMap>(() => createInitialCategorySelection());
   const [customCategories, setCustomCategories] = useState<CustomCategory[]>(
     [],
   );
+  const [expandedCategories, setExpandedCategories] = useState<
+    Record<string, boolean>
+  >(() => createInitialExpansionState());
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryType, setNewCategoryType] = useState<"expense" | "income">(
     "expense",
@@ -224,6 +232,36 @@ export default function OnboardingAnimationModal() {
     CATEGORY_DEFAULT_COLOR_BY_TYPE.expense,
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const categorySelectionMetrics = useMemo(() => {
+    let total = 0;
+    let selected = 0;
+
+    for (const category of DEFAULT_CATEGORY_TEMPLATES) {
+      const parentKey = createCategoryKey(category.name);
+      total += 1;
+      if (selectedDefaultCategories[parentKey]) {
+        selected += 1;
+      }
+
+      if (category.children?.length) {
+        for (const child of category.children) {
+          const childKey = createCategoryKey(child.name, category.name);
+          total += 1;
+          if (selectedDefaultCategories[childKey]) {
+            selected += 1;
+          }
+        }
+      }
+    }
+
+    return {
+      total,
+      selected,
+    };
+  }, [selectedDefaultCategories]);
+  const { total: totalDefaultsCount, selected: selectedDefaultsCount } =
+    categorySelectionMetrics;
+  const customCategoriesCount = customCategories.length;
   const fetchedUserIdRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
   const [financialGroupResult, setFinancialGroupResult] =
@@ -396,10 +434,11 @@ export default function OnboardingAnimationModal() {
 
   const resetState = () => {
     setCurrentStep("welcome");
+    setAccountWasCreated(false);
     setAccountName("");
-    setAccountType("checking");
     setInitialBalance("0");
     setSelectedDefaultCategories(createInitialCategorySelection());
+    setExpandedCategories(createInitialExpansionState());
     setCustomCategories([]);
     setNewCategoryName("");
     setNewCategoryType("expense");
@@ -415,32 +454,33 @@ export default function OnboardingAnimationModal() {
     resetState();
   };
 
-  const handleStartSetup = () => {
+  const handleAccountStepContinue = async () => {
     setErrorMessage(null);
-    goToStep("account", 1);
-  };
+    if (accountWasCreated) {
+      goToStep("categories", 1);
+      return;
+    }
+    const values = form.getValues();
+    const trimmedName = values.name?.trim() ?? "";
 
-  const handleCreateAccount = async () => {
-    setErrorMessage(null);
-    const parsedBalanceCents = parseCurrencyToCents(initialBalance);
-
-    if (parsedBalanceCents < 0) {
-      setErrorMessage("Informe um saldo inicial válido.");
+    if (!trimmedName) {
+      setErrorMessage("Informe o nome da conta.");
       return;
     }
 
-    if (!accountName.trim()) {
-      setErrorMessage("Informe o nome da conta.");
+    if (values.initialBalance < 0) {
+      setErrorMessage("Informe um saldo inicial válido.");
       return;
     }
 
     try {
       await createAccount({
-        name: accountName.trim(),
-        type: accountType,
-        initialBalance: parsedBalanceCents,
+        name: trimmedName,
+        type: values.type,
+        initialBalance: values.initialBalance,
       });
 
+      setAccountWasCreated(true);
       goToStep("categories", 1);
     } catch (error) {
       setErrorMessage(
@@ -450,6 +490,8 @@ export default function OnboardingAnimationModal() {
       );
     }
   };
+
+  // Handlers for categories and finishing are below
 
   const getSelectedCategoriesPayload = (): CategoryImportPayload[] => {
     const payload: CategoryImportPayload[] = [];
@@ -532,20 +574,22 @@ export default function OnboardingAnimationModal() {
     }
   };
 
-  const goToPreviousStep = () => {
-    const prev = getPreviousStep(currentStep);
-    if (prev) {
-      goToStep(prev, -1);
-    }
+  // Navigation helpers handled inline with goToStep
+
+  const toggleCategoryExpansion = (categoryKey: string) => {
+    setExpandedCategories((previous) => ({
+      ...previous,
+      [categoryKey]: !(previous[categoryKey] ?? true),
+    }));
   };
 
   const toggleParentCategory = (
     category: CategoryTemplate,
     checked: boolean,
   ) => {
+    const parentKey = createCategoryKey(category.name);
     setSelectedDefaultCategories((previous) => {
       const next = { ...previous };
-      const parentKey = createCategoryKey(category.name);
       next[parentKey] = checked;
 
       if (category.children?.length) {
@@ -556,6 +600,12 @@ export default function OnboardingAnimationModal() {
 
       return next;
     });
+    if (checked) {
+      setExpandedCategories((previous) => ({
+        ...previous,
+        [parentKey]: true,
+      }));
+    }
   };
 
   const toggleChildCategory = (
@@ -769,7 +819,11 @@ export default function OnboardingAnimationModal() {
                               <Input
                                 autoComplete="off"
                                 placeholder="Ex: Nubank, Bradesco, Itaú, etc."
-                                {...field}
+                                value={field.value ?? ""}
+                                onChange={(event) => {
+                                  setAccountName(event.target.value);
+                                  field.onChange(event.target.value);
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -790,6 +844,7 @@ export default function OnboardingAnimationModal() {
                                     event.target.value,
                                   );
                                   field.onChange(cents);
+                                  setInitialBalance(event.target.value);
                                 }}
                                 onBlur={field.onBlur}
                                 inputMode="numeric"
@@ -841,18 +896,425 @@ export default function OnboardingAnimationModal() {
                       </Button>
                       <Button
                         type="button"
-                        onClick={() => goToStep("categories", 1)}
+                        onClick={handleAccountStepContinue}
                         className="group"
+                        disabled={isCreatingAccount}
                       >
-                        Próximo{" "}
-                        <IconArrowRight className="size-4 group-hover:translate-x-1 transition-transform duration-300" />
+                        {isCreatingAccount ? (
+                          "Salvando..."
+                        ) : (
+                          <>
+                            Próximo{" "}
+                            <IconArrowRight className="size-4 group-hover:translate-x-1 transition-transform duration-300" />
+                          </>
+                        )}
                       </Button>
                     </div>
                   </motion.div>
                 )}
 
                 {currentStep === "categories" && (
-                  
+                  <motion.div
+                    ref={categoriesRef}
+                    key="categories-step"
+                    {...motionDivProps}
+                    className="w-full h-full max-w-[720px]"
+                    onAnimationComplete={onAnimationComplete}
+                  >
+                    <DialogHeader className="space-y-2 text-left">
+                      <p className="text-sm text-muted-foreground">
+                        {greetingMessage}
+                      </p>
+                      <DialogTitle className="text-xl font-semibold">
+                        {stepTitle}
+                      </DialogTitle>
+                      {stepDescription ? (
+                        <DialogDescription>{stepDescription}</DialogDescription>
+                      ) : null}
+                    </DialogHeader>
+
+                    <ScrollArea className="mt-6">
+                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-muted/30 px-4 py-3">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-foreground">
+                            Personalize a organização das suas finanças
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Selecione as categorias sugeridas ou crie novas de
+                            acordo com a sua realidade.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className="rounded-full px-3 py-1 text-xs font-medium"
+                          >
+                            {selectedDefaultsCount}/{totalDefaultsCount}{" "}
+                            sugestões ativas
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="rounded-full px-3 py-1 text-xs font-medium"
+                          >
+                            {customCategoriesCount} personalizadas
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 max-h-[420px] pr-4">
+                        <div className="space-y-5">
+                          {DEFAULT_CATEGORY_TEMPLATES.map((category) => {
+                            const parentKey = createCategoryKey(category.name);
+                            const children = category.children ?? [];
+                            const selectedChildrenCount = children.reduce(
+                              (accumulator, child) =>
+                                accumulator +
+                                (selectedDefaultCategories[
+                                  createCategoryKey(child.name, category.name)
+                                ]
+                                  ? 1
+                                  : 0),
+                              0,
+                            );
+                            const totalChildren = children.length;
+                            const isParentSelected = Boolean(
+                              selectedDefaultCategories[parentKey],
+                            );
+                            const isParentIndeterminate =
+                              totalChildren > 0 &&
+                              selectedChildrenCount > 0 &&
+                              selectedChildrenCount < totalChildren;
+                            const parentChecked: CheckedState = isParentSelected
+                              ? true
+                              : isParentIndeterminate
+                                ? "indeterminate"
+                                : false;
+                            const isExpanded =
+                              expandedCategories[parentKey] ?? true;
+
+                            return (
+                              <Card
+                                key={parentKey}
+                                className={cn(
+                                  "relative overflow-hidden rounded-2xl border transition-all duration-200",
+                                  isParentSelected || isParentIndeterminate
+                                    ? "border-primary/60 bg-primary/5 shadow-sm"
+                                    : "border-border/60 hover:border-border/80",
+                                )}
+                              >
+                                {isParentSelected ? (
+                                  <span className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary/60 via-primary to-primary/60" />
+                                ) : null}
+                                <CardHeader className="space-y-4 pb-0">
+                                  <div className="flex flex-wrap items-start justify-between gap-4">
+                                    <div className="flex items-start gap-3">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          toggleParentCategory(
+                                            category,
+                                            parentChecked !== true,
+                                          )
+                                        }
+                                        className={cn(
+                                          "flex h-11 w-11 items-center justify-center rounded-xl border text-sm font-semibold uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
+                                          isParentSelected ||
+                                            isParentIndeterminate
+                                            ? "border-primary/60 bg-primary/10 text-primary"
+                                            : "border-border/60 bg-muted text-muted-foreground hover:border-border",
+                                        )}
+                                        aria-label={
+                                          parentChecked === true
+                                            ? `Remover ${category.name}`
+                                            : `Selecionar ${category.name}`
+                                        }
+                                      >
+                                        {category.name.slice(0, 2)}
+                                      </button>
+                                      <div className="space-y-2">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <CardTitle className="text-base font-semibold leading-tight">
+                                            {category.name}
+                                          </CardTitle>
+                                          <Badge
+                                            variant="outline"
+                                            className="rounded-full text-[11px] uppercase tracking-wide"
+                                          >
+                                            {category.type === "expense"
+                                              ? "Despesa"
+                                              : "Receita"}
+                                          </Badge>
+                                          {totalChildren > 0 ? (
+                                            <Badge
+                                              variant="secondary"
+                                              className="rounded-full text-[11px]"
+                                            >
+                                              {selectedChildrenCount}/
+                                              {totalChildren} subcategorias
+                                            </Badge>
+                                          ) : null}
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                          {totalChildren > 0
+                                            ? `Inclui ${totalChildren} subcategorias sugeridas para começar.`
+                                            : "Sem subcategorias no momento. Adicione as suas abaixo."}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Checkbox
+                                        id={`category-${parentKey}`}
+                                        checked={parentChecked}
+                                        onCheckedChange={(checked) =>
+                                          toggleParentCategory(
+                                            category,
+                                            checked === true,
+                                          )
+                                        }
+                                        aria-label={`Selecionar ${category.name} e suas subcategorias`}
+                                      />
+                                      {totalChildren > 0 ? (
+                                        <Button
+                                          type="button"
+                                          size="icon"
+                                          variant="ghost"
+                                          onClick={() =>
+                                            toggleCategoryExpansion(parentKey)
+                                          }
+                                          aria-label={
+                                            isExpanded
+                                              ? `Recolher subcategorias de ${category.name}`
+                                              : `Expandir subcategorias de ${category.name}`
+                                          }
+                                        >
+                                          <ChevronDown
+                                            className={cn(
+                                              "size-4 transition-transform",
+                                              isExpanded ? "rotate-180" : "",
+                                            )}
+                                          />
+                                        </Button>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                </CardHeader>
+                                {totalChildren > 0 && isExpanded ? (
+                                  <CardContent className="pt-4">
+                                    <div className="flex flex-wrap gap-2">
+                                      {children.map((child) => {
+                                        const childKey = createCategoryKey(
+                                          child.name,
+                                          category.name,
+                                        );
+                                        const isChildSelected = Boolean(
+                                          selectedDefaultCategories[childKey],
+                                        );
+                                        const childClasses = cn(
+                                          "group flex items-center justify-between gap-3 rounded-full border px-3 py-2 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
+                                          isChildSelected
+                                            ? "border-primary/60 bg-primary/10 text-primary shadow-sm"
+                                            : "border-border/60 hover:border-border/80",
+                                        );
+
+                                        return (
+                                          <button
+                                            key={childKey}
+                                            type="button"
+                                            className={childClasses}
+                                            onClick={() =>
+                                              toggleChildCategory(
+                                                category,
+                                                child,
+                                                !isChildSelected,
+                                              )
+                                            }
+                                            aria-pressed={isChildSelected}
+                                          >
+                                            <span className="flex items-center gap-2">
+                                              <span
+                                                aria-hidden="true"
+                                                className="inline-flex h-2.5 w-2.5 rounded-full"
+                                                style={{
+                                                  backgroundColor: child.color,
+                                                }}
+                                              />
+                                              {child.name}
+                                            </span>
+                                            <Badge
+                                              variant={
+                                                isChildSelected
+                                                  ? "default"
+                                                  : "outline"
+                                              }
+                                              className={cn(
+                                                "rounded-full text-[11px]",
+                                                isChildSelected
+                                                  ? "bg-primary text-primary-foreground"
+                                                  : "",
+                                              )}
+                                            >
+                                              {child.type === "expense"
+                                                ? "Despesa"
+                                                : "Receita"}
+                                            </Badge>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </CardContent>
+                                ) : null}
+                              </Card>
+                            );
+                          })}
+
+                          <div className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-5">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="space-y-1">
+                                <h3 className="text-sm font-semibold text-foreground">
+                                  Crie suas próprias categorias
+                                </h3>
+                                <p className="text-xs text-muted-foreground">
+                                  Personalize receitas e despesas específicas do
+                                  seu estilo de vida.
+                                </p>
+                              </div>
+                              {customCategoriesCount > 0 ? (
+                                <Badge
+                                  variant="secondary"
+                                  className="rounded-full text-xs font-medium"
+                                >
+                                  {customCategoriesCount} adicionada
+                                  {customCategoriesCount > 1 ? "s" : ""}
+                                </Badge>
+                              ) : null}
+                            </div>
+                            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                              <Input
+                                placeholder="Nome da categoria"
+                                value={newCategoryName}
+                                onChange={(event) =>
+                                  setNewCategoryName(event.target.value)
+                                }
+                              />
+                              <Select
+                                value={newCategoryType}
+                                onValueChange={(
+                                  value: "expense" | "income",
+                                ) => {
+                                  setNewCategoryType(value);
+                                  setNewCategoryColor(
+                                    CATEGORY_DEFAULT_COLOR_BY_TYPE[value],
+                                  );
+                                }}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="expense">
+                                    Despesa
+                                  </SelectItem>
+                                  <SelectItem value="income">
+                                    Receita
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background px-3">
+                                <span className="text-xs text-muted-foreground">
+                                  Cor
+                                </span>
+                                <Input
+                                  type="color"
+                                  className="h-9 w-12 border-0 bg-transparent px-0"
+                                  value={newCategoryColor}
+                                  onChange={(event) =>
+                                    setNewCategoryColor(event.target.value)
+                                  }
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                className="w-full sm:w-auto"
+                                onClick={handleAddCustomCategory}
+                              >
+                                <Plus className="mr-2 size-4" />
+                                Adicionar
+                              </Button>
+                            </div>
+                            {customCategoriesCount > 0 ? (
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                {customCategories.map((category) => (
+                                  <Badge
+                                    key={category.id}
+                                    variant="outline"
+                                    className="flex items-center gap-2 rounded-full px-3 py-1 text-xs"
+                                  >
+                                    <span
+                                      aria-hidden="true"
+                                      className="inline-flex size-2.5 rounded-full"
+                                      style={{
+                                        backgroundColor: category.color,
+                                      }}
+                                    />
+                                    <span>{category.name}</span>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      onClick={() =>
+                                        handleRemoveCustomCategory(category.id)
+                                      }
+                                      aria-label={`Remover ${category.name}`}
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                    </Button>
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="mt-4 text-xs text-muted-foreground">
+                                Nenhuma categoria personalizada adicionada
+                                ainda.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </ScrollArea>
+
+                    <div className="mt-6 flex flex-wrap gap-2 justify-between">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => goToStep("account", -1)}
+                        className="group"
+                      >
+                        <ChevronLeft className="size-4 mr-1" />
+                        Voltar
+                      </Button>
+                      <div className="ml-auto flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => goToStep("final", 1)}
+                          className="group"
+                        >
+                          Pular
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleCompleteOnboarding}
+                          className="group"
+                          disabled={isImportingCategories}
+                        >
+                          {isImportingCategories ? "Concluindo..." : "Concluir"}{" "}
+                          {!isImportingCategories ? (
+                            <IconArrowRight className="size-4 ml-1 group-hover:translate-x-1 transition-transform duration-300" />
+                          ) : null}
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
                 )}
 
                 {currentStep === "final" && (
@@ -881,9 +1343,24 @@ export default function OnboardingAnimationModal() {
                         Suas finanças estão prontas para serem organizadas.
                       </p>
                     </div>
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        type="button"
+                        onClick={handleFinish}
+                        className="group"
+                      >
+                        Ir para dashboard{" "}
+                        <IconArrowRight className="size-4 ml-1 group-hover:translate-x-1 transition-transform duration-300" />
+                      </Button>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
+              {errorMessage ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              ) : null}
             </form>
           </Form>
         </motion.div>
