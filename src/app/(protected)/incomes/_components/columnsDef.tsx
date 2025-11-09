@@ -11,10 +11,11 @@ import {
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
+import type { TFunction } from "i18next";
 
-import { Badge, CategoryBadge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCentsBRL, formatCurrency } from "@/helpers/formatCurrency";
+import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import type { AppRouter } from "@/server/api/root";
 
@@ -31,19 +32,14 @@ type IncomeColumnsOptions = {
   getAccountName?: (income: IncomeTableRow) => string | null;
 };
 
-const paymentMethodLabels: Record<IncomeTableRow["method"], string> = {
-  pix: "Pix",
-  transfer: "Transferência",
-  debit: "Débito",
-  credit: "Crédito",
-  cash: "Dinheiro",
-  boleto: "Boleto",
-  investment: "Investimento",
+type CreateIncomeColumnsParams = IncomeColumnsOptions & {
+  t: TFunction<"incomes">;
 };
 
-export function createIncomeColumns(
-  options: IncomeColumnsOptions = {},
-): ColumnDef<IncomeTableRow>[] {
+export function createIncomeColumns({
+  t,
+  ...options
+}: CreateIncomeColumnsParams): ColumnDef<IncomeTableRow>[] {
   const {
     onViewIncome,
     onEditIncome,
@@ -57,7 +53,7 @@ export function createIncomeColumns(
   const columns: ColumnDef<IncomeTableRow>[] = [
     {
       accessorKey: "date",
-      header: "Data",
+      header: t("table.columns.date"),
       cell: ({ row }) => (
         <div className="flex items-center gap-2 text-muted-foreground">
           <IconCalendar className="size-4" />
@@ -67,7 +63,7 @@ export function createIncomeColumns(
     },
     {
       accessorKey: "amount",
-      header: "Amount",
+      header: t("table.columns.amount"),
       cell: ({ row }) => {
         const amount = row.getValue("amount") as number;
         return (
@@ -79,7 +75,7 @@ export function createIncomeColumns(
     },
     {
       accessorKey: "description",
-      header: "Description",
+      header: t("table.columns.description"),
       cell: ({ row }) => (
         <div
           className="max-w-[200px] truncate capitalize"
@@ -91,36 +87,36 @@ export function createIncomeColumns(
     },
     {
       accessorKey: "accountName",
-      header: "Account",
+      header: t("table.columns.account"),
       cell: ({ row }) => {
         const account =
           getAccountName?.(row.original) ?? row.original.accountName;
-        if (!account) return "-";
+        if (!account) return t("table.noData");
         return <Badge variant="secondary">{account as string}</Badge>;
       },
     },
     {
       id: "mode",
-      header: "Type",
+      header: t("table.columns.type"),
       cell: ({ row }) => {
-        const t = row.original;
+        const transaction = row.original;
 
         let icon = <IconCircle className="size-3" />;
-        let label = "Unique";
-        let color = "secondary";
+        let label = t("table.type.unique");
 
-        if (t.recurringId) {
+        if (transaction.recurringId) {
           icon = <IconRepeat className="size-3" />;
-          label = "Recurring";
-          color = "success";
-        } else if (t.installmentGroupId) {
+          label = t("table.type.recurring");
+        } else if (transaction.installmentGroupId) {
           icon = <IconCreditCard className="size-3" />;
-          label = `Installment ${t.installmentNumber}/${t.totalInstallments}`;
-          color = "warning";
+          label = t("table.type.installment", {
+            current: transaction.installmentNumber,
+            total: transaction.totalInstallments,
+          });
         }
 
         return (
-          <Badge variant={color} className="flex items-center gap-1">
+          <Badge variant="secondary" className="flex items-center gap-1">
             {icon}
             {label}
           </Badge>
@@ -129,30 +125,29 @@ export function createIncomeColumns(
     },
     {
       accessorKey: "categoryName",
-      header: "Category",
+      header: t("table.columns.category"),
       cell: ({ row }) => {
         const category =
           getCategoryMeta?.(row.original) ?? row.original.categoryName;
-        if (!category) return "-";
+        if (!category) return t("table.noData");
         return <Badge variant="secondary">{category as string}</Badge>;
       },
     },
 
     {
       accessorKey: "method",
-      header: "Method",
-      cell: ({ row }) => (
-        <Badge variant="secondary">
-          {paymentMethodLabels[row.original.method] ?? row.original.method}
-        </Badge>
-      ),
+      header: t("table.columns.method"),
+      cell: ({ row }) => {
+        const key = `form.paymentMethods.${row.original.method}` as const;
+        return <Badge variant="secondary">{t(key)}</Badge>;
+      },
     },
   ];
 
   if (hasActions) {
     columns.push({
       id: "actions",
-      header: "Actions",
+      header: t("table.columns.actions"),
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           {onViewIncome ? (
@@ -160,7 +155,7 @@ export function createIncomeColumns(
               variant="ghost"
               size="sm"
               onClick={() => onViewIncome(row.original)}
-              title="Ver receita"
+              title={t("table.actions.view")}
             >
               <IconEye className="size-4" />
             </Button>
@@ -170,7 +165,7 @@ export function createIncomeColumns(
               variant="ghost"
               size="sm"
               onClick={() => onEditIncome(row.original)}
-              title="Editar receita"
+              title={t("table.actions.edit")}
             >
               <IconEdit className="size-4" />
             </Button>
@@ -180,7 +175,7 @@ export function createIncomeColumns(
               variant="ghost"
               size="sm"
               onClick={() => onDeleteIncome(row.original)}
-              title="Excluir receita"
+              title={t("table.actions.delete")}
               className="text-destructive hover:text-destructive"
             >
               <IconTrash className="size-4" />

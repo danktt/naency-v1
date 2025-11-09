@@ -17,6 +17,36 @@
       "change": "R$ 100.00"
     }
   },
+  "table": {
+    "empty": "No incomes recorded.",
+    "emptyError": "Could not load incomes.",
+    "summary": "{{count}} income recorded",
+    "summary_other": "{{count}} incomes recorded",
+    "summaryEmpty": "No incomes recorded",
+    "summaryError": "Error loading incomes",
+    "refresh": "Refresh",
+    "noData": "-",
+    "columns": {
+      "date": "Date",
+      "amount": "Amount",
+      "description": "Description",
+      "account": "Account",
+      "type": "Type",
+      "category": "Category",
+      "method": "Method",
+      "actions": "Actions"
+    },
+    "type": {
+      "unique": "Unique",
+      "recurring": "Recurring",
+      "installment": "Installment {{current}}/{{total}}"
+    },
+    "actions": {
+      "view": "View income",
+      "edit": "Edit income",
+      "delete": "Delete income"
+    }
+  },
   "form": {
     "trigger": "Create income",
     "title": "Create income",
@@ -92,4 +122,3 @@
     }
   }
 }
-

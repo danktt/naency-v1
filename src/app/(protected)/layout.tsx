@@ -4,7 +4,6 @@ import { BreadcrumbComponent } from "@/components/Breadcrumb";
 import { DatePicker } from "@/components/DatePicker";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import OnboardingAnimationModal from "@/components/onboarding/OnboardingAnimationModal";
-import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { AppSidebar } from "@/components/Sidebar";
 import { ToggleTheme } from "@/components/ToggleTheme";
 import { Separator } from "@/components/ui/separator";
@@ -42,7 +41,6 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
               {children}
             </div>
           </SidebarInset>
-          {/* <OnboardingModal /> */}
           <OnboardingAnimationModal />
         </SidebarProvider>
       </SignedIn>

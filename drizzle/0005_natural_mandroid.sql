@@ -1,0 +1,2 @@
+ALTER TABLE "bank_accounts" ADD COLUMN "currency" "currency_type" DEFAULT 'BRL' NOT NULL;--> statement-breakpoint
+ALTER TABLE "transactions" ADD COLUMN "currency" "currency_type" DEFAULT 'BRL' NOT NULL;

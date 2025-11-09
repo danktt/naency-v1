@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 // ==== ENUMS ====
-
+export const currencyType = pgEnum("currency_type", ["BRL", "USD"]);
 export const transactionType = pgEnum("transaction_type", [
   "expense",
   "income",
@@ -95,6 +95,7 @@ export const bank_accounts = pgTable("bank_accounts", {
   initial_balance: numeric("initial_balance", { precision: 14, scale: 2 })
     .default("0")
     .notNull(),
+  currency: currencyType("currency").default("BRL").notNull(),
   color: varchar("color", { length: 32 }).default("#000000").notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
@@ -131,6 +132,7 @@ export const recurring_transactions = pgTable("recurring_transactions", {
   method: paymentMethod("method").notNull(),
   description: text("description").$type<string | null>(),
   amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+  currency: currencyType("currency").default("BRL").notNull(),
 
   account_id: uuid("account_id")
     .notNull()
@@ -176,6 +178,7 @@ export const transactions = pgTable("transactions", {
   transfer_id: uuid("transfer_id").$type<string | null>(),
 
   amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+  currency: currencyType("currency").default("BRL").notNull(),
   description: text("description").$type<string | null>(),
   date: timestamp("date").notNull(),
   attachment_url: varchar("attachment_url", { length: 512 }).$type<

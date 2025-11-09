@@ -29,6 +29,20 @@
       "when": 1762651768116,
       "tag": "0003_young_ted_forrester",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1762717516104,
+      "tag": "0004_great_vertigo",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1762718256649,
+      "tag": "0005_natural_mandroid",
+      "breakpoints": true
     }
   ]
 }

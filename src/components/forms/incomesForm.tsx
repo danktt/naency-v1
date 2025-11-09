@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
-
+import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
 import { CategoriesSelect } from "@/components/Selects/CategoriesSelect";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -47,7 +47,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatCentsBRL, parseCurrencyToCents } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useDateStore } from "@/stores/useDateStore";
@@ -83,6 +82,7 @@ const createIncomeFormSchema = (t: TFunction<"incomes">) =>
   z.object({
     description: z.string().min(1, t("form.validation.description")),
     amount: z.number().int().min(1, t("form.validation.amount")),
+    currency: z.enum(["BRL", "USD", "EUR"]),
     date: z.date(),
     accountId: z.string().uuid(t("form.validation.account")),
     categoryId: z.string().uuid(t("form.validation.category")),
@@ -112,6 +112,7 @@ type CreateIncomeFormValues = z.infer<
 const getDefaultValues = (): CreateIncomeFormValues => ({
   description: "",
   amount: 0,
+  currency: "BRL",
   date: new Date(),
   accountId: "",
   categoryId: "",
@@ -642,30 +643,12 @@ export function IncomesForm() {
                       {t("form.details.help")}
                     </p>
                     <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
+                      <FieldCurrencyAmount
                         control={form.control}
-                        name="amount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {t("form.details.amount")}{" "}
-                              <span className="text-destructive">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                value={formatCentsBRL(Number(field.value ?? 0))}
-                                onChange={(e) =>
-                                  field.onChange(
-                                    parseCurrencyToCents(e.target.value),
-                                  )
-                                }
-                                onBlur={field.onBlur}
-                                inputMode="numeric"
-                                disabled={isFormDisabled || isSubmitting}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
+                        amountName="amount"
+                        currencyName="currency"
+                        label={t("form.details.amount")}
+                        required
                       />
                       <FormField
                         control={form.control}

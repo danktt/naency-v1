@@ -2,6 +2,7 @@
 
 import { IconRefresh } from "@tabler/icons-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 
 import { DataTable } from "@/components/Table";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { useDateStore } from "@/stores/useDateStore";
 import { createIncomeColumns } from "./columnsDef";
 
 export function IncomesTable() {
+  const { t } = useTranslation("incomes");
   const dateRange = useDateStore((state) => state.dateRange);
 
   const queryInput = React.useMemo(
@@ -27,19 +29,18 @@ export function IncomesTable() {
   const { data, isLoading, isError, refetch, isRefetching } =
     trpc.transactions.list.useQuery(queryInput);
 
-  const columns = React.useMemo(() => createIncomeColumns(), []);
+  const columns = React.useMemo(
+    () => createIncomeColumns({ t }),
+    [t],
+  );
 
   const rows = data ?? [];
-  const emptyMessage = isError
-    ? "Não foi possível carregar as receitas."
-    : "Nenhuma receita cadastrada.";
+  const emptyMessage = isError ? t("table.emptyError") : t("table.empty");
   const summaryLabel = isError
-    ? "Erro ao carregar receitas"
+    ? t("table.summaryError")
     : rows.length
-      ? `${rows.length} ${
-          rows.length === 1 ? "receita encontrada" : "receitas registradas"
-        }`
-      : "Nenhuma receita cadastrada";
+      ? t("table.summary", { count: rows.length })
+      : t("table.summaryEmpty");
 
   const toolbar = (
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -51,7 +52,7 @@ export function IncomesTable() {
         isLoading={isRefetching}
         icon={<IconRefresh className="size-4" />}
       >
-        Atualizar
+        {t("table.refresh")}
       </Button>
     </div>
   );

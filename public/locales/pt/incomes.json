@@ -17,6 +17,36 @@
       "change": "R$ 100,00"
     }
   },
+  "table": {
+    "empty": "Nenhuma receita cadastrada.",
+    "emptyError": "Não foi possível carregar as receitas.",
+    "summary": "{{count}} receita registrada",
+    "summary_other": "{{count}} receitas registradas",
+    "summaryEmpty": "Nenhuma receita registrada",
+    "summaryError": "Erro ao carregar receitas",
+    "refresh": "Atualizar",
+    "noData": "-",
+    "columns": {
+      "date": "Data",
+      "amount": "Valor",
+      "description": "Descrição",
+      "account": "Conta",
+      "type": "Tipo",
+      "category": "Categoria",
+      "method": "Forma",
+      "actions": "Ações"
+    },
+    "type": {
+      "unique": "Única",
+      "recurring": "Recorrente",
+      "installment": "Parcelada {{current}}/{{total}}"
+    },
+    "actions": {
+      "view": "Ver receita",
+      "edit": "Editar receita",
+      "delete": "Excluir receita"
+    }
+  },
   "form": {
     "trigger": "Criar receita",
     "title": "Criar receita",
