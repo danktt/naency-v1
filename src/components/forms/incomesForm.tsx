@@ -20,7 +20,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInputCounter } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -48,6 +48,7 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useDateStore } from "@/stores/useDateStore";
 import { Checkbox } from "../ui/checkbox";
+import { ScrollArea } from "../ui/scroll-area";
 
 const paymentMethodValues = [
   "pix",
@@ -227,121 +228,75 @@ export function IncomesForm() {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col flex-1"
+            className="flex flex-col flex-1 h-full"
           >
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => {
-                  const selectedDate = field.value;
-
-                  return (
-                    <FormItem>
-                      <FormLabel>Received date</FormLabel>
-                      <FormControl>
-                        <Popover
-                          open={isDatePopoverOpen}
-                          onOpenChange={setIsDatePopoverOpen}
-                        >
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !selectedDate && "text-muted-foreground",
-                              )}
-                              disabled={isFormDisabled || isSubmitting}
-                            >
-                              <IconCalendar className="mr-2 h-4 w-4" />
-                              {selectedDate
-                                ? format(selectedDate, "PPP", { locale: ptBR })
-                                : "Select a date"}
-                              <IconChevronDown className="ml-auto h-4 w-4" />
-                            </Button>
-                          </PopoverTrigger>
-
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={(nextDate) => {
-                                if (nextDate) {
-                                  field.onChange(nextDate);
-                                  setIsDatePopoverOpen(false);
-                                }
-                              }}
-                              defaultMonth={selectedDate ?? dateRange.to}
-                              initialFocus
-                              locale={ptBR}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-              <FormField
-                control={form.control}
-                name="mode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Transaction type</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      onOpenChange={(open) => !open && field.onBlur()}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="unique">Unique</SelectItem>
-                        <SelectItem value="installment">Installment</SelectItem>
-                        <SelectItem value="recurring">Recurring</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {/* Campos extras condicionais */}
-              {form.watch("mode") === "installment" && (
-                <FormField
-                  control={form.control}
-                  name="totalInstallments"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total installments</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={2}
-                          placeholder="Number of installments"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {form.watch("mode") === "recurring" && (
-                <>
+            <div className="flex-1 flex flex-col min-h-0">
+              <ScrollArea className="flex-1 min-h-0 max-h-9/12">
+                <div className="space-y-6 pb-6">
                   <FormField
                     control={form.control}
-                    name="recurrenceType"
+                    name="date"
+                    render={({ field }) => {
+                      const selectedDate = field.value;
+
+                      return (
+                        <FormItem>
+                          <FormLabel>Received date</FormLabel>
+                          <FormControl>
+                            <Popover
+                              open={isDatePopoverOpen}
+                              onOpenChange={setIsDatePopoverOpen}
+                            >
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !selectedDate && "text-muted-foreground",
+                                  )}
+                                  disabled={isFormDisabled || isSubmitting}
+                                >
+                                  <IconCalendar className="mr-2 h-4 w-4" />
+                                  {selectedDate
+                                    ? format(selectedDate, "PPP", {
+                                        locale: ptBR,
+                                      })
+                                    : "Select a date"}
+                                  <IconChevronDown className="ml-auto h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+
+                              <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                              >
+                                <Calendar
+                                  mode="single"
+                                  selected={selectedDate}
+                                  onSelect={(nextDate) => {
+                                    if (nextDate) {
+                                      field.onChange(nextDate);
+                                      setIsDatePopoverOpen(false);
+                                    }
+                                  }}
+                                  defaultMonth={selectedDate ?? dateRange.to}
+                                  initialFocus
+                                  locale={ptBR}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="mode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Recurrence</FormLabel>
+                        <FormLabel>Transaction type</FormLabel>
                         <Select
                           value={field.value}
                           onValueChange={field.onChange}
@@ -349,14 +304,215 @@ export function IncomesForm() {
                         >
                           <FormControl>
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select frequency" />
+                              <SelectValue placeholder="Select a type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                            <SelectItem value="yearly">Yearly</SelectItem>
+                            <SelectItem value="unique">Unique</SelectItem>
+                            <SelectItem value="installment">
+                              Installment
+                            </SelectItem>
+                            <SelectItem value="recurring">Recurring</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Campos extras condicionais */}
+                  {form.watch("mode") === "installment" && (
+                    <FormField
+                      control={form.control}
+                      name="totalInstallments"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Total installments</FormLabel>
+                          <FormControl>
+                            <NumberInputCounter
+                              value={field.value}
+                              onChange={(nextValue) =>
+                                field.onChange(nextValue)
+                              }
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
+                              minValue={2}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {form.watch("mode") === "recurring" && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="recurrenceType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Recurrence</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              onOpenChange={(open) => !open && field.onBlur()}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select frequency" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="daily">Daily</SelectItem>
+                                <SelectItem value="weekly">Weekly</SelectItem>
+                                <SelectItem value="monthly">Monthly</SelectItem>
+                                <SelectItem value="yearly">Yearly</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="startDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Start date</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="date"
+                                value={
+                                  field.value
+                                    ? format(field.value, "yyyy-MM-dd")
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  field.onChange(new Date(e.target.value))
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>End date (optional)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="date"
+                                value={
+                                  field.value
+                                    ? format(field.value, "yyyy-MM-dd")
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  field.onChange(
+                                    e.target.value
+                                      ? new Date(e.target.value)
+                                      : null,
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                  <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Amount <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            value={formatCentsBRL(Number(field.value ?? 0))}
+                            onChange={(event) => {
+                              const cents = parseCurrencyToCents(
+                                event.target.value,
+                              );
+                              field.onChange(cents);
+                            }}
+                            onBlur={field.onBlur}
+                            inputMode="numeric"
+                            disabled={isFormDisabled || isSubmitting}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Description{" "}
+                          <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g.: Salary, freelance, bonus..."
+                            autoComplete="off"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="accountId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Account <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          onOpenChange={(open) => {
+                            if (!open) {
+                              field.onBlur();
+                            }
+                          }}
+                          value={field.value}
+                          disabled={accountsQuery.isLoading || !hasAccounts}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue
+                                placeholder={
+                                  accountsQuery.isLoading
+                                    ? "Loading accounts..."
+                                    : hasAccounts
+                                      ? "Select an account"
+                                      : "No account registered"
+                                }
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {accountsQuery.data?.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -366,21 +522,54 @@ export function IncomesForm() {
 
                   <FormField
                     control={form.control}
-                    name="startDate"
+                    name="method"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Start date</FormLabel>
+                        <FormLabel>Payment Method</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          onOpenChange={(open) => {
+                            if (!open) {
+                              field.onBlur();
+                            }
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select a method" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {paymentMethodOptions.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Category <span className="text-destructive">*</span>
+                        </FormLabel>
                         <FormControl>
-                          <Input
-                            type="date"
-                            value={
-                              field.value
-                                ? format(field.value, "yyyy-MM-dd")
-                                : ""
-                            }
-                            onChange={(e) =>
-                              field.onChange(new Date(e.target.value))
-                            }
+                          <CategoriesSelect
+                            type="income"
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
                           />
                         </FormControl>
                         <FormMessage />
@@ -390,198 +579,25 @@ export function IncomesForm() {
 
                   <FormField
                     control={form.control}
-                    name="endDate"
+                    name="attachmentUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>End date (optional)</FormLabel>
+                        <FormLabel>Receipt (URL)</FormLabel>
                         <FormControl>
                           <Input
-                            type="date"
-                            value={
-                              field.value
-                                ? format(field.value, "yyyy-MM-dd")
-                                : ""
-                            }
-                            onChange={(e) =>
-                              field.onChange(
-                                e.target.value
-                                  ? new Date(e.target.value)
-                                  : null,
-                              )
-                            }
+                            type="url"
+                            placeholder="https://example.com/receipt"
+                            {...field}
+                            value={field.value ?? ""}
+                            disabled={isFormDisabled || isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </>
-              )}
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Amount <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        value={formatCentsBRL(Number(field.value ?? 0))}
-                        onChange={(event) => {
-                          const cents = parseCurrencyToCents(
-                            event.target.value,
-                          );
-                          field.onChange(cents);
-                        }}
-                        onBlur={field.onBlur}
-                        inputMode="numeric"
-                        disabled={isFormDisabled || isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Description <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g.: Salary, freelance, bonus..."
-                        autoComplete="off"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="accountId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Account <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      onOpenChange={(open) => {
-                        if (!open) {
-                          field.onBlur();
-                        }
-                      }}
-                      value={field.value}
-                      disabled={accountsQuery.isLoading || !hasAccounts}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue
-                            placeholder={
-                              accountsQuery.isLoading
-                                ? "Loading accounts..."
-                                : hasAccounts
-                                  ? "Select an account"
-                                  : "No account registered"
-                            }
-                          />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {accountsQuery.data?.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="method"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Method</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      onOpenChange={(open) => {
-                        if (!open) {
-                          field.onBlur();
-                        }
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a method" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {paymentMethodOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Category <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <CategoriesSelect
-                        type="income"
-                        value={field.value}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="attachmentUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Receipt (URL)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="url"
-                        placeholder="https://example.com/receipt"
-                        {...field}
-                        value={field.value ?? ""}
-                        disabled={isFormDisabled || isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
+                </div>
+              </ScrollArea>
               <div className="flex items-center gap-2">
                 <Checkbox
                   id={keepOpenId}
@@ -596,27 +612,29 @@ export function IncomesForm() {
                   Keep open
                 </FormLabel>
               </div>
+              <div className="pt-4">
+                <SheetFooter className="flex flex-row items-center gap-2 px-0">
+                  <SheetClose asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                  </SheetClose>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={isSubmitting || isFormDisabled}
+                    isLoading={isSubmitting}
+                  >
+                    Create
+                  </Button>
+                </SheetFooter>
+              </div>
             </div>
-            <SheetFooter className="flex flex-row items-center gap-2 px-0">
-              <SheetClose asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-              </SheetClose>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={isSubmitting || isFormDisabled}
-                isLoading={isSubmitting}
-              >
-                Create
-              </Button>
-            </SheetFooter>
           </form>
         </Form>
       </SheetContent>

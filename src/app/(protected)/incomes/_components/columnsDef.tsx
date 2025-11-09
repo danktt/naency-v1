@@ -2,8 +2,11 @@
 
 import {
   IconCalendar,
+  IconCircle,
+  IconCreditCard,
   IconEdit,
   IconEye,
+  IconRepeat,
   IconTrash,
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -94,6 +97,34 @@ export function createIncomeColumns(
           getAccountName?.(row.original) ?? row.original.accountName;
         if (!account) return "-";
         return <Badge variant="secondary">{account as string}</Badge>;
+      },
+    },
+    {
+      id: "mode",
+      header: "Type",
+      cell: ({ row }) => {
+        const t = row.original;
+
+        let icon = <IconCircle className="size-3" />;
+        let label = "Unique";
+        let color = "secondary";
+
+        if (t.recurringId) {
+          icon = <IconRepeat className="size-3" />;
+          label = "Recurring";
+          color = "success";
+        } else if (t.installmentGroupId) {
+          icon = <IconCreditCard className="size-3" />;
+          label = `Installment ${t.installmentNumber}/${t.totalInstallments}`;
+          color = "warning";
+        }
+
+        return (
+          <Badge variant={color} className="flex items-center gap-1">
+            {icon}
+            {label}
+          </Badge>
+        );
       },
     },
     {

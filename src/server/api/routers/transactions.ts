@@ -94,6 +94,10 @@ export const transactionsRouter = createTRPCRouter({
           accountId: transactions.account_id,
           accountName: bank_accounts.name,
           categoryName: categories.name,
+          installmentGroupId: transactions.installment_group_id,
+          installmentNumber: transactions.installment_number,
+          totalInstallments: transactions.total_installments,
+          recurringId: transactions.recurring_id,
         })
         .from(transactions)
         .leftJoin(
@@ -119,6 +123,10 @@ export const transactionsRouter = createTRPCRouter({
         categoryId: item.categoryId,
         categoryName:
           item.categoryNameSnapshot ?? item.categoryName ?? "Sem categoria",
+        installmentGroupId: item.installmentGroupId,
+        installmentNumber: item.installmentNumber,
+        totalInstallments: item.totalInstallments,
+        recurringId: item.recurringId,
       }));
     }),
 
