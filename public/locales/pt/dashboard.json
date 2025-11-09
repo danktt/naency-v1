@@ -1,0 +1,32 @@
+{
+  "heading": {
+    "title": "Bem-vindo de volta",
+    "description": "Veja o que est\u00e1 acontecendo nos seus workspaces hoje."
+  },
+  "metrics": {
+    "activeAutomations": {
+      "title": "Automa\u00e7\u00f5es ativas",
+      "change": "+3 nesta semana"
+    },
+    "completedTasks": {
+      "title": "Tarefas conclu\u00eddas",
+      "change": "+42 neste m\u00eas"
+    },
+    "upcomingReviews": {
+      "title": "Pr\u00f3ximas revis\u00f5es",
+      "change": "Pr\u00f3xima em 12 de nov"
+    }
+  },
+  "recent": {
+    "title": "Atividades recentes",
+    "description": "Acompanhe as atualiza\u00e7\u00f5es mais recentes das automa\u00e7\u00f5es e equipes.",
+    "cta": "Ver tudo",
+    "items": {
+      "automationSync": "Sincroniza\u00e7\u00e3o de automa\u00e7\u00e3o implantada",
+      "newPrompt": "Novo prompt publicado",
+      "datasetRefreshed": "Dataset atualizado"
+    },
+    "badge": "workspace",
+    "timestamp": "H\u00e1 2 horas \u00b7 por voc\u00ea"
+  }
+}

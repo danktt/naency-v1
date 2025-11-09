@@ -1,3 +1,6 @@
+ignoredBuiltDependencies:
+  - '@swc/core'
+
 onlyBuiltDependencies:
   - '@heroui/shared-utils'
   - esbuild

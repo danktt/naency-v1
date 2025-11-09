@@ -2,6 +2,7 @@ import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/nextjs";
 import type { ReactNode } from "react";
 import { BreadcrumbComponent } from "@/components/Breadcrumb";
 import { DatePicker } from "@/components/DatePicker";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import OnboardingAnimationModal from "@/components/onboarding/OnboardingAnimationModal";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { AppSidebar } from "@/components/Sidebar";
@@ -30,7 +31,8 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
                   />
                   <BreadcrumbComponent />
                 </div>
-                <div className="ml-auto">
+                <div className="ml-auto flex items-center gap-2">
+                  <LanguageSwitcher />
                   <DatePicker />
                   <ToggleTheme />
                 </div>
