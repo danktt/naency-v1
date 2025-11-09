@@ -154,9 +154,11 @@ export const recurring_transactions = pgTable("recurring_transactions", {
 export const transactions = pgTable("transactions", {
   id: uuid("id").defaultRandom().primaryKey(),
 
+  // === Relacionamentos ===
   group_id: uuid("group_id")
     .notNull()
     .references(() => financial_groups.id),
+
   account_id: uuid("account_id")
     .notNull()
     .references(() => bank_accounts.id),
@@ -170,29 +172,40 @@ export const transactions = pgTable("transactions", {
     .notNull()
     .references(() => users.id),
 
+  // === Tipo e método ===
   type: transactionType("type").notNull(),
   method: paymentMethod("method").notNull(),
 
+  // === Transferências (quando for o caso) ===
   from_account_id: uuid("from_account_id").$type<string | null>(),
   to_account_id: uuid("to_account_id").$type<string | null>(),
   transfer_id: uuid("transfer_id").$type<string | null>(),
 
+  // === Dados financeiros ===
   amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
   currency: currencyType("currency").default("BRL").notNull(),
   description: text("description").$type<string | null>(),
-  date: timestamp("date").notNull(),
+
+  // === Datas principais ===
+  date: timestamp("date").notNull(), // Data prevista
+  is_paid: boolean("is_paid").default(false).notNull(), // Indica se foi pago
+  paid_at: timestamp("paid_at", { mode: "date" }).$type<Date | null>(), // Data real do pagamento
+
+  // === Anexos ===
   attachment_url: varchar("attachment_url", { length: 512 }).$type<
     string | null
   >(),
 
-  // === RELACIONAMENTO COM RECORRÊNCIAS E PARCELAS ===
+  // === Relação com recorrência e parcelas ===
   recurring_id: uuid("recurring_id")
     .references(() => recurring_transactions.id)
     .$type<string | null>(),
+
   installment_group_id: uuid("installment_group_id").$type<string | null>(),
   installment_number: integer("installment_number").$type<number | null>(),
   total_installments: integer("total_installments").$type<number | null>(),
 
+  // === Metadados ===
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -29,17 +29,25 @@
     "columns": {
       "date": "Data",
       "amount": "Valor",
+      "status": "Status",
       "description": "Descrição",
       "account": "Conta",
       "type": "Tipo",
       "category": "Categoria",
-      "method": "Forma",
+      "method": "Forma de pagamento",
       "actions": "Ações"
     },
+    "status": {
+      "pending": "Pendente",
+      "paidOnTime": "Pago no prazo",
+      "paidLate": "Pago atrasado",
+      "paidEarly": "Pago antecipadamente"
+    },
     "type": {
-      "unique": "Única",
+      "unique": "Pago",
+      "paid": "Pago",
       "recurring": "Recorrente",
-      "installment": "Parcelada {{current}}/{{total}}"
+      "installment": "Parcelada {{current}} de {{total}}"
     },
     "actions": {
       "view": "Ver receita",
@@ -122,4 +130,3 @@
     }
   }
 }
-

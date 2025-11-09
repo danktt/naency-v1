@@ -29,6 +29,9 @@
     "columns": {
       "date": "Date",
       "amount": "Amount",
+      "status": "Status",
+      "isPaid": "Status",
+      "paidAt": "Paid at",
       "description": "Description",
       "account": "Account",
       "type": "Type",
@@ -37,10 +40,20 @@
       "actions": "Actions"
     },
     "type": {
-      "unique": "Unique",
-      "recurring": "Recurring",
-      "installment": "Installment {{current}}/{{total}}"
+      "paid": "Paid",
+      "unique": "Paid",
+      "installment": "Installment {{current}} of {{total}}",
+      "recurring": "Recurring"
     },
+    "status": {
+      "pending": "Pending",
+      "paidOnTime": "Paid on time",
+      "paidLate": "Paid late",
+      "paidEarly": "Paid early",
+      "paid": "Paid",
+      "notPaidYet": "Not paid yet"
+    },
+    "noDate": "No date",
     "actions": {
       "view": "View income",
       "edit": "Edit income",

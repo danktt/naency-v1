@@ -1,6 +1,5 @@
-"use client";
-
 import {
+  IconArrowRight,
   IconCalendar,
   IconCircle,
   IconCreditCard,
@@ -15,6 +14,7 @@ import type { TFunction } from "i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { capitalizeFirstLetter } from "@/helpers/capitalizeFirstLetter";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import type { AppRouter } from "@/server/api/root";
@@ -52,20 +52,111 @@ export function createIncomeColumns({
 
   const columns: ColumnDef<IncomeTableRow>[] = [
     {
-      accessorKey: "date",
+      accessorKey: "dateAndStatus",
       header: t("table.columns.date"),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <IconCalendar className="size-4" />
-          {formatDate(row.original.date)}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const tx = row.original;
+
+        const isRecurring = Boolean(tx.recurringId);
+        const isInstallment = Boolean(tx.installmentGroupId);
+
+        // === Unique transaction ===
+        if (!isRecurring && !isInstallment) {
+          return (
+            <div className="flex flex-col text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <IconCalendar className="size-4 text-success" />
+                <span>{formatDate(tx.date)}</span>
+              </div>
+            </div>
+          );
+        }
+
+        // === Installment transaction ===
+        if (isInstallment) {
+          return (
+            <div className="flex flex-col text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <IconCreditCard className="size-4 text-amber-500" />
+                <span>{formatDate(tx.date)}</span>
+              </div>
+            </div>
+          );
+        }
+
+        // === Recurring transaction ===
+        if (isRecurring) {
+          return (
+            <div className="flex flex-col text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <IconRepeat className="size-4 text-blue-500" />
+                <span>{formatDate(tx.date)}</span>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <IconCalendar className="size-4" />
+            <span>{t("table.noDate")}</span>
+          </div>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: t("table.columns.status"),
+      cell: ({ row }) => {
+        const tx = row.original;
+
+        const isRecurring = Boolean(tx.recurringId);
+        const isInstallment = Boolean(tx.installmentGroupId);
+        const formattedDate = tx.date ? formatDate(tx.date) : t("table.noDate");
+
+        let badgeClass = "";
+        let badgeIcon: React.ReactNode = null;
+        let badgeLabel = "";
+
+        if (!isRecurring && !isInstallment) {
+          badgeClass =
+            "border-success/40 bg-success/10 text-success flex items-center gap-1";
+          badgeIcon = (
+            <IconCircle className="size-2 fill-success text-success shrink-0" />
+          );
+          badgeLabel = t("table.type.paid");
+        } else if (isInstallment) {
+          badgeClass =
+            "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
+          badgeIcon = (
+            <IconCreditCard className="size-3 text-amber-500 shrink-0" />
+          );
+          badgeLabel = t("table.type.installment", {
+            current: tx.installmentNumber,
+            total: tx.totalInstallments,
+          });
+        } else if (isRecurring) {
+          badgeClass =
+            "border-blue-400/40 bg-blue-400/10 text-blue-500 flex items-center gap-1";
+          badgeIcon = <IconRepeat className="size-3 text-blue-500 shrink-0" />;
+          badgeLabel = t("table.type.recurring");
+        }
+
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant="secondary" className={badgeClass}>
+              {badgeIcon}
+              {badgeLabel}
+            </Badge>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "amount",
       header: t("table.columns.amount"),
       cell: ({ row }) => {
-        const amount = row.getValue("amount") as number;
+        const amount = Number(row.getValue("amount"));
         return (
           <div className="font-mono font-semibold text-success">
             {formatCurrency(amount.toString())}
@@ -74,15 +165,66 @@ export function createIncomeColumns({
       },
     },
     {
+      accessorKey: "isPaid",
+      header: t("table.columns.isPaid"),
+      cell: ({ row }) => {
+        const isPaid = row.original.isPaid;
+
+        if (isPaid) {
+          return (
+            <Badge
+              variant="success"
+              className="bg-emerald-100 text-emerald-700"
+            >
+              {t("table.status.paid")}
+            </Badge>
+          );
+        }
+
+        return (
+          <Badge variant="secondary" className="bg-muted text-muted-foreground">
+            {t("table.status.pending")}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "paidAt",
+      header: t("table.columns.paidAt"),
+      cell: ({ row }) => {
+        const isPaid = row.original.isPaid;
+        const paidAt = row.original.paidAt
+          ? new Date(row.original.paidAt)
+          : null;
+
+        if (!isPaid) {
+          return (
+            <span className="text-xs text-muted-foreground">
+              {t("table.status.notPaidYet")}
+            </span>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <i className="fa-regular fa-calendar-check text-success" />
+            <span className="text-sm font-medium text-success">
+              {paidAt ? formatDate(paidAt) : "-"}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "description",
       header: t("table.columns.description"),
       cell: ({ row }) => (
-        <div
+        <p
           className="max-w-[200px] truncate capitalize"
           title={row.getValue("description")}
         >
           {String(row.getValue("description")).toUpperCase()}
-        </div>
+        </p>
       ),
     },
     {
@@ -96,34 +238,6 @@ export function createIncomeColumns({
       },
     },
     {
-      id: "mode",
-      header: t("table.columns.type"),
-      cell: ({ row }) => {
-        const transaction = row.original;
-
-        let icon = <IconCircle className="size-3" />;
-        let label = t("table.type.unique");
-
-        if (transaction.recurringId) {
-          icon = <IconRepeat className="size-3" />;
-          label = t("table.type.recurring");
-        } else if (transaction.installmentGroupId) {
-          icon = <IconCreditCard className="size-3" />;
-          label = t("table.type.installment", {
-            current: transaction.installmentNumber,
-            total: transaction.totalInstallments,
-          });
-        }
-
-        return (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            {icon}
-            {label}
-          </Badge>
-        );
-      },
-    },
-    {
       accessorKey: "categoryName",
       header: t("table.columns.category"),
       cell: ({ row }) => {
@@ -133,7 +247,6 @@ export function createIncomeColumns({
         return <Badge variant="secondary">{category as string}</Badge>;
       },
     },
-
     {
       accessorKey: "method",
       header: t("table.columns.method"),
@@ -150,7 +263,7 @@ export function createIncomeColumns({
       header: t("table.columns.actions"),
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          {onViewIncome ? (
+          {onViewIncome && (
             <Button
               variant="ghost"
               size="sm"
@@ -159,8 +272,8 @@ export function createIncomeColumns({
             >
               <IconEye className="size-4" />
             </Button>
-          ) : null}
-          {onEditIncome ? (
+          )}
+          {onEditIncome && (
             <Button
               variant="ghost"
               size="sm"
@@ -169,8 +282,8 @@ export function createIncomeColumns({
             >
               <IconEdit className="size-4" />
             </Button>
-          ) : null}
-          {onDeleteIncome ? (
+          )}
+          {onDeleteIncome && (
             <Button
               variant="ghost"
               size="sm"
@@ -180,7 +293,7 @@ export function createIncomeColumns({
             >
               <IconTrash className="size-4" />
             </Button>
-          ) : null}
+          )}
         </div>
       ),
     });
