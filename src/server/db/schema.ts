@@ -17,11 +17,13 @@ export const transactionType = pgEnum("transaction_type", [
   "income",
   "transfer",
 ]);
+
 export const accountType = pgEnum("account_type_v2", [
   "checking",
   "credit",
   "investment",
 ]);
+
 export const paymentMethod = pgEnum("payment_method", [
   "debit",
   "credit",
@@ -31,10 +33,20 @@ export const paymentMethod = pgEnum("payment_method", [
   "boleto",
   "investment",
 ]);
+
 export const memberRole = pgEnum("member_role", ["owner", "editor", "viewer"]);
+
 export const categoryType = pgEnum("category_type", ["expense", "income"]);
 
+export const recurrenceType = pgEnum("recurrence_type", [
+  "daily",
+  "weekly",
+  "monthly",
+  "yearly",
+]);
+
 // ==== USERS ====
+
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   clerk_id: varchar("clerk_id", { length: 191 }).notNull().unique(),
@@ -47,6 +59,7 @@ export const users = pgTable("users", {
 });
 
 // ==== FINANCIAL GROUPS ====
+
 export const financial_groups = pgTable("financial_groups", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 191 }).notNull(),
@@ -57,6 +70,7 @@ export const financial_groups = pgTable("financial_groups", {
 });
 
 // ==== MEMBERS ====
+
 export const financial_group_members = pgTable("financial_group_members", {
   id: uuid("id").defaultRandom().primaryKey(),
   group_id: uuid("group_id")
@@ -70,6 +84,7 @@ export const financial_group_members = pgTable("financial_group_members", {
 });
 
 // ==== BANK ACCOUNTS ====
+
 export const bank_accounts = pgTable("bank_accounts", {
   id: uuid("id").defaultRandom().primaryKey(),
   group_id: uuid("group_id")
@@ -77,10 +92,7 @@ export const bank_accounts = pgTable("bank_accounts", {
     .references(() => financial_groups.id),
   name: varchar("name", { length: 191 }).notNull(),
   type: accountType("type").default("checking").notNull(),
-  initial_balance: numeric("initial_balance", {
-    precision: 14,
-    scale: 2,
-  })
+  initial_balance: numeric("initial_balance", { precision: 14, scale: 2 })
     .default("0")
     .notNull(),
   color: varchar("color", { length: 32 }).default("#000000").notNull(),
@@ -88,12 +100,12 @@ export const bank_accounts = pgTable("bank_accounts", {
 });
 
 // ==== CATEGORIES (hierarquia + soft delete) ====
+
 export const categories = pgTable("categories", {
   id: uuid("id").defaultRandom().primaryKey(),
   group_id: uuid("group_id")
     .notNull()
     .references(() => financial_groups.id),
-  // referência manual para evitar ciclo direto
   parent_id: uuid("parent_id").$type<string | null>(),
   name: varchar("name", { length: 191 }).notNull(),
   type: categoryType("type").notNull(),
@@ -104,37 +116,85 @@ export const categories = pgTable("categories", {
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// ==== TRANSACTIONS ====
+// ==== RECURRING TRANSACTIONS (fixas) ====
+
+export const recurring_transactions = pgTable("recurring_transactions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  group_id: uuid("group_id")
+    .notNull()
+    .references(() => financial_groups.id),
+  user_id: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+
+  type: transactionType("type").notNull(), // expense, income ou transfer
+  method: paymentMethod("method").notNull(),
+  description: text("description").$type<string | null>(),
+  amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+
+  account_id: uuid("account_id")
+    .notNull()
+    .references(() => bank_accounts.id),
+  from_account_id: uuid("from_account_id").$type<string | null>(),
+  to_account_id: uuid("to_account_id").$type<string | null>(),
+  category_id: uuid("category_id").$type<string | null>(),
+
+  recurrence_type: recurrenceType("recurrence_type").notNull(),
+  start_date: timestamp("start_date", { mode: "date" }).notNull(),
+  end_date: timestamp("end_date", { mode: "date" }).$type<Date | null>(),
+  is_active: boolean("is_active").default(true).notNull(),
+
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ==== TRANSACTIONS (únicas, parceladas ou fixas) ====
+
 export const transactions = pgTable("transactions", {
   id: uuid("id").defaultRandom().primaryKey(),
+
   group_id: uuid("group_id")
     .notNull()
     .references(() => financial_groups.id),
   account_id: uuid("account_id")
     .notNull()
     .references(() => bank_accounts.id),
+
   category_id: uuid("category_id").$type<string | null>(),
   category_name_snapshot: varchar("category_name_snapshot", {
     length: 191,
   }).$type<string | null>(),
+
   user_id: uuid("user_id")
     .notNull()
     .references(() => users.id),
+
   type: transactionType("type").notNull(),
   method: paymentMethod("method").notNull(),
+
   from_account_id: uuid("from_account_id").$type<string | null>(),
   to_account_id: uuid("to_account_id").$type<string | null>(),
   transfer_id: uuid("transfer_id").$type<string | null>(),
+
   amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
   description: text("description").$type<string | null>(),
   date: timestamp("date").notNull(),
   attachment_url: varchar("attachment_url", { length: 512 }).$type<
     string | null
   >(),
+
+  // === RELACIONAMENTO COM RECORRÊNCIAS E PARCELAS ===
+  recurring_id: uuid("recurring_id")
+    .references(() => recurring_transactions.id)
+    .$type<string | null>(),
+  installment_group_id: uuid("installment_group_id").$type<string | null>(),
+  installment_number: integer("installment_number").$type<number | null>(),
+  total_installments: integer("total_installments").$type<number | null>(),
+
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
 
 // ==== PROVISIONS ====
+
 export const provisions = pgTable("provisions", {
   id: uuid("id").defaultRandom().primaryKey(),
   group_id: uuid("group_id")

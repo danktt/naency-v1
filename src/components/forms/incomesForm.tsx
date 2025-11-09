@@ -88,6 +88,12 @@ const createIncomeFormSchema = z.object({
       (value) => value.length === 0 || isValidUrl(value),
       "Enter a valid URL.",
     ),
+  // 👇 novos campos
+  mode: z.enum(["unique", "installment", "recurring"]),
+  totalInstallments: z.number().int().min(2).optional(),
+  recurrenceType: z.enum(["daily", "weekly", "monthly", "yearly"]).optional(),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
 });
 
 type CreateIncomeFormValues = z.infer<typeof createIncomeFormSchema>;
@@ -100,6 +106,7 @@ const getDefaultValues = (date: Date): CreateIncomeFormValues => ({
   categoryId: "",
   method: "pix",
   attachmentUrl: "",
+  mode: "unique",
 });
 
 function isValidUrl(value: string) {
@@ -190,6 +197,11 @@ export function IncomesForm() {
         date: values.date,
         method: values.method,
         attachmentUrl,
+        mode: values.mode, // 👈 novo
+        totalInstallments: values.totalInstallments,
+        recurrenceType: values.recurrenceType,
+        startDate: values.startDate,
+        endDate: values.endDate,
       });
     },
     [createIncomeMutation],
@@ -271,6 +283,140 @@ export function IncomesForm() {
                   );
                 }}
               />
+              <FormField
+                control={form.control}
+                name="mode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Transaction type</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      onOpenChange={(open) => !open && field.onBlur()}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="unique">Unique</SelectItem>
+                        <SelectItem value="installment">Installment</SelectItem>
+                        <SelectItem value="recurring">Recurring</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* Campos extras condicionais */}
+              {form.watch("mode") === "installment" && (
+                <FormField
+                  control={form.control}
+                  name="totalInstallments"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Total installments</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={2}
+                          placeholder="Number of installments"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(Number(e.target.value))
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {form.watch("mode") === "recurring" && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="recurrenceType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Recurrence</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          onOpenChange={(open) => !open && field.onBlur()}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="yearly">Yearly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start date</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            value={
+                              field.value
+                                ? format(field.value, "yyyy-MM-dd")
+                                : ""
+                            }
+                            onChange={(e) =>
+                              field.onChange(new Date(e.target.value))
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End date (optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            value={
+                              field.value
+                                ? format(field.value, "yyyy-MM-dd")
+                                : ""
+                            }
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value
+                                  ? new Date(e.target.value)
+                                  : null,
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
               <FormField
                 control={form.control}
                 name="amount"
