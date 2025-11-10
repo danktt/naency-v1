@@ -275,7 +275,7 @@ const GridItem = ({
             >
               {value}
             </p>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed min-h-8">
               {description}
             </p>
           </div>
