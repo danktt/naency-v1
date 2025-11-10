@@ -53,7 +53,7 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { useDateStore } from "@/stores/useDateStore";
-
+import { DottedGlowBackground } from "../DottedGlowBackground";
 import { Checkbox } from "../ui/checkbox";
 import { ScrollArea } from "../ui/scroll-area";
 
@@ -433,12 +433,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
         createExpenseMutation.mutate(payload);
       }
     },
-    [
-      createExpenseMutation,
-      effectiveExpense,
-      isEditing,
-      updateExpenseMutation,
-    ],
+    [createExpenseMutation, effectiveExpense, isEditing, updateExpenseMutation],
   );
 
   const motionProps = {
@@ -1188,4 +1183,3 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     </Dialog>
   );
 }
-
