@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   AlarmClock,
   ArrowDownRight,
@@ -11,25 +10,20 @@ import {
   PiggyBank,
   Wallet,
 } from "lucide-react";
+import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   Bar,
   BarChart,
   CartesianGrid,
-  XAxis,
-  YAxis,
+  Cell,
   Pie,
   PieChart,
-  Cell,
+  XAxis,
+  YAxis,
 } from "recharts";
-import { useTranslation } from "react-i18next";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { GlowCard, GridItem } from "@/components/gloweffect";
 import {
   ChartContainer,
   ChartLegend,
@@ -70,8 +64,7 @@ export default function DashboardPage() {
   }, []);
 
   const fallbackLng =
-    (Array.isArray(i18n.options?.fallbackLng) &&
-      i18n.options.fallbackLng[0]) ||
+    (Array.isArray(i18n.options?.fallbackLng) && i18n.options.fallbackLng[0]) ||
     (typeof i18n.options?.fallbackLng === "string"
       ? i18n.options.fallbackLng
       : "en");
@@ -86,15 +79,11 @@ export default function DashboardPage() {
   const referenceDate = React.useMemo(() => new Date(), []);
   const months = 12;
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-  } = trpc.transactions.dashboardSummary.useQuery({
-    referenceDate,
-    months,
-  });
+  const { data, isLoading, isError, refetch } =
+    trpc.transactions.dashboardSummary.useQuery({
+      referenceDate,
+      months,
+    });
 
   const numberFormatter = React.useMemo(
     () =>
@@ -128,6 +117,11 @@ export default function DashboardPage() {
 
     const pendingCount = snapshot?.pendingPaymentsCount ?? 0;
 
+    const monthBalanceIsNegative = (snapshot?.monthBalance ?? 0) < 0;
+    const monthBalanceIconClassName = monthBalanceIsNegative
+      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+      : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+
     const cards: Array<{
       key: SnapshotKey;
       title: string;
@@ -135,6 +129,7 @@ export default function DashboardPage() {
       subtitle: string;
       icon: React.ReactNode;
       valueClassName?: string;
+      iconContainerClassName?: string;
     }> = [
       {
         key: "incomes",
@@ -143,7 +138,9 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.totalIncomes)
           : formatCurrency(0),
         subtitle: translate("snapshot.cards.incomes.subtitle"),
-        icon: <ArrowUpRight className="size-4 text-emerald-500" />,
+        icon: <ArrowUpRight className="size-4" />,
+        iconContainerClassName:
+          "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
       },
       {
         key: "expenses",
@@ -152,7 +149,9 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.totalExpenses)
           : formatCurrency(0),
         subtitle: translate("snapshot.cards.expenses.subtitle"),
-        icon: <ArrowDownRight className="size-4 text-rose-500" />,
+        icon: <ArrowDownRight className="size-4" />,
+        iconContainerClassName:
+          "bg-rose-500/10 text-rose-600 dark:text-rose-400",
       },
       {
         key: "monthBalance",
@@ -161,19 +160,12 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.monthBalance)
           : formatCurrency(0),
         subtitle: translate("snapshot.cards.monthBalance.subtitle"),
-        icon: (
-          <Wallet
-            className={`size-4 ${
-              snapshot && snapshot.monthBalance >= 0
-                ? "text-emerald-500"
-                : "text-rose-500"
-            }`}
-          />
-        ),
+        icon: <Wallet className="size-4" />,
         valueClassName:
           snapshot && snapshot.monthBalance < 0
             ? "text-rose-500"
             : "text-emerald-500",
+        iconContainerClassName: monthBalanceIconClassName,
       },
       {
         key: "accumulatedBalance",
@@ -182,11 +174,12 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.accumulatedBalance)
           : formatCurrency(0),
         subtitle: translate("snapshot.cards.accumulatedBalance.subtitle"),
-        icon: <PiggyBank className="size-4 text-primary" />,
+        icon: <PiggyBank className="size-4" />,
         valueClassName:
           snapshot && snapshot.accumulatedBalance < 0
             ? "text-rose-500"
             : undefined,
+        iconContainerClassName: "bg-primary/10 text-primary",
       },
       {
         key: "pending",
@@ -195,7 +188,9 @@ export default function DashboardPage() {
         subtitle: translate("snapshot.cards.pending.subtitle", {
           count: pendingCount,
         }),
-        icon: <AlarmClock className="size-4 text-amber-500" />,
+        icon: <AlarmClock className="size-4" />,
+        iconContainerClassName:
+          "bg-amber-500/10 text-amber-600 dark:text-amber-400",
       },
     ];
 
@@ -225,8 +220,7 @@ export default function DashboardPage() {
 
     return data.expenseDistribution.map((item, index) => {
       const label =
-        item.label ??
-        translate("charts.distribution.uncategorized");
+        item.label ?? translate("charts.distribution.uncategorized");
 
       return {
         ...item,
@@ -255,7 +249,8 @@ export default function DashboardPage() {
         description: translate("payments.statuses.onTime.description"),
         value: data.paymentStatus.onTime,
         icon: <CheckCircle2 className="size-4" />,
-        accentClassName: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+        accentClassName:
+          "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
       },
       {
         key: "late",
@@ -299,16 +294,15 @@ export default function DashboardPage() {
       return {};
     }
 
-    return distributionData.reduce<Record<string, { label: string; color: string }>>(
-      (acc, item) => {
-        acc[item.id] = {
-          label: item.label,
-          color: item.color,
-        };
-        return acc;
-      },
-      {},
-    );
+    return distributionData.reduce<
+      Record<string, { label: string; color: string }>
+    >((acc, item) => {
+      acc[item.id] = {
+        label: item.label,
+        color: item.color,
+      };
+      return acc;
+    }, {});
   }, [distributionData]);
 
   return (
@@ -344,266 +338,260 @@ export default function DashboardPage() {
           ) : null}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {isLoadingState
             ? Array.from({ length: 5 }).map((_, index) => (
-                <Card key={`skeleton-${index}`}>
-                  <CardHeader>
-                    <Skeleton className="h-4 w-1/2" />
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <Skeleton className="h-8 w-3/4" />
-                    <Skeleton className="h-3 w-2/3" />
-                  </CardContent>
-                </Card>
+                <li key={`skeleton-${index}`} className="list-none">
+                  <div className="border-border/60 relative h-full rounded-xl border p-6">
+                    <div className="mb-4 flex items-center justify-between">
+                      <Skeleton className="h-4 w-1/3" />
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <Skeleton className="h-8 w-2/3" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                </li>
               ))
             : snapshotCards.map((card) => (
-                <Card key={card.key} className="border-border/60">
-                  <CardHeader className="flex flex-row items-start justify-between gap-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      {card.title}
-                    </CardTitle>
-                    <div className="bg-muted inline-flex items-center justify-center rounded-full p-2">
-                      {card.icon}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-1">
-                    <p
-                      className={`text-2xl font-semibold tabular-nums ${card.valueClassName ?? ""}`}
-                    >
-                      {card.value}
-                    </p>
-                    <CardDescription>{card.subtitle}</CardDescription>
-                  </CardContent>
-                </Card>
+                <GridItem
+                  key={card.key}
+                  icon={card.icon}
+                  title={card.title}
+                  value={card.value}
+                  valueClassName={card.valueClassName}
+                  iconContainerClassName={card.iconContainerClassName}
+                  description={card.subtitle}
+                />
               ))}
-        </div>
+        </ul>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-7">
-        <Card className="lg:col-span-4 border-border/60">
-          <CardHeader>
-            <CardTitle>{translate("charts.monthly.title")}</CardTitle>
-            <CardDescription>
-              {translate("charts.monthly.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingState ? (
-              <Skeleton className="h-[320px] w-full" />
-            ) : monthlyTrendData.length ? (
-              <ChartContainer
-                config={monthlyChartConfig}
-                className="h-[320px]"
-              >
-                <BarChart data={monthlyTrendData}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    axisLine={false}
-                    tickLine={false}
-                    tickMargin={8}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(value) =>
-                      axisFormatter.format(Number(value))
-                    }
-                  />
-                  <ChartTooltip
-                    cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
-                    content={
-                      <ChartTooltipContent
-                        formatter={(value, key) => (
-                          <span className="font-medium">
-                            {formatCurrency(Number(value))}
-                          </span>
-                        )}
-                      />
-                    }
-                  />
-                  <ChartLegend content={<ChartLegendContent />} />
-                  <Bar
-                    dataKey="incomes"
-                    fill="var(--color-incomes)"
-                    radius={6}
-                    maxBarSize={48}
-                  />
-                  <Bar
-                    dataKey="expenses"
-                    fill="var(--color-expenses)"
-                    radius={6}
-                    maxBarSize={48}
-                  />
-                </BarChart>
-              </ChartContainer>
-            ) : (
-              <Empty className="h-[320px]">
-                <EmptyHeader>
-                  <EmptyTitle>
-                    {translate("charts.monthly.empty.title")}
-                  </EmptyTitle>
-                  <EmptyDescription>
-                    {translate("charts.monthly.empty.description")}
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            )}
-          </CardContent>
-        </Card>
+        <GlowCard
+          className="lg:col-span-4"
+          title={translate("charts.monthly.title")}
+          description={translate("charts.monthly.description")}
+          contentClassName="gap-6"
+        >
+          {isLoadingState ? (
+            <Skeleton className="h-[320px] w-full" />
+          ) : monthlyTrendData.length ? (
+            <ChartContainer config={monthlyChartConfig} className="h-[320px]">
+              <BarChart data={monthlyTrendData}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={8}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(value) => axisFormatter.format(Number(value))}
+                />
+                <ChartTooltip
+                  cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value) => (
+                        <span className="font-medium">
+                          {formatCurrency(Number(value))}
+                        </span>
+                      )}
+                    />
+                  }
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar
+                  dataKey="incomes"
+                  fill="var(--color-incomes)"
+                  radius={6}
+                  maxBarSize={48}
+                />
+                <Bar
+                  dataKey="expenses"
+                  fill="var(--color-expenses)"
+                  radius={6}
+                  maxBarSize={48}
+                />
+              </BarChart>
+            </ChartContainer>
+          ) : (
+            <Empty className="h-[320px]">
+              <EmptyHeader>
+                <EmptyTitle>
+                  {translate("charts.monthly.empty.title")}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {translate("charts.monthly.empty.description")}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+        </GlowCard>
 
-        <Card className="lg:col-span-3 border-border/60">
-          <CardHeader>
-            <CardTitle>{translate("payments.title")}</CardTitle>
-            <CardDescription>
-              {translate("payments.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isLoadingState ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <Skeleton key={`status-${index}`} className="h-[72px] w-full" />
-                ))}
-              </div>
-            ) : paymentStatuses.length ? (
-              <div className="space-y-3">
-                {paymentStatuses.map((status) => (
+        <GlowCard
+          className="lg:col-span-3"
+          title={translate("payments.title")}
+          description={translate("payments.description")}
+          contentClassName="gap-6"
+        >
+          {isLoadingState ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton key={`status-${index}`} className="h-[72px] w-full" />
+              ))}
+            </div>
+          ) : paymentStatuses.length ? (
+            <div className="space-y-3">
+              {paymentStatuses.map((status) => (
+                <div
+                  key={status.key}
+                  className="border-border/50 bg-muted/30 flex items-start gap-3 rounded-lg border p-4"
+                >
                   <div
-                    key={status.key}
-                    className="border-border/50 bg-muted/30 flex items-start gap-3 rounded-lg border p-4"
+                    className={`${status.accentClassName} mt-1 inline-flex size-8 items-center justify-center rounded-full`}
                   >
-                    <div
-                      className={`${status.accentClassName} mt-1 inline-flex size-8 items-center justify-center rounded-full`}
-                    >
-                      {status.icon}
-                    </div>
-                    <div className="flex flex-1 flex-col gap-1">
-                      <p className="text-sm font-medium">{status.title}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {status.description}
-                      </p>
-                    </div>
-                    <span className="text-foreground text-xl font-semibold">
-                      {numberFormatter.format(status.value)}
-                    </span>
+                    {status.icon}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <Empty className="h-[240px]">
-                <EmptyHeader>
-                  <EmptyTitle>{translate("payments.empty.title")}</EmptyTitle>
-                  <EmptyDescription>
-                    {translate("payments.empty.description")}
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            )}
-          </CardContent>
-        </Card>
+                  <div className="flex flex-1 flex-col gap-1">
+                    <p className="text-sm font-medium">{status.title}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {status.description}
+                    </p>
+                  </div>
+                  <span className="text-foreground text-xl font-semibold">
+                    {numberFormatter.format(status.value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty className="h-[240px]">
+              <EmptyHeader>
+                <EmptyTitle>{translate("payments.empty.title")}</EmptyTitle>
+                <EmptyDescription>
+                  {translate("payments.empty.description")}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+        </GlowCard>
       </section>
 
       <section>
-        <Card className="border-border/60">
-          <CardHeader>
-            <CardTitle>{translate("charts.distribution.title")}</CardTitle>
-            <CardDescription>
-              {translate("charts.distribution.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            {isLoadingState ? (
-              <Skeleton className="h-[320px] w-full" />
-            ) : distributionData.length ? (
-              <>
-                <ChartContainer
-                  className="h-[320px] w-full max-w-xl"
-                  config={distributionChartConfig}
-                >
-                  <PieChart>
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value, name, item, index, payload) => (
+        <GlowCard
+          title={translate("charts.distribution.title")}
+          description={translate("charts.distribution.description")}
+          contentClassName="gap-6"
+        >
+          {isLoadingState ? (
+            <Skeleton className="h-[320px] w-full" />
+          ) : distributionData.length ? (
+            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+              <ChartContainer
+                className="h-[320px] w-full max-w-xl"
+                config={distributionChartConfig}
+              >
+                <PieChart>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(
+                          value,
+                          _name,
+                          _item,
+                          _index,
+                          tooltipPayload,
+                        ) => {
+                          const payloadWithPercentage = tooltipPayload as {
+                            percentage?: number;
+                          };
+                          const percentage =
+                            typeof payloadWithPercentage?.percentage ===
+                            "number"
+                              ? payloadWithPercentage.percentage
+                              : undefined;
+
+                          return (
                             <div className="flex flex-col">
                               <span className="font-medium">
                                 {formatCurrency(Number(value))}
                               </span>
-                              {"percentage" in payload
-                                ? (
-                                    <span className="text-muted-foreground text-xs">
-                                      {translate(
-                                        "charts.distribution.tooltip.percentage",
-                                        {
-                                          value: payload.percentage.toFixed(1),
-                                        },
-                                      )}
-                                    </span>
-                                  )
-                                : null}
+                              {percentage !== undefined ? (
+                                <span className="text-muted-foreground text-xs">
+                                  {translate(
+                                    "charts.distribution.tooltip.percentage",
+                                    {
+                                      value: percentage.toFixed(1),
+                                    },
+                                  )}
+                                </span>
+                              ) : null}
                             </div>
-                          )}
-                        />
-                      }
-                    />
-                    <Pie
-                      data={distributionData}
-                      dataKey="value"
-                      nameKey="label"
-                      innerRadius={70}
-                      outerRadius={120}
-                      strokeWidth={4}
-                    >
-                      {distributionData.map((entry) => (
-                        <Cell key={entry.id} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <ChartLegend content={<ChartLegendContent />} />
-                  </PieChart>
-                </ChartContainer>
-                <div className="space-y-4 md:w-64">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    {translate("charts.distribution.breakdownTitle")}
-                  </h4>
-                  <ul className="space-y-3">
-                    {distributionData.map((item) => (
-                      <li
-                        key={item.id}
-                        className="flex items-center justify-between gap-3 text-sm"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="size-2.5 rounded-full"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <span className="text-muted-foreground">
-                            {item.label}
-                          </span>
-                        </div>
-                        <span className="font-medium">
-                          {item.percentage.toFixed(1)}%
-                        </span>
-                      </li>
+                          );
+                        }}
+                      />
+                    }
+                  />
+                  <Pie
+                    data={distributionData}
+                    dataKey="value"
+                    nameKey="label"
+                    innerRadius={70}
+                    outerRadius={120}
+                    strokeWidth={4}
+                  >
+                    {distributionData.map((entry) => (
+                      <Cell key={entry.id} fill={entry.color} />
                     ))}
-                  </ul>
-                </div>
-              </>
-            ) : (
-              <Empty className="h-[320px] w-full">
-                <EmptyHeader>
-                  <EmptyTitle>
-                    {translate("charts.distribution.empty.title")}
-                  </EmptyTitle>
-                  <EmptyDescription>
-                    {translate("charts.distribution.empty.description")}
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            )}
-          </CardContent>
-        </Card>
+                  </Pie>
+                  <ChartLegend content={<ChartLegendContent />} />
+                </PieChart>
+              </ChartContainer>
+              <div className="space-y-4 md:w-64">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  {translate("charts.distribution.breakdownTitle")}
+                </h4>
+                <ul className="space-y-3">
+                  {distributionData.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="size-2.5 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-muted-foreground">
+                          {item.label}
+                        </span>
+                      </div>
+                      <span className="font-medium">
+                        {item.percentage.toFixed(1)}%
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <Empty className="h-[320px] w-full">
+              <EmptyHeader>
+                <EmptyTitle>
+                  {translate("charts.distribution.empty.title")}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {translate("charts.distribution.empty.description")}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+        </GlowCard>
       </section>
     </div>
   );

@@ -125,7 +125,7 @@ const GlowingEffect = memo(
             "pointer-events-none absolute -inset-px hidden rounded-[inherit] border opacity-0 transition-opacity",
             glow && "opacity-100",
             variant === "white" && "border-white",
-            disabled && "!block",
+            disabled && "block!",
           )}
         />
         <div
@@ -162,9 +162,9 @@ const GlowingEffect = memo(
           className={cn(
             "pointer-events-none absolute inset-0 rounded-[inherit] opacity-100 transition-opacity",
             glow && "opacity-100",
-            blur > 0 && "blur-[var(--blur)] ",
+            blur > 0 && "blur-(--blur) ",
             className,
-            disabled && "!hidden",
+            disabled && "hidden!",
           )}
         >
           <div
@@ -173,11 +173,11 @@ const GlowingEffect = memo(
               "rounded-[inherit]",
               'after:content-[""] after:rounded-[inherit] after:absolute after:inset-[calc(-1*var(--glowingeffect-border-width))]',
               "after:[border:var(--glowingeffect-border-width)_solid_transparent]",
-              "after:[background:var(--gradient)] after:[background-attachment:fixed]",
-              "after:opacity-[var(--active)] after:transition-opacity after:duration-300",
+              "after:[background:var(--gradient)] after:bg-fixed",
+              "after:opacity-(--active) after:transition-opacity after:duration-300",
               "after:[mask-clip:padding-box,border-box]",
-              "after:[mask-composite:intersect]",
-              "after:[mask-image:linear-gradient(#0000,#0000),conic-gradient(from_calc((var(--start)-var(--spread))*1deg),#00000000_0deg,#fff,#00000000_calc(var(--spread)*2deg))]",
+              "after:mask-intersect",
+              "after:mask-[linear-gradient(#0000,#0000),conic-gradient(from_calc((var(--start)-var(--spread))*1deg),#00000000_0deg,#fff,#00000000_calc(var(--spread)*2deg))]",
             )}
           />
         </div>
@@ -224,9 +224,18 @@ interface GridItemProps {
   title: string;
   value: string;
   description: string;
+  valueClassName?: string;
+  iconContainerClassName?: string;
 }
 
-const GridItem = ({ icon, title, value, description }: GridItemProps) => {
+const GridItem = ({
+  icon,
+  title,
+  value,
+  description,
+  valueClassName,
+  iconContainerClassName,
+}: GridItemProps) => {
   return (
     <li className="list-none">
       <div className="relative h-full rounded-xl border p">
@@ -242,16 +251,28 @@ const GridItem = ({ icon, title, value, description }: GridItemProps) => {
         />
 
         {/* Conteúdo do card */}
-        <div className="border-0.75 relative z-[2] flex h-full flex-col justify-between gap-4 overflow-hidden rounded-xl p-6 ">
+        <div className="border-0.75 relative z-2 flex h-full flex-col justify-between gap-4 overflow-hidden rounded-xl p-6 ">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-black dark:text-white">
               {title}
             </h3>
-            <div className="w-fit p-2">{icon}</div>
+            <div
+              className={cn(
+                "w-fit rounded-full bg-muted p-2 text-black dark:text-neutral-400",
+                iconContainerClassName,
+              )}
+            >
+              {icon}
+            </div>
           </div>
 
           <div>
-            <p className="text-2xl font-semibold text-black dark:text-white">
+            <p
+              className={cn(
+                "text-2xl font-semibold text-black dark:text-white",
+                valueClassName,
+              )}
+            >
               {value}
             </p>
             <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
@@ -263,4 +284,62 @@ const GridItem = ({ icon, title, value, description }: GridItemProps) => {
     </li>
   );
 };
-export { GlowingEffect, GridItem };
+interface GlowCardProps {
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  trailing?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  contentClassName?: string;
+}
+
+const GlowCard = ({
+  title,
+  description,
+  trailing,
+  children,
+  className,
+  contentClassName,
+}: GlowCardProps) => {
+  const showHeader = Boolean(title || description || trailing);
+
+  return (
+    <div className={cn("relative rounded-xl border p", className)}>
+      <GlowingEffect
+        blur={0}
+        borderWidth={2}
+        spread={70}
+        glow={true}
+        disabled={false}
+        proximity={96}
+        inactiveZone={0.05}
+      />
+      <div
+        className={cn(
+          "border-0.75 relative z-2 flex flex-col gap-4 overflow-hidden rounded-xl p-6",
+          contentClassName,
+        )}
+      >
+        {showHeader ? (
+          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div className="flex flex-col gap-1">
+              {title ? (
+                <h3 className="text-lg font-semibold text-black dark:text-white">
+                  {title}
+                </h3>
+              ) : null}
+              {description ? (
+                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                  {description}
+                </p>
+              ) : null}
+            </div>
+            {trailing ? <div className="shrink-0">{trailing}</div> : null}
+          </div>
+        ) : null}
+        <div className="flex-1">{children}</div>
+      </div>
+    </div>
+  );
+};
+export { GlowingEffect, GridItem, GlowCard };
