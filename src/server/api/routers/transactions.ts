@@ -12,6 +12,8 @@ import {
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { requireUserAndGroup } from "../utils/getUserAndGroup";
 
+type TransactionRecord = typeof transactions.$inferSelect;
+
 // ==== ENUMS ====
 
 const paymentMethodSchema = z.enum([
@@ -30,22 +32,33 @@ const recurrenceTypeSchema = z.enum(["daily", "weekly", "monthly", "yearly"]);
 
 // ==== INPUT SCHEMAS ====
 
-const createTransactionSchema = z.object({
-  type: transactionTypeSchema,
-  accountId: z.string().uuid("Conta inválida."),
-  categoryId: z.string().uuid("Categoria inválida.").optional(),
-  amount: z.coerce.number().positive("Informe um valor maior que zero."),
-  description: z.string().max(500).optional(),
-  date: z.coerce.date(),
-  method: paymentMethodSchema,
-  attachmentUrl: z.string().url().optional(),
-  mode: z.enum(["unique", "installment", "recurring"]).default("unique"),
+const paymentStatusSchema = z.object({
+  isPaid: z.boolean().optional(),
+  paidAt: z.coerce.date().optional(),
+});
 
-  // === campos extras ===
-  totalInstallments: z.number().int().min(2).optional(),
-  recurrenceType: recurrenceTypeSchema.optional(),
-  startDate: z.coerce.date().optional(),
-  endDate: z.coerce.date().optional(),
+const createTransactionSchema = z
+  .object({
+    type: transactionTypeSchema,
+    accountId: z.string().uuid("Conta inválida."),
+    categoryId: z.string().uuid("Categoria inválida.").optional(),
+    amount: z.coerce.number().positive("Informe um valor maior que zero."),
+    description: z.string().max(500).optional(),
+    date: z.coerce.date(),
+    method: paymentMethodSchema,
+    attachmentUrl: z.string().url().optional(),
+    mode: z.enum(["unique", "installment", "recurring"]).default("unique"),
+
+    // === campos extras ===
+    totalInstallments: z.number().int().min(2).optional(),
+    recurrenceType: recurrenceTypeSchema.optional(),
+    startDate: z.coerce.date().optional(),
+    endDate: z.coerce.date().optional(),
+  })
+  .merge(paymentStatusSchema);
+
+const updateTransactionSchema = createTransactionSchema.extend({
+  id: z.string().uuid("Transação inválida."),
 });
 
 const dateRangeSchema = z.object({
@@ -98,6 +111,9 @@ export const transactionsRouter = createTRPCRouter({
           installmentNumber: transactions.installment_number,
           totalInstallments: transactions.total_installments,
           recurringId: transactions.recurring_id,
+          isPaid: transactions.is_paid,
+          paidAt: transactions.paid_at,
+          attachmentUrl: transactions.attachment_url,
         })
         .from(transactions)
         .leftJoin(
@@ -127,6 +143,9 @@ export const transactionsRouter = createTRPCRouter({
         installmentNumber: item.installmentNumber,
         totalInstallments: item.totalInstallments,
         recurringId: item.recurringId,
+        isPaid: item.isPaid ?? false,
+        paidAt: item.paidAt,
+        attachmentUrl: item.attachmentUrl ?? null,
       }));
     }),
 
@@ -173,6 +192,13 @@ export const transactionsRouter = createTRPCRouter({
       }
 
       const amountValue = input.amount.toFixed(2);
+      const inferredPaidFlag =
+        input.mode === "unique" && input.type === "income";
+      const isPaid = input.isPaid ?? Boolean(inferredPaidFlag);
+      const paidAtValue =
+        isPaid && (input.paidAt ?? input.date)
+          ? (input.paidAt ?? input.date)
+          : null;
 
       // ============================
       // 🔹 MODO 1: ÚNICA
@@ -193,6 +219,8 @@ export const transactionsRouter = createTRPCRouter({
             description: input.description ?? null,
             date: input.date,
             attachment_url: input.attachmentUrl ?? null,
+            is_paid: isPaid,
+            paid_at: paidAtValue ?? null,
           })
           .returning();
 
@@ -211,7 +239,7 @@ export const transactionsRouter = createTRPCRouter({
         }
 
         const installmentGroupId = uuidv4();
-        const created: any[] = [];
+        const created: TransactionRecord[] = [];
 
         for (let i = 1; i <= input.totalInstallments; i++) {
           const date = new Date(input.date);
@@ -236,6 +264,8 @@ export const transactionsRouter = createTRPCRouter({
               installment_group_id: installmentGroupId,
               installment_number: i,
               total_installments: input.totalInstallments,
+              is_paid: input.isPaid ?? false,
+              paid_at: input.isPaid && input.paidAt ? input.paidAt : null,
             })
             .returning();
 
@@ -291,6 +321,8 @@ export const transactionsRouter = createTRPCRouter({
             date: input.startDate,
             attachment_url: input.attachmentUrl ?? null,
             recurring_id: recurring.id,
+            is_paid: input.isPaid ?? false,
+            paid_at: input.isPaid && input.paidAt ? input.paidAt : null,
           })
           .returning();
 
@@ -301,5 +333,137 @@ export const transactionsRouter = createTRPCRouter({
         code: "BAD_REQUEST",
         message: "Modo de transação inválido.",
       });
+    }),
+
+  // ==== UPDATE ====
+  update: protectedProcedure
+    .input(updateTransactionSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      const existing = await ctx.db.query.transactions.findFirst({
+        where: and(
+          eq(transactions.id, input.id),
+          eq(transactions.group_id, groupId),
+        ),
+      });
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Transação não encontrada.",
+        });
+      }
+
+      if (existing.type !== input.type) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Não é possível alterar o tipo da transação.",
+        });
+      }
+
+      const inferredMode = existing.installment_group_id
+        ? "installment"
+        : existing.recurring_id
+          ? "recurring"
+          : "unique";
+
+      if (input.mode !== inferredMode) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Não é possível alterar o modo da transação.",
+        });
+      }
+
+      if (inferredMode !== "unique") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Edição disponível apenas para transações únicas no momento.",
+        });
+      }
+
+      const account = await ctx.db.query.bank_accounts.findFirst({
+        where: and(
+          eq(bank_accounts.id, input.accountId),
+          eq(bank_accounts.group_id, groupId),
+        ),
+      });
+
+      if (!account) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Conta não encontrada.",
+        });
+      }
+
+      const nextCategoryId =
+        input.categoryId !== undefined
+          ? input.categoryId
+          : existing.category_id;
+
+      let categoryNameSnapshot = existing.category_name_snapshot;
+
+      if (input.categoryId !== undefined) {
+        if (!input.categoryId) {
+          categoryNameSnapshot = null;
+        } else {
+          const category = await ctx.db.query.categories.findFirst({
+            where: and(
+              eq(categories.id, input.categoryId),
+              eq(categories.group_id, groupId),
+            ),
+          });
+
+          if (!category) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Categoria não encontrada.",
+            });
+          }
+
+          categoryNameSnapshot = category.name;
+        }
+      }
+
+      const amountValue = input.amount.toFixed(2);
+      const inferredPaidFlag =
+        input.mode === "unique" && input.type === "income";
+      const isPaid = input.isPaid ?? Boolean(inferredPaidFlag);
+      const paidAtValue =
+        isPaid && (input.paidAt ?? input.date)
+          ? (input.paidAt ?? input.date)
+          : null;
+
+      const [updated] = await ctx.db
+        .update(transactions)
+        .set({
+          account_id: input.accountId,
+          category_id: nextCategoryId ?? null,
+          category_name_snapshot: categoryNameSnapshot,
+          method: input.method,
+          amount: amountValue,
+          description: input.description ?? null,
+          date: input.date,
+          attachment_url: input.attachmentUrl ?? null,
+          is_paid: isPaid,
+          paid_at: paidAtValue ?? null,
+        })
+        .where(
+          and(
+            eq(transactions.id, input.id),
+            eq(transactions.group_id, groupId),
+          ),
+        )
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Não foi possível atualizar a transação.",
+        });
+      }
+
+      return updated;
     }),
 });

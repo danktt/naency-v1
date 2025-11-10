@@ -4,16 +4,20 @@ import { IconRefresh } from "@tabler/icons-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
+import { IncomesForm } from "@/components/forms/incomesForm";
 import { DataTable } from "@/components/Table";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc/client";
 import { useDateStore } from "@/stores/useDateStore";
 
-import { createIncomeColumns } from "./columnsDef";
+import { createIncomeColumns, type IncomeTableRow } from "./columnsDef";
 
 export function IncomesTable() {
   const { t } = useTranslation("incomes");
   const dateRange = useDateStore((state) => state.dateRange);
+  const [editingIncome, setEditingIncome] =
+    React.useState<IncomeTableRow | null>(null);
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
 
   const queryInput = React.useMemo(
     () => ({
@@ -29,9 +33,25 @@ export function IncomesTable() {
   const { data, isLoading, isError, refetch, isRefetching } =
     trpc.transactions.list.useQuery(queryInput);
 
+  const handleEditIncome = React.useCallback((income: IncomeTableRow) => {
+    setEditingIncome(income);
+    setIsEditOpen(true);
+  }, []);
+
+  const handleEditOpenChange = React.useCallback((nextOpen: boolean) => {
+    setIsEditOpen(nextOpen);
+    if (!nextOpen) {
+      setEditingIncome(null);
+    }
+  }, []);
+
   const columns = React.useMemo(
-    () => createIncomeColumns({ t }),
-    [t],
+    () =>
+      createIncomeColumns({
+        t,
+        onEditIncome: handleEditIncome,
+      }),
+    [handleEditIncome, t],
   );
 
   const rows = data ?? [];
@@ -58,12 +78,23 @@ export function IncomesTable() {
   );
 
   return (
-    <DataTable
-      columns={columns}
-      data={rows}
-      loading={isLoading}
-      emptyMessage={emptyMessage}
-      toolbarActions={toolbar}
-    />
+    <>
+      <DataTable
+        columns={columns}
+        data={rows}
+        loading={isLoading}
+        emptyMessage={emptyMessage}
+        toolbarActions={toolbar}
+      />
+      {editingIncome ? (
+        <IncomesForm
+          mode="edit"
+          income={editingIncome}
+          open={isEditOpen}
+          onOpenChange={handleEditOpenChange}
+          trigger={null}
+        />
+      ) : null}
+    </>
   );
 }

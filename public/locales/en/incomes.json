@@ -63,12 +63,20 @@
   "form": {
     "trigger": "Create income",
     "title": "Create income",
+    "editTitle": "Edit income",
+    "editDescription": "Update the information below to edit this income entry.",
     "description": "Fill in the information below to create an income entry.",
     "mode": {
       "label": "Transaction type",
       "unique": "Unique",
       "installment": "Installment",
       "recurring": "Recurring"
+    },
+    "payment": {
+      "help": "Control the payment status and real receipt date of this income.",
+      "markAsPaid": "Mark as received",
+      "paidAt": "Payment date",
+      "paidAtPlaceholder": "Select a payment date"
     },
     "dates": {
       "help": "Configure when this income should be received or start recurring.",
@@ -107,9 +115,12 @@
     "keepOpen": "Keep open",
     "cancel": "Cancel",
     "submit": "Create",
+    "update": "Save changes",
     "toast": {
       "success": "Income successfully registered.",
-      "error": "Could not register the income."
+      "error": "Could not register the income.",
+      "updateSuccess": "Income successfully updated.",
+      "updateError": "Could not update the income."
     },
     "validation": {
       "description": "Enter a description.",
@@ -117,7 +128,8 @@
       "account": "Select an account.",
       "category": "Select a category.",
       "attachment": "Enter a valid URL.",
-      "totalInstallments": "Enter at least two installments."
+      "totalInstallments": "Enter at least two installments.",
+      "paidAt": "Select the payment date."
     },
     "paymentMethods": {
       "pix": "Pix",

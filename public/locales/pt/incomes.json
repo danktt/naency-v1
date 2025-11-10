@@ -58,12 +58,20 @@
   "form": {
     "trigger": "Criar receita",
     "title": "Criar receita",
+    "editTitle": "Editar receita",
+    "editDescription": "Atualize as informações abaixo para editar esta receita.",
     "description": "Preencha as informações abaixo para registrar uma receita.",
     "mode": {
       "label": "Tipo de transação",
       "unique": "Única",
       "installment": "Parcelada",
       "recurring": "Recorrente"
+    },
+    "payment": {
+      "help": "Controle o status de pagamento e a data real de recebimento desta receita.",
+      "markAsPaid": "Marcar como recebida",
+      "paidAt": "Data de pagamento",
+      "paidAtPlaceholder": "Selecione a data de pagamento"
     },
     "dates": {
       "help": "Defina quando esta receita deve ser recebida ou iniciar a recorrência.",
@@ -102,9 +110,12 @@
     "keepOpen": "Manter aberto",
     "cancel": "Cancelar",
     "submit": "Criar",
+    "update": "Salvar alterações",
     "toast": {
       "success": "Receita registrada com sucesso.",
-      "error": "Não foi possível registrar a receita."
+      "error": "Não foi possível registrar a receita.",
+      "updateSuccess": "Receita atualizada com sucesso.",
+      "updateError": "Não foi possível atualizar a receita."
     },
     "validation": {
       "description": "Informe uma descrição.",
@@ -112,7 +123,8 @@
       "account": "Selecione uma conta.",
       "category": "Selecione uma categoria.",
       "attachment": "Informe uma URL válida.",
-      "totalInstallments": "Informe pelo menos duas parcelas."
+      "totalInstallments": "Informe pelo menos duas parcelas.",
+      "paidAt": "Informe a data de pagamento."
     },
     "paymentMethods": {
       "pix": "Pix",

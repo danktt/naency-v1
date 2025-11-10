@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
+import type { inferRouterOutputs } from "@trpc/server";
 import { format } from "date-fns";
 import { enUS, ptBR } from "date-fns/locale";
 import { AnimatePresence, motion } from "framer-motion";
@@ -49,6 +50,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import type { AppRouter } from "@/server/api/root";
 import { useDateStore } from "@/stores/useDateStore";
 import { Checkbox } from "../ui/checkbox";
 import { ScrollArea } from "../ui/scroll-area";
@@ -78,50 +80,103 @@ const paymentMethodOptions: Array<{
   { value: "investment", labelKey: "form.paymentMethods.investment" },
 ];
 
+type RouterOutput = inferRouterOutputs<AppRouter>;
+type IncomeTransaction = RouterOutput["transactions"]["list"][number];
+type IncomeFormMode = "create" | "edit";
+
+type IncomesFormProps = {
+  mode?: IncomeFormMode;
+  income?: IncomeTransaction | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode;
+  onSuccess?: () => void;
+};
+
 const createIncomeFormSchema = (t: TFunction<"incomes">) =>
-  z.object({
-    description: z.string().min(1, t("form.validation.description")),
-    amount: z.number().int().min(1, t("form.validation.amount")),
-    currency: z.enum(["BRL", "USD", "EUR"]),
-    date: z.date(),
-    accountId: z.string().uuid(t("form.validation.account")),
-    categoryId: z.string().uuid(t("form.validation.category")),
-    method: z.enum(paymentMethodValues),
-    attachmentUrl: z
-      .string()
-      .trim()
-      .refine(
-        (value) => value.length === 0 || isValidUrl(value),
-        t("form.validation.attachment"),
-      ),
-    mode: z.enum(["unique", "installment", "recurring"]),
-    totalInstallments: z
-      .number()
-      .int()
-      .min(2, t("form.validation.totalInstallments"))
-      .optional(),
-    recurrenceType: z.enum(["daily", "weekly", "monthly", "yearly"]).optional(),
-    startDate: z.date().optional(),
-    endDate: z.date().optional(),
-  });
+  z
+    .object({
+      description: z.string().min(1, t("form.validation.description")),
+      amount: z.number().int().min(1, t("form.validation.amount")),
+      currency: z.enum(["BRL", "USD", "EUR"]),
+      date: z.date(),
+      accountId: z.string().uuid(t("form.validation.account")),
+      categoryId: z.string().uuid(t("form.validation.category")),
+      method: z.enum(paymentMethodValues),
+      attachmentUrl: z
+        .string()
+        .trim()
+        .refine(
+          (value) => value.length === 0 || isValidUrl(value),
+          t("form.validation.attachment"),
+        ),
+      mode: z.enum(["unique", "installment", "recurring"]),
+      totalInstallments: z
+        .number()
+        .int()
+        .min(2, t("form.validation.totalInstallments"))
+        .optional(),
+      recurrenceType: z
+        .enum(["daily", "weekly", "monthly", "yearly"])
+        .optional(),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
+      isPaid: z.boolean(),
+      paidAt: z.date().optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.isPaid && !data.paidAt) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["paidAt"],
+          message: t("form.validation.paidAt"),
+        });
+      }
+    });
 
 type CreateIncomeFormValues = z.infer<
   ReturnType<typeof createIncomeFormSchema>
 >;
 
-const getDefaultValues = (): CreateIncomeFormValues => ({
-  description: "",
-  amount: 0,
-  currency: "BRL",
-  date: new Date(),
-  accountId: "",
-  categoryId: "",
-  method: "pix",
-  attachmentUrl: "",
-  mode: "unique",
-  totalInstallments: 2,
-  recurrenceType: "monthly",
-});
+const getDefaultValues = (
+  overrides?: Partial<CreateIncomeFormValues>,
+): CreateIncomeFormValues => {
+  const now = new Date();
+  const mode = overrides?.mode ?? "unique";
+  const date = overrides?.date ?? now;
+  const isPaid = overrides?.isPaid ?? mode === "unique";
+
+  const values: CreateIncomeFormValues = {
+    description: "",
+    amount: 0,
+    currency: "BRL",
+    date,
+    accountId: "",
+    categoryId: "",
+    method: "pix",
+    attachmentUrl: "",
+    mode,
+    totalInstallments: 2,
+    recurrenceType: "monthly",
+    isPaid,
+    paidAt: overrides?.paidAt ?? (isPaid ? date : undefined),
+  };
+
+  const merged = {
+    ...values,
+    ...overrides,
+  };
+
+  if (merged.isPaid && !merged.paidAt) {
+    merged.paidAt = merged.date;
+  }
+
+  if (!merged.isPaid) {
+    merged.paidAt = undefined;
+  }
+
+  return merged;
+};
 
 function isValidUrl(value: string) {
   if (!value) return false;
@@ -133,15 +188,61 @@ function isValidUrl(value: string) {
   }
 }
 
-export function IncomesForm() {
+function mapIncomeToDefaultValues(
+  income: IncomeTransaction,
+): CreateIncomeFormValues {
+  const mode = income.installmentGroupId
+    ? "installment"
+    : income.recurringId
+      ? "recurring"
+      : "unique";
+
+  const amountInCents = Math.round(Number(income.amount) * 100);
+
+  return getDefaultValues({
+    description: income.description,
+    amount: Number.isNaN(amountInCents) ? 0 : amountInCents,
+    date: income.date ? new Date(income.date) : new Date(),
+    accountId: income.accountId ?? "",
+    categoryId: income.categoryId ?? "",
+    method: income.method,
+    attachmentUrl: income.attachmentUrl ?? "",
+    mode,
+    totalInstallments: income.totalInstallments ?? 2,
+    isPaid: income.isPaid ?? false,
+    paidAt: income.paidAt ? new Date(income.paidAt) : undefined,
+  });
+}
+
+export function IncomesForm(props: IncomesFormProps = {}) {
+  const {
+    mode: forcedMode,
+    income = null,
+    open,
+    onOpenChange,
+    trigger,
+    onSuccess,
+  } = props;
+
+  const hasIncome = Boolean(income);
+  const derivedMode: IncomeFormMode =
+    forcedMode ?? (hasIncome ? "edit" : "create");
+  const isEditing = derivedMode === "edit" && hasIncome;
+  const effectiveIncome = isEditing ? income : null;
+
   const { t, i18n } = useTranslation("incomes");
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
   const [isStartDatePopoverOpen, setIsStartDatePopoverOpen] =
     React.useState(false);
   const [isEndDatePopoverOpen, setIsEndDatePopoverOpen] = React.useState(false);
+  const [isPaidAtPopoverOpen, setIsPaidAtPopoverOpen] = React.useState(false);
   const [keepOpen, setKeepOpen] = React.useState(false);
   const keepOpenId = React.useId();
+  const keepOpenRef = React.useRef(keepOpen);
+
+  const isControlled = open !== undefined;
+  const dialogOpen = isControlled ? Boolean(open) : internalOpen;
 
   const locale = React.useMemo(
     () => (i18n.language?.startsWith("pt") ? ptBR : enUS),
@@ -152,52 +253,145 @@ export function IncomesForm() {
 
   const dateRange = useDateStore((state) => state.dateRange);
   const utils = trpc.useUtils();
-  const keepOpenRef = React.useRef(keepOpen);
+
+  const defaultValues = React.useMemo(() => {
+    if (isEditing && effectiveIncome) {
+      return mapIncomeToDefaultValues(effectiveIncome);
+    }
+    return getDefaultValues();
+  }, [effectiveIncome, isEditing]);
+
+  const form = useForm<CreateIncomeFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues,
+    mode: "onSubmit",
+  });
 
   React.useEffect(() => {
     keepOpenRef.current = keepOpen;
   }, [keepOpen]);
 
-  const form = useForm<CreateIncomeFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: getDefaultValues(),
-    mode: "onSubmit",
-  });
+  React.useEffect(() => {
+    if (dialogOpen && isEditing && effectiveIncome) {
+      form.reset(mapIncomeToDefaultValues(effectiveIncome));
+    }
+  }, [dialogOpen, effectiveIncome, isEditing, form]);
+
+  const closeDialog = React.useCallback(() => {
+    if (!isControlled) {
+      setInternalOpen(false);
+    }
+    onOpenChange?.(false);
+    setIsDatePopoverOpen(false);
+    setIsStartDatePopoverOpen(false);
+    setIsEndDatePopoverOpen(false);
+    setIsPaidAtPopoverOpen(false);
+
+    if (isEditing && effectiveIncome) {
+      form.reset(mapIncomeToDefaultValues(effectiveIncome));
+    } else {
+      form.reset(getDefaultValues());
+      setKeepOpen(false);
+    }
+  }, [effectiveIncome, form, isControlled, isEditing, onOpenChange]);
+
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      if (nextOpen) {
+        if (!isControlled) {
+          setInternalOpen(true);
+        }
+        onOpenChange?.(true);
+        return;
+      }
+
+      closeDialog();
+    },
+    [closeDialog, isControlled, onOpenChange],
+  );
 
   const accountsQuery = trpc.accounts.list.useQuery(undefined, {
-    enabled: isOpen,
+    enabled: dialogOpen,
   });
+
+  const invalidateTransactionsList = React.useCallback(async () => {
+    await utils.transactions.list.invalidate({ type: "income" });
+  }, [utils]);
 
   const createIncomeMutation = trpc.transactions.create.useMutation({
     onSuccess: async () => {
-      await utils.transactions.list.invalidate({ type: "income" });
+      await invalidateTransactionsList();
       toast.success(t("form.toast.success"));
-      form.reset(getDefaultValues());
-      setIsDatePopoverOpen(false);
-      setIsStartDatePopoverOpen(false);
-      setIsEndDatePopoverOpen(false);
       if (keepOpenRef.current) {
+        form.reset(getDefaultValues());
         form.setFocus("description");
       } else {
-        setIsOpen(false);
+        closeDialog();
       }
+      onSuccess?.();
     },
     onError: (error) => toast.error(error.message ?? t("form.toast.error")),
   });
 
-  const handleOpenChange = React.useCallback(
-    (nextOpen: boolean) => {
-      setIsOpen(nextOpen);
-      if (!nextOpen) {
-        form.reset(getDefaultValues());
-        setIsDatePopoverOpen(false);
-        setIsStartDatePopoverOpen(false);
-        setIsEndDatePopoverOpen(false);
-        setKeepOpen(false);
-      }
+  const updateIncomeMutation = trpc.transactions.update.useMutation({
+    onSuccess: async () => {
+      await invalidateTransactionsList();
+      toast.success(t("form.toast.updateSuccess"));
+      closeDialog();
+      onSuccess?.();
     },
-    [form],
-  );
+    onError: (error) =>
+      toast.error(error.message ?? t("form.toast.updateError")),
+  });
+
+  const isSubmitting = isEditing
+    ? updateIncomeMutation.isPending
+    : createIncomeMutation.isPending;
+  const hasAccounts = (accountsQuery.data?.length ?? 0) > 0;
+  const isFormDisabled = !hasAccounts;
+
+  const modeValue = form.watch("mode");
+  const isUnique = modeValue === "unique";
+  const isInstallment = modeValue === "installment";
+  const isRecurring = modeValue === "recurring";
+  const isPaidValue = form.watch("isPaid");
+  const dateValue = form.watch("date");
+
+  React.useEffect(() => {
+    if (!dialogOpen) {
+      return;
+    }
+
+    if (!isPaidValue) {
+      form.setValue("paidAt", undefined, { shouldDirty: false });
+      return;
+    }
+
+    const currentMode = form.getValues("mode");
+    if (!isEditing && currentMode === "unique") {
+      form.setValue("paidAt", form.getValues("date"), {
+        shouldDirty: false,
+      });
+      return;
+    }
+
+    const paidAt = form.getValues("paidAt");
+    if (!paidAt) {
+      form.setValue("paidAt", form.getValues("date"), {
+        shouldDirty: false,
+      });
+    }
+  }, [dialogOpen, dateValue, form, isEditing, isPaidValue]);
+
+  React.useEffect(() => {
+    if (!dialogOpen || isEditing) {
+      return;
+    }
+
+    if (modeValue !== "unique" && form.getValues("isPaid")) {
+      form.setValue("isPaid", false, { shouldDirty: true });
+    }
+  }, [dialogOpen, form, isEditing, modeValue]);
 
   const onSubmit = React.useCallback(
     (values: CreateIncomeFormValues) => {
@@ -205,8 +399,10 @@ export function IncomesForm() {
       const attachmentUrl = values.attachmentUrl?.trim().length
         ? values.attachmentUrl.trim()
         : undefined;
-      createIncomeMutation.mutate({
-        type: "income",
+      const paidAt = values.isPaid ? (values.paidAt ?? values.date) : undefined;
+
+      const payload = {
+        type: "income" as const,
         accountId: values.accountId,
         categoryId: values.categoryId,
         amount: amountInCents / 100,
@@ -219,19 +415,21 @@ export function IncomesForm() {
         recurrenceType: values.recurrenceType,
         startDate: values.startDate,
         endDate: values.endDate,
-      });
+        isPaid: values.isPaid,
+        paidAt,
+      };
+
+      if (isEditing && effectiveIncome) {
+        updateIncomeMutation.mutate({
+          ...payload,
+          id: effectiveIncome.id,
+        });
+      } else {
+        createIncomeMutation.mutate(payload);
+      }
     },
-    [createIncomeMutation],
+    [createIncomeMutation, effectiveIncome, isEditing, updateIncomeMutation],
   );
-
-  const isSubmitting = createIncomeMutation.isPending;
-  const hasAccounts = (accountsQuery.data?.length ?? 0) > 0;
-  const isFormDisabled = !hasAccounts;
-
-  const mode = form.watch("mode");
-  const isUnique = mode === "unique";
-  const isInstallment = mode === "installment";
-  const isRecurring = mode === "recurring";
 
   const motionProps = {
     initial: { opacity: 0, y: -10, height: 0 },
@@ -240,13 +438,20 @@ export function IncomesForm() {
     transition: { duration: 0.25, ease: "easeInOut" },
   } as const;
 
+  const triggerNode =
+    trigger !== undefined ? (
+      trigger
+    ) : isEditing ? null : (
+      <Button icon={<IconPlus className="size-4" />}>
+        {t("form.trigger")}
+      </Button>
+    );
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button icon={<IconPlus className="size-4" />}>
-          {t("form.trigger")}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
+      {triggerNode ? (
+        <DialogTrigger asChild>{triggerNode}</DialogTrigger>
+      ) : null}
 
       <DialogContent
         className={cn(
@@ -263,8 +468,14 @@ export function IncomesForm() {
               {/* Header */}
               <div className="sm:px-4 px-4 pt-6 pb-4 space-y-4 shrink-0">
                 <DialogHeader className="px-0 text-left">
-                  <DialogTitle>{t("form.title")}</DialogTitle>
-                  <DialogDescription>{t("form.description")}</DialogDescription>
+                  <DialogTitle>
+                    {isEditing ? t("form.editTitle") : t("form.title")}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {isEditing
+                      ? t("form.editDescription")
+                      : t("form.description")}
+                  </DialogDescription>
                 </DialogHeader>
 
                 {/* Mode Tabs */}
@@ -279,26 +490,33 @@ export function IncomesForm() {
                       <FormControl>
                         <Tabs
                           value={field.value}
-                          onValueChange={(value) =>
+                          onValueChange={(value) => {
+                            if (isEditing) return;
                             field.onChange(
                               value as CreateIncomeFormValues["mode"],
-                            )
-                          }
+                            );
+                          }}
                           className="w-full"
                         >
                           <TabsList className="grid w-full grid-cols-3 rounded-xl bg-muted/60 p-1">
-                            <TabsTrigger value="unique" className="rounded-lg">
+                            <TabsTrigger
+                              value="unique"
+                              className="rounded-lg"
+                              disabled={isEditing}
+                            >
                               {t("form.mode.unique")}
                             </TabsTrigger>
                             <TabsTrigger
                               value="installment"
                               className="rounded-lg"
+                              disabled={isEditing}
                             >
                               {t("form.mode.installment")}
                             </TabsTrigger>
                             <TabsTrigger
                               value="recurring"
                               className="rounded-lg"
+                              disabled={isEditing}
                             >
                               {t("form.mode.recurring")}
                             </TabsTrigger>
@@ -345,6 +563,7 @@ export function IncomesForm() {
                                             !selectedDate &&
                                               "text-muted-foreground",
                                           )}
+                                          disabled={isSubmitting}
                                         >
                                           <IconCalendar className="mr-2 h-4 w-4" />
                                           {selectedDate
@@ -412,6 +631,7 @@ export function IncomesForm() {
                                             !selectedDate &&
                                               "text-muted-foreground",
                                           )}
+                                          disabled={isSubmitting}
                                         >
                                           <IconCalendar className="mr-2 h-4 w-4" />
                                           {selectedDate
@@ -539,6 +759,7 @@ export function IncomesForm() {
                                             !selected &&
                                               "text-muted-foreground",
                                           )}
+                                          disabled={isSubmitting}
                                         >
                                           <IconCalendar className="mr-2 h-4 w-4" />
                                           {selected
@@ -597,6 +818,7 @@ export function IncomesForm() {
                                             !selected &&
                                               "text-muted-foreground",
                                           )}
+                                          disabled={isSubmitting}
                                         >
                                           <IconCalendar className="mr-2 h-4 w-4" />
                                           {selected
@@ -637,6 +859,109 @@ export function IncomesForm() {
                     </AnimatePresence>
                   </section>
 
+                  {/* === Payment Section === */}
+                  <section className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      {t("form.payment.help")}
+                    </p>
+                    <div className="space-y-3">
+                      <FormField
+                        control={form.control}
+                        name="isPaid"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={(checked) =>
+                                    field.onChange(Boolean(checked))
+                                  }
+                                  disabled={isSubmitting}
+                                />
+                              </FormControl>
+                              <FormLabel className="text-sm font-medium">
+                                {t("form.payment.markAsPaid")}
+                              </FormLabel>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <AnimatePresence initial={false}>
+                        {isPaidValue && (
+                          <motion.div key="paid-at" {...motionProps}>
+                            <FormField
+                              control={form.control}
+                              name="paidAt"
+                              render={({ field }) => {
+                                const selected = field.value;
+                                return (
+                                  <FormItem>
+                                    <FormLabel>
+                                      {t("form.payment.paidAt")}
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Popover
+                                        open={isPaidAtPopoverOpen}
+                                        onOpenChange={setIsPaidAtPopoverOpen}
+                                      >
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            className={cn(
+                                              "w-full justify-start text-left font-normal",
+                                              !selected &&
+                                                "text-muted-foreground",
+                                            )}
+                                            disabled={isSubmitting}
+                                          >
+                                            <IconCalendar className="mr-2 h-4 w-4" />
+                                            {selected
+                                              ? format(selected, "PPP", {
+                                                  locale,
+                                                })
+                                              : t(
+                                                  "form.payment.paidAtPlaceholder",
+                                                )}
+                                            <IconChevronDown className="ml-auto h-4 w-4" />
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                          className="w-auto p-0"
+                                          align="start"
+                                        >
+                                          <Calendar
+                                            mode="single"
+                                            selected={selected}
+                                            onSelect={(next) => {
+                                              if (next) {
+                                                field.onChange(next);
+                                                setIsPaidAtPopoverOpen(false);
+                                              }
+                                            }}
+                                            defaultMonth={
+                                              selected ??
+                                              form.getValues("date") ??
+                                              dateRange.to
+                                            }
+                                            locale={locale}
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </section>
+
                   {/* === Details Section === */}
                   <section className="space-y-2">
                     <p className="text-xs text-muted-foreground">
@@ -661,9 +986,15 @@ export function IncomesForm() {
                             </FormLabel>
                             <Select
                               onValueChange={field.onChange}
-                              onOpenChange={(open) => !open && field.onBlur()}
+                              onOpenChange={(openState) =>
+                                !openState && field.onBlur()
+                              }
                               value={field.value}
-                              disabled={accountsQuery.isLoading || !hasAccounts}
+                              disabled={
+                                accountsQuery.isLoading ||
+                                !hasAccounts ||
+                                isSubmitting
+                              }
                             >
                               <FormControl>
                                 <SelectTrigger className="w-full">
@@ -689,6 +1020,7 @@ export function IncomesForm() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -709,6 +1041,7 @@ export function IncomesForm() {
                                 {...field}
                               />
                             </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -721,6 +1054,7 @@ export function IncomesForm() {
                             <Select
                               value={field.value}
                               onValueChange={field.onChange}
+                              disabled={isSubmitting}
                             >
                               <FormControl>
                                 <SelectTrigger className="w-full">
@@ -742,6 +1076,7 @@ export function IncomesForm() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -759,6 +1094,7 @@ export function IncomesForm() {
                                 onBlur={field.onBlur}
                               />
                             </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -785,6 +1121,7 @@ export function IncomesForm() {
                               disabled={isFormDisabled || isSubmitting}
                             />
                           </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -795,20 +1132,22 @@ export function IncomesForm() {
               {/* === Footer === */}
               <div className="sm:px-4 px-4 py-4 rounded-b-lg">
                 <div className="flex sm:flex-row flex-col gap-4">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id={keepOpenId}
-                      checked={keepOpen}
-                      onCheckedChange={(value) => setKeepOpen(Boolean(value))}
-                      disabled={isSubmitting}
-                    />
-                    <FormLabel
-                      htmlFor={keepOpenId}
-                      className="text-sm text-muted-foreground whitespace-nowrap"
-                    >
-                      {t("form.keepOpen")}
-                    </FormLabel>
-                  </div>
+                  {!isEditing && (
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id={keepOpenId}
+                        checked={keepOpen}
+                        onCheckedChange={(value) => setKeepOpen(Boolean(value))}
+                        disabled={isSubmitting}
+                      />
+                      <FormLabel
+                        htmlFor={keepOpenId}
+                        className="text-sm text-muted-foreground whitespace-nowrap"
+                      >
+                        {t("form.keepOpen")}
+                      </FormLabel>
+                    </div>
+                  )}
                   <DialogFooter className="flex w-full flex-col-reverse gap-2 px-0 sm:flex-row sm:items-center sm:justify-end">
                     <DialogClose asChild>
                       <Button
@@ -826,7 +1165,7 @@ export function IncomesForm() {
                       disabled={isSubmitting || isFormDisabled}
                       isLoading={isSubmitting}
                     >
-                      {t("form.submit")}
+                      {t(isEditing ? "form.update" : "form.submit")}
                     </Button>
                   </DialogFooter>
                 </div>

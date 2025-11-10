@@ -1,9 +1,14 @@
- "use client";
+"use client";
 
+import {
+  IconChartBar,
+  IconCurrencyDollar,
+  IconWallet,
+} from "@tabler/icons-react";
 import { CalendarDays, CheckCircle2, Zap } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
 import { IncomesForm } from "@/components/forms/incomesForm";
+import { GridItem } from "@/components/gloweffect";
 import { IncomesTable } from "./_components/IncomesTable";
 
 const metrics = [
@@ -11,19 +16,19 @@ const metrics = [
     titleKey: "metrics.totalIncomes.title",
     changeKey: "metrics.totalIncomes.change",
     value: "12",
-    icon: Zap,
+    icon: IconCurrencyDollar,
   },
   {
     titleKey: "metrics.totalExpenses.title",
     changeKey: "metrics.totalExpenses.change",
     value: "248",
-    icon: CheckCircle2,
+    icon: IconWallet,
   },
   {
     titleKey: "metrics.netBalance.title",
     changeKey: "metrics.netBalance.change",
     value: "4",
-    icon: CalendarDays,
+    icon: IconChartBar,
   },
 ];
 
@@ -37,29 +42,33 @@ export default function IncomesPage() {
           <h2 className="text-2xl font-semibold tracking-tight">
             {t("header.title")}
           </h2>
-          <p className="text-muted-foreground text-sm">{t("header.subtitle")}</p>
+          <p className="text-muted-foreground text-sm">
+            {t("header.subtitle")}
+          </p>
         </div>
         <div>
           <IncomesForm />
         </div>
       </section>
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {metrics.map((metric) => (
-          <div
-            key={metric.titleKey}
-            className="border-border/60 bg-card text-card-foreground relative overflow-hidden rounded-xl border p-5 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">{t(metric.titleKey)}</p>
-              <metric.icon className="text-muted-foreground size-4" />
-            </div>
-            <div className="mt-4 text-2xl font-semibold">{metric.value}</div>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {t(metric.changeKey)}
-            </p>
-          </div>
-        ))}
-      </section>
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <GridItem
+              key={metric.titleKey}
+              icon={
+                <Icon
+                  className="size-5 text-black dark:text-neutral-400"
+                  stroke={1.5}
+                />
+              }
+              title={t(metric.titleKey)}
+              value={metric.value}
+              description={t(metric.changeKey)}
+            />
+          );
+        })}
+      </ul>
       <section>
         <IncomesTable />
       </section>

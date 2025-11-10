@@ -1,5 +1,4 @@
 import {
-  IconArrowRight,
   IconCalendar,
   IconCircle,
   IconCreditCard,
@@ -14,9 +13,9 @@ import type { TFunction } from "i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { capitalizeFirstLetter } from "@/helpers/capitalizeFirstLetter";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
+import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
@@ -112,19 +111,29 @@ export function createIncomeColumns({
 
         const isRecurring = Boolean(tx.recurringId);
         const isInstallment = Boolean(tx.installmentGroupId);
-        const formattedDate = tx.date ? formatDate(tx.date) : t("table.noDate");
+        const isPaid = Boolean(tx.isPaid);
 
         let badgeClass = "";
         let badgeIcon: React.ReactNode = null;
         let badgeLabel = "";
 
         if (!isRecurring && !isInstallment) {
-          badgeClass =
-            "border-success/40 bg-success/10 text-success flex items-center gap-1";
+          badgeClass = isPaid
+            ? "border-success/40 bg-success/10 text-success flex items-center gap-1"
+            : "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
           badgeIcon = (
-            <IconCircle className="size-2 fill-success text-success shrink-0" />
+            <IconCircle
+              className={cn(
+                "size-2 shrink-0",
+                isPaid
+                  ? "fill-success text-success"
+                  : "fill-amber-500 text-amber-500",
+              )}
+            />
           );
-          badgeLabel = t("table.type.paid");
+          badgeLabel = isPaid
+            ? t("table.status.paid")
+            : t("table.status.pending");
         } else if (isInstallment) {
           badgeClass =
             "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
