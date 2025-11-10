@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -26,14 +27,29 @@ type LanguageSwitcherProps = {
 
 export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
   const { i18n } = useTranslation();
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const currentLangCode = isMounted
+    ? i18n.resolvedLanguage ?? i18n.language
+    : languages[0].code;
+
   const currentLang =
-    languages.find((language) => language.code === i18n.language) ??
+    languages.find((language) => language.code === currentLangCode) ??
     languages[0];
 
   return (
     <Select
       value={currentLang.code}
+      disabled={!isMounted}
       onValueChange={(value) => {
+        if (!isMounted) {
+          return;
+        }
+
         if (value !== i18n.language) {
           i18n.changeLanguage(value).catch((error) => {
             console.error("Failed to change language", error);

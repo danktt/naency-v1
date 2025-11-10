@@ -5,10 +5,12 @@ import {
   IconCurrencyDollar,
   IconWallet,
 } from "@tabler/icons-react";
-import { CalendarDays, CheckCircle2, Zap } from "lucide-react";
+import * as React from "react";
 import { useTranslation } from "react-i18next";
+
 import { IncomesForm } from "@/components/forms/incomesForm";
 import { GridItem } from "@/components/gloweffect";
+
 import { IncomesTable } from "./_components/IncomesTable";
 
 const metrics = [
@@ -33,17 +35,35 @@ const metrics = [
 ];
 
 export default function IncomesPage() {
-  const { t } = useTranslation("incomes");
+  const { t, i18n } = useTranslation("incomes");
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const fallbackLng =
+    (Array.isArray(i18n.options?.fallbackLng) && i18n.options.fallbackLng[0]) ||
+    (typeof i18n.options?.fallbackLng === "string"
+      ? i18n.options.fallbackLng
+      : "en");
+
+  const fallbackT = React.useMemo(
+    () => i18n.getFixedT(fallbackLng, "incomes"),
+    [i18n, fallbackLng],
+  );
+
+  const translate = isMounted ? t : fallbackT;
 
   return (
     <div className="space-y-8">
       <section className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-semibold tracking-tight">
-            {t("header.title")}
+            {translate("header.title")}
           </h2>
           <p className="text-muted-foreground text-sm">
-            {t("header.subtitle")}
+            {translate("header.subtitle")}
           </p>
         </div>
         <div>
@@ -62,9 +82,9 @@ export default function IncomesPage() {
                   stroke={1.5}
                 />
               }
-              title={t(metric.titleKey)}
+              title={translate(metric.titleKey)}
               value={metric.value}
-              description={t(metric.changeKey)}
+              description={translate(metric.changeKey)}
             />
           );
         })}

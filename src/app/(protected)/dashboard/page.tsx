@@ -39,7 +39,9 @@ export default function DashboardPage() {
         <h2 className="text-2xl font-semibold tracking-tight">
           {t("heading.title")}
         </h2>
-        <p className="text-muted-foreground text-sm">{t("heading.description")}</p>
+        <p className="text-muted-foreground text-sm">
+          {t("heading.description")}
+        </p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
