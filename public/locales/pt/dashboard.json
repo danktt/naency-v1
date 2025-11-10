@@ -1,32 +1,84 @@
 {
   "heading": {
-    "title": "Bem-vindo de volta",
-    "description": "Veja o que est\u00e1 acontecendo nos seus workspaces hoje."
+    "title": "Visão geral financeira",
+    "description": "Acompanhe como suas contas estão evoluindo neste mês."
   },
-  "metrics": {
-    "activeAutomations": {
-      "title": "Automa\u00e7\u00f5es ativas",
-      "change": "+3 nesta semana"
-    },
-    "completedTasks": {
-      "title": "Tarefas conclu\u00eddas",
-      "change": "+42 neste m\u00eas"
-    },
-    "upcomingReviews": {
-      "title": "Pr\u00f3ximas revis\u00f5es",
-      "change": "Pr\u00f3xima em 12 de nov"
+  "actions": {
+    "retry": "Tentar novamente"
+  },
+  "snapshot": {
+    "title": "Resumo do mês atual",
+    "description": "Monitore entradas, saídas e saldo em tempo real.",
+    "cards": {
+      "incomes": {
+        "title": "Receitas",
+        "subtitle": "Total recebido neste mês."
+      },
+      "expenses": {
+        "title": "Despesas",
+        "subtitle": "Todos os gastos registrados no período."
+      },
+      "monthBalance": {
+        "title": "Saldo do mês",
+        "subtitle": "Receitas menos despesas do mês corrente."
+      },
+      "accumulatedBalance": {
+        "title": "Saldo acumulado",
+        "subtitle": "Saldo considerando meses anteriores."
+      },
+      "pending": {
+        "title": "Pendentes de pagamento",
+        "subtitle": "{{count}} transações aguardando confirmação."
+      }
     }
   },
-  "recent": {
-    "title": "Atividades recentes",
-    "description": "Acompanhe as atualiza\u00e7\u00f5es mais recentes das automa\u00e7\u00f5es e equipes.",
-    "cta": "Ver tudo",
-    "items": {
-      "automationSync": "Sincroniza\u00e7\u00e3o de automa\u00e7\u00e3o implantada",
-      "newPrompt": "Novo prompt publicado",
-      "datasetRefreshed": "Dataset atualizado"
+  "charts": {
+    "monthly": {
+      "title": "Evolução mensal",
+      "description": "Compare receitas e despesas mês a mês.",
+      "legend": {
+        "incomes": "Receitas",
+        "expenses": "Despesas"
+      },
+      "empty": {
+        "title": "Sem histórico ainda",
+        "description": "Cadastre transações para visualizar a tendência mensal."
+      }
     },
-    "badge": "workspace",
-    "timestamp": "H\u00e1 2 horas \u00b7 por voc\u00ea"
+    "distribution": {
+      "title": "Distribuição por categoria",
+      "description": "Entenda para onde o dinheiro está indo neste mês.",
+      "uncategorized": "Sem categoria",
+      "tooltip": {
+        "percentage": "{{value}}% das despesas do mês"
+      },
+      "breakdownTitle": "Detalhe por categoria",
+      "empty": {
+        "title": "Nenhuma despesa registrada",
+        "description": "Adicione despesas para ver a distribuição por categoria."
+      }
+    }
+  },
+  "payments": {
+    "title": "Status de pagamentos",
+    "description": "Acompanhe quais transações estão em dia, atrasadas ou pendentes.",
+    "statuses": {
+      "onTime": {
+        "title": "Pago no prazo",
+        "description": "Transações pagas até a data de vencimento."
+      },
+      "late": {
+        "title": "Pago com atraso",
+        "description": "Transações pagas após a data de vencimento."
+      },
+      "pending": {
+        "title": "Atrasado / pendente",
+        "description": "Inclui {{overdue}} transações em atraso."
+      }
+    },
+    "empty": {
+      "title": "Nada por aqui ainda",
+      "description": "Adicione transações para acompanhar o status de pagamento."
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, gte, lte, sum } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, sql, sum } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
@@ -79,6 +79,38 @@ const metricsInputSchema = z
     dateRange: dateRangeSchema.optional(),
   })
   .optional();
+
+const dashboardSummaryInputSchema = z
+  .object({
+    referenceDate: z.coerce.date().optional(),
+    months: z.number().int().min(1).max(24).optional(),
+  })
+  .optional();
+
+const toNumber = (value: unknown) => {
+  if (value === null || value === undefined) {
+    return 0;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  const parsed = Number.parseFloat(String(value));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const createMonthRange = (date: Date) => {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  return { start, end };
+};
+
+const createTrendStart = (end: Date, months: number) => {
+  const offset = Math.max(months - 1, 0);
+  return new Date(end.getFullYear(), end.getMonth() - offset, 1);
+};
 
 // ==== ROUTER ====
 
@@ -175,19 +207,6 @@ export const transactionsRouter = createTRPCRouter({
         return and(...conditions);
       };
 
-      const toNumber = (value: unknown) => {
-        if (value === null || value === undefined) {
-          return 0;
-        }
-
-        if (typeof value === "number") {
-          return Number.isFinite(value) ? value : 0;
-        }
-
-        const parsed = Number.parseFloat(String(value));
-        return Number.isFinite(parsed) ? parsed : 0;
-      };
-
       const [incomeAggregate] = await ctx.db
         .select({
           total: sum(transactions.amount),
@@ -210,6 +229,245 @@ export const transactionsRouter = createTRPCRouter({
         totalIncomes,
         totalExpenses,
         netBalance,
+      };
+    }),
+
+  dashboardSummary: protectedProcedure
+    .input(dashboardSummaryInputSchema)
+    .query(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+      const now = new Date();
+      const referenceDateRaw = input?.referenceDate ?? now;
+      const referenceDate =
+        referenceDateRaw instanceof Date
+          ? referenceDateRaw
+          : new Date(referenceDateRaw);
+      const { start: monthStart, end: monthEnd } = createMonthRange(
+        referenceDate,
+      );
+      const months = input?.months ?? 6;
+      const trendStart = createTrendStart(monthEnd, months);
+
+      const monthConditions = [
+        eq(transactions.group_id, groupId),
+        gte(transactions.date, monthStart),
+        lte(transactions.date, monthEnd),
+      ];
+
+      const [
+        [monthIncomeAggregate],
+        [monthExpenseAggregate],
+        [pendingPaymentsRow],
+        [previousIncomeAggregate],
+        [previousExpenseAggregate],
+        monthlyTrendResult,
+        expenseDistributionRows,
+        [paymentStatusRow],
+      ] = await Promise.all([
+        ctx.db
+          .select({
+            total: sum(transactions.amount),
+          })
+          .from(transactions)
+          .where(
+            and(
+              ...monthConditions,
+              eq(transactions.type, "income"),
+            ),
+          ),
+        ctx.db
+          .select({
+            total: sum(transactions.amount),
+          })
+          .from(transactions)
+          .where(
+            and(
+              ...monthConditions,
+              eq(transactions.type, "expense"),
+            ),
+          ),
+        ctx.db
+          .select({
+            count: sql<number>`count(*)`,
+          })
+          .from(transactions)
+          .where(
+            and(...monthConditions, eq(transactions.is_paid, false)),
+          ),
+        ctx.db
+          .select({
+            total: sum(transactions.amount),
+          })
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.group_id, groupId),
+              eq(transactions.type, "income"),
+              lt(transactions.date, monthStart),
+            ),
+          ),
+        ctx.db
+          .select({
+            total: sum(transactions.amount),
+          })
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.group_id, groupId),
+              eq(transactions.type, "expense"),
+              lt(transactions.date, monthStart),
+            ),
+          ),
+        ctx.db.execute(
+          sql<{
+            month: string;
+            incomes: string | number | null;
+            expenses: string | number | null;
+          }>`
+            SELECT
+              TO_CHAR(DATE_TRUNC('month', t.date), 'YYYY-MM') AS month,
+              SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END) AS incomes,
+              SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END) AS expenses
+            FROM transactions t
+            WHERE
+              t.group_id = ${groupId}
+              AND t.date >= ${trendStart}
+              AND t.date <= ${monthEnd}
+            GROUP BY DATE_TRUNC('month', t.date)
+            ORDER BY DATE_TRUNC('month', t.date)
+          `,
+        ),
+        ctx.db
+          .select({
+            categoryId: transactions.category_id,
+            categoryNameSnapshot: transactions.category_name_snapshot,
+            categoryName: categories.name,
+            categoryColor: categories.color,
+            total: sum(transactions.amount),
+          })
+          .from(transactions)
+          .leftJoin(
+            categories,
+            and(
+              eq(categories.id, transactions.category_id),
+              eq(categories.group_id, groupId),
+            ),
+          )
+          .where(
+            and(
+              ...monthConditions,
+              eq(transactions.type, "expense"),
+            ),
+          )
+          .groupBy(
+            transactions.category_id,
+            transactions.category_name_snapshot,
+            categories.name,
+            categories.color,
+          ),
+        ctx.db
+          .select({
+            onTime: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = true AND (${transactions.paid_at} IS NULL OR ${transactions.paid_at} <= ${transactions.date}) THEN 1 ELSE 0 END)`,
+            late: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = true AND ${transactions.paid_at} IS NOT NULL AND ${transactions.paid_at} > ${transactions.date} THEN 1 ELSE 0 END)`,
+            pending: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = false THEN 1 ELSE 0 END)`,
+            overdue: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = false AND ${transactions.date} < ${now} THEN 1 ELSE 0 END)`,
+          })
+          .from(transactions)
+          .where(and(...monthConditions)),
+      ]);
+
+      const monthIncomes = toNumber(monthIncomeAggregate?.total);
+      const monthExpenses = toNumber(monthExpenseAggregate?.total);
+      const monthBalance = monthIncomes - monthExpenses;
+
+      const previousIncomes = toNumber(previousIncomeAggregate?.total);
+      const previousExpenses = toNumber(previousExpenseAggregate?.total);
+      const accumulatedBalance = previousIncomes - previousExpenses + monthBalance;
+
+      const pendingPaymentsCount = toNumber(pendingPaymentsRow?.count);
+
+      const monthlyTrendMap = new Map<
+        string,
+        { incomes: number; expenses: number }
+      >();
+      monthlyTrendResult.rows.forEach((row) => {
+        monthlyTrendMap.set(row.month, {
+          incomes: toNumber(row.incomes),
+          expenses: toNumber(row.expenses),
+        });
+      });
+
+      const monthlyTrend = [];
+      for (let index = 0; index < months; index += 1) {
+        const monthDate = new Date(
+          trendStart.getFullYear(),
+          trendStart.getMonth() + index,
+          1,
+        );
+        if (monthDate > monthEnd) {
+          break;
+        }
+
+        const monthKey = `${monthDate.getFullYear()}-${String(
+          monthDate.getMonth() + 1,
+        ).padStart(2, "0")}`;
+        const trendEntry = monthlyTrendMap.get(monthKey) ?? {
+          incomes: 0,
+          expenses: 0,
+        };
+
+        monthlyTrend.push({
+          month: monthKey,
+          monthStart: monthDate.toISOString(),
+          incomes: trendEntry.incomes,
+          expenses: trendEntry.expenses,
+        });
+      }
+
+      const expenseDistribution = expenseDistributionRows
+        .map((row) => ({
+          categoryId: row.categoryId,
+          label: row.categoryNameSnapshot ?? row.categoryName ?? null,
+          color: row.categoryColor ?? "#9ca3af",
+          value: toNumber(row.total),
+          isUncategorized: !row.categoryId,
+        }))
+        .filter((item) => item.value > 0);
+
+      const totalDistributionValue = expenseDistribution.reduce(
+        (total, item) => total + item.value,
+        0,
+      );
+
+      const distribution = expenseDistribution.map((item) => ({
+        ...item,
+        percentage:
+          totalDistributionValue > 0
+            ? (item.value / totalDistributionValue) * 100
+            : 0,
+      }));
+
+      const paymentStatus = {
+        onTime: toNumber(paymentStatusRow?.onTime),
+        late: toNumber(paymentStatusRow?.late),
+        pending: toNumber(paymentStatusRow?.pending),
+        overdue: toNumber(paymentStatusRow?.overdue),
+      };
+
+      return {
+        referenceDate: referenceDate.toISOString(),
+        monthStart: monthStart.toISOString(),
+        monthEnd: monthEnd.toISOString(),
+        snapshot: {
+          totalIncomes: monthIncomes,
+          totalExpenses: monthExpenses,
+          monthBalance,
+          accumulatedBalance,
+          pendingPaymentsCount,
+        },
+        monthlyTrend,
+        expenseDistribution: distribution,
+        paymentStatus,
       };
     }),
 

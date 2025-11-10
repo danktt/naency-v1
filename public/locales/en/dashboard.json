@@ -1,33 +1,84 @@
 {
   "heading": {
-    "title": "Welcome back",
-    "description": "Here\u2019s what has been happening across your workspaces today."
+    "title": "Financial overview",
+    "description": "Keep track of how your accounts are evolving this month."
   },
-  "metrics": {
-    "activeAutomations": {
-      "title": "Active automations",
-      "change": "+3 this week"
-    },
-    "completedTasks": {
-      "title": "Completed tasks",
-      "change": "+42 this month"
-    },
-    "upcomingReviews": {
-      "title": "Upcoming reviews",
-      "change": "Next on Nov 12"
+  "actions": {
+    "retry": "Try again"
+  },
+  "snapshot": {
+    "title": "Current month snapshot",
+    "description": "Monitor incomes, expenses and balance in real time.",
+    "cards": {
+      "incomes": {
+        "title": "Incomes",
+        "subtitle": "Total received this month."
+      },
+      "expenses": {
+        "title": "Expenses",
+        "subtitle": "All expenses registered in the period."
+      },
+      "monthBalance": {
+        "title": "Monthly balance",
+        "subtitle": "Incomes minus expenses for the current month."
+      },
+      "accumulatedBalance": {
+        "title": "Accumulated balance",
+        "subtitle": "Balance including previous months."
+      },
+      "pending": {
+        "title": "Pending payments",
+        "subtitle": "{{count}} transactions awaiting confirmation."
+      }
     }
   },
-  "recent": {
-    "title": "Recent activity",
-    "description": "Track the latest updates across automations and teams.",
-    "cta": "View all",
-    "items": {
-      "automationSync": "Automation sync deployed",
-      "newPrompt": "New prompt published",
-      "datasetRefreshed": "Dataset refreshed"
+  "charts": {
+    "monthly": {
+      "title": "Monthly evolution",
+      "description": "Compare incomes and expenses month over month.",
+      "legend": {
+        "incomes": "Incomes",
+        "expenses": "Expenses"
+      },
+      "empty": {
+        "title": "No history yet",
+        "description": "Register transactions to see the monthly trend."
+      }
     },
-    "badge": "workspace",
-    "timestamp": "2 hours ago \u00b7 by you"
+    "distribution": {
+      "title": "Expenses by category",
+      "description": "Understand where the money goes this month.",
+      "uncategorized": "Uncategorized",
+      "tooltip": {
+        "percentage": "{{value}}% of the monthly expenses"
+      },
+      "breakdownTitle": "Category breakdown",
+      "empty": {
+        "title": "No expenses recorded",
+        "description": "Add expenses to view the category distribution."
+      }
+    }
+  },
+  "payments": {
+    "title": "Payment status",
+    "description": "Follow which transactions are on time, late or pending.",
+    "statuses": {
+      "onTime": {
+        "title": "Paid on time",
+        "description": "Transactions paid on or before the due date."
+      },
+      "late": {
+        "title": "Paid late",
+        "description": "Transactions paid after the due date."
+      },
+      "pending": {
+        "title": "Pending / overdue",
+        "description": "Includes {{overdue}} overdue transactions."
+      }
+    },
+    "empty": {
+      "title": "Nothing to show yet",
+      "description": "Add transactions to keep an eye on their payment status."
+    }
   }
 }
-
