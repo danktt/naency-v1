@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sum } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
@@ -70,6 +70,12 @@ const listTransactionsSchema = z
   .object({
     type: transactionTypeSchema.default("income"),
     limit: z.number().int().min(1).max(100).optional(),
+    dateRange: dateRangeSchema.optional(),
+  })
+  .optional();
+
+const metricsInputSchema = z
+  .object({
     dateRange: dateRangeSchema.optional(),
   })
   .optional();
@@ -147,6 +153,64 @@ export const transactionsRouter = createTRPCRouter({
         paidAt: item.paidAt,
         attachmentUrl: item.attachmentUrl ?? null,
       }));
+    }),
+
+  metrics: protectedProcedure
+    .input(metricsInputSchema)
+    .query(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+      const dateRange = input?.dateRange;
+
+      const buildConditions = (type: "income" | "expense") => {
+        const conditions = [
+          eq(transactions.group_id, groupId),
+          eq(transactions.type, type),
+        ];
+
+        if (dateRange) {
+          conditions.push(gte(transactions.date, dateRange.from));
+          conditions.push(lte(transactions.date, dateRange.to));
+        }
+
+        return and(...conditions);
+      };
+
+      const toNumber = (value: unknown) => {
+        if (value === null || value === undefined) {
+          return 0;
+        }
+
+        if (typeof value === "number") {
+          return Number.isFinite(value) ? value : 0;
+        }
+
+        const parsed = Number.parseFloat(String(value));
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+
+      const [incomeAggregate] = await ctx.db
+        .select({
+          total: sum(transactions.amount),
+        })
+        .from(transactions)
+        .where(buildConditions("income"));
+
+      const [expenseAggregate] = await ctx.db
+        .select({
+          total: sum(transactions.amount),
+        })
+        .from(transactions)
+        .where(buildConditions("expense"));
+
+      const totalIncomes = toNumber(incomeAggregate?.total);
+      const totalExpenses = toNumber(expenseAggregate?.total);
+      const netBalance = totalIncomes - totalExpenses;
+
+      return {
+        totalIncomes,
+        totalExpenses,
+        netBalance,
+      };
     }),
 
   // ==== CREATE ====

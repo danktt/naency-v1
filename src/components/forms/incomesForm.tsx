@@ -314,13 +314,16 @@ export function IncomesForm(props: IncomesFormProps = {}) {
     enabled: dialogOpen,
   });
 
-  const invalidateTransactionsList = React.useCallback(async () => {
-    await utils.transactions.list.invalidate({ type: "income" });
+  const invalidateTransactionsData = React.useCallback(async () => {
+    await Promise.all([
+      utils.transactions.list.invalidate({ type: "income" }),
+      utils.transactions.metrics.invalidate(),
+    ]);
   }, [utils]);
 
   const createIncomeMutation = trpc.transactions.create.useMutation({
     onSuccess: async () => {
-      await invalidateTransactionsList();
+      await invalidateTransactionsData();
       toast.success(t("form.toast.success"));
       if (keepOpenRef.current) {
         form.reset(getDefaultValues());
@@ -335,7 +338,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
 
   const updateIncomeMutation = trpc.transactions.update.useMutation({
     onSuccess: async () => {
-      await invalidateTransactionsList();
+      await invalidateTransactionsData();
       toast.success(t("form.toast.updateSuccess"));
       closeDialog();
       onSuccess?.();

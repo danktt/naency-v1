@@ -10,26 +10,36 @@ import { useTranslation } from "react-i18next";
 
 import { IncomesForm } from "@/components/forms/incomesForm";
 import { GridItem } from "@/components/gloweffect";
+import { formatCurrency } from "@/helpers/formatCurrency";
+import { trpc } from "@/lib/trpc/client";
+import { useDateStore } from "@/stores/useDateStore";
 
 import { IncomesTable } from "./_components/IncomesTable";
 
-const metrics = [
+type MetricKey = "totalIncomes" | "totalExpenses" | "netBalance";
+
+const metricConfigs: Array<{
+  key: MetricKey;
+  titleKey: string;
+  changeKey: string;
+  icon: typeof IconCurrencyDollar;
+}> = [
   {
+    key: "totalIncomes",
     titleKey: "metrics.totalIncomes.title",
     changeKey: "metrics.totalIncomes.change",
-    value: "12",
     icon: IconCurrencyDollar,
   },
   {
+    key: "totalExpenses",
     titleKey: "metrics.totalExpenses.title",
     changeKey: "metrics.totalExpenses.change",
-    value: "248",
     icon: IconWallet,
   },
   {
+    key: "netBalance",
     titleKey: "metrics.netBalance.title",
     changeKey: "metrics.netBalance.change",
-    value: "4",
     icon: IconChartBar,
   },
 ];
@@ -37,6 +47,7 @@ const metrics = [
 export default function IncomesPage() {
   const { t, i18n } = useTranslation("incomes");
   const [isMounted, setIsMounted] = React.useState(false);
+  const dateRange = useDateStore((state) => state.dateRange);
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -55,6 +66,67 @@ export default function IncomesPage() {
 
   const translate = isMounted ? t : fallbackT;
 
+  const metricsQueryInput = React.useMemo(
+    () => ({
+      dateRange: {
+        from: dateRange.from,
+        to: dateRange.to,
+      },
+    }),
+    [dateRange.from, dateRange.to],
+  );
+
+  const {
+    data: metricsData,
+    isLoading: isMetricsLoading,
+    isError: isMetricsError,
+  } = trpc.transactions.metrics.useQuery(metricsQueryInput);
+
+  const totalsByKey: Record<MetricKey, number> = React.useMemo(
+    () => ({
+      totalIncomes: metricsData?.totalIncomes ?? 0,
+      totalExpenses: metricsData?.totalExpenses ?? 0,
+      netBalance: metricsData?.netBalance ?? 0,
+    }),
+    [
+      metricsData?.netBalance,
+      metricsData?.totalExpenses,
+      metricsData?.totalIncomes,
+    ],
+  );
+
+  const getValue = React.useCallback(
+    (key: MetricKey) => {
+      if (isMetricsLoading && !metricsData) {
+        return translate("metrics.loadingValue");
+      }
+
+      if (isMetricsError) {
+        return translate("metrics.errorValue");
+      }
+
+      return formatCurrency(totalsByKey[key]);
+    },
+    [isMetricsError, isMetricsLoading, metricsData, totalsByKey, translate],
+  );
+
+  const getDescription = React.useCallback(
+    (changeKey: string, key: MetricKey) => {
+      if (isMetricsLoading && !metricsData) {
+        return translate("metrics.loadingDescription");
+      }
+
+      if (isMetricsError) {
+        return translate("metrics.errorDescription");
+      }
+
+      return translate(changeKey, {
+        value: formatCurrency(totalsByKey[key]),
+      });
+    },
+    [isMetricsError, isMetricsLoading, metricsData, totalsByKey, translate],
+  );
+
   return (
     <div className="space-y-8">
       <section className="flex items-center justify-between">
@@ -71,7 +143,7 @@ export default function IncomesPage() {
         </div>
       </section>
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {metrics.map((metric) => {
+        {metricConfigs.map((metric) => {
           const Icon = metric.icon;
           return (
             <GridItem
@@ -83,8 +155,8 @@ export default function IncomesPage() {
                 />
               }
               title={translate(metric.titleKey)}
-              value={metric.value}
-              description={translate(metric.changeKey)}
+              value={getValue(metric.key)}
+              description={getDescription(metric.changeKey, metric.key)}
             />
           );
         })}

@@ -4,17 +4,21 @@
     "subtitle": "Gerencie suas receitas."
   },
   "metrics": {
+    "loadingValue": "Carregando...",
+    "loadingDescription": "Atualizando métricas financeiras...",
+    "errorValue": "--",
+    "errorDescription": "Não foi possível carregar os dados.",
     "totalIncomes": {
       "title": "Receitas totais",
-      "change": "R$ 100,00"
+      "change": "{{value}} recebidos no período selecionado"
     },
     "totalExpenses": {
       "title": "Despesas totais",
-      "change": "R$ 100,00"
+      "change": "{{value}} gastos no período selecionado"
     },
     "netBalance": {
       "title": "Saldo líquido",
-      "change": "R$ 100,00"
+      "change": "Saldo líquido de {{value}} no período selecionado"
     }
   },
   "table": {

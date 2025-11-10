@@ -4,17 +4,21 @@
     "subtitle": "Manage your incomes."
   },
   "metrics": {
+    "loadingValue": "Loading...",
+    "loadingDescription": "Updating financial metrics...",
+    "errorValue": "--",
+    "errorDescription": "We couldn't load the metrics.",
     "totalIncomes": {
       "title": "Total incomes",
-      "change": "R$ 100.00"
+      "change": "{{value}} received in the selected period"
     },
     "totalExpenses": {
       "title": "Total expenses",
-      "change": "R$ 100.00"
+      "change": "{{value}} spent in the selected period"
     },
     "netBalance": {
       "title": "Net balance",
-      "change": "R$ 100.00"
+      "change": "Net balance of {{value}} in the selected period"
     }
   },
   "table": {
