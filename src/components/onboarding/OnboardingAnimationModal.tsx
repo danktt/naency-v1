@@ -411,8 +411,6 @@ export default function OnboardingAnimationModal() {
       .catch((error) => {
         if (!isActive) return;
         fetchedUserIdRef.current = null;
-        // eslint-disable-next-line no-console
-        console.error("Failed to fetch financial group", error);
         setFinancialGroupResult(null);
       });
 
@@ -571,10 +569,7 @@ export default function OnboardingAnimationModal() {
       );
       queryClient.invalidateQueries({ queryKey: ["financialGroups"] });
       closeModal();
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Erro ao finalizar onboarding:", error);
-    }
+    } catch (error) {}
   };
 
   // Navigation helpers handled inline with goToStep

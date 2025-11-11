@@ -1,8 +1,6 @@
-"use client";
 import { IconTableFilled } from "@tabler/icons-react";
-
+import Image from "next/image";
 import { LoginForm } from "@/components/forms/login-form";
-import Silk from "@/components/Silk";
 
 export default function LoginPage() {
   return (
@@ -20,13 +18,13 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      <div className="relative hidden lg:block col-span-2">
-        <Silk
-          speed={5}
-          scale={1}
-          color="#61eaca"
-          noiseIntensity={1.5}
-          rotation={0}
+      <div className="bg-muted relative hidden lg:block col-span-2">
+        <Image
+          src="https://plus.unsplash.com/premium_photo-1681487769650-a0c3fbaed85a?q=80&w=1255&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+          alt="Image"
+          width={1000}
+          height={1000}
+          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
         />
       </div>
     </div>

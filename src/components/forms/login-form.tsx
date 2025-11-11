@@ -3,8 +3,9 @@
 import { useAuth, useSignIn } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -33,6 +34,19 @@ export function LoginForm({
     null,
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastProvider, setLastProvider] = useState<OAuthProvider | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedProvider = window.localStorage.getItem("last-oauth-provider");
+
+    if (storedProvider === "google" || storedProvider === "apple") {
+      setLastProvider(storedProvider);
+    }
+  }, []);
 
   const handleProviderClick = useCallback(
     async (provider: OAuthProvider) => {
@@ -49,6 +63,11 @@ export function LoginForm({
       try {
         setErrorMessage(null);
         setPendingProvider(provider);
+        setLastProvider(provider);
+
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("last-oauth-provider", provider);
+        }
 
         await signIn.authenticateWithRedirect({
           strategy: OAUTH_STRATEGY[provider],
@@ -56,8 +75,6 @@ export function LoginForm({
           redirectUrlComplete: "/dashboard",
         });
       } catch (error) {
-        console.error("Failed to authenticate with Clerk", error);
-
         const clerkError =
           typeof error === "object" && error && "errors" in error
             ? // ClerkError JSON response shape
@@ -112,10 +129,13 @@ export function LoginForm({
           <Button
             variant="outline"
             type="button"
-            className="gap-2"
+            className="relative gap-2"
             disabled={isButtonDisabled}
             onClick={() => handleProviderClick("google")}
           >
+            {lastProvider === "google" && (
+              <LastProviderBadge provider="google" />
+            )}
             {pendingProvider === "google" ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
@@ -131,10 +151,11 @@ export function LoginForm({
           <Button
             variant="outline"
             type="button"
-            className="gap-2"
+            className="relative gap-2"
             disabled={isButtonDisabled}
             onClick={() => handleProviderClick("apple")}
           >
+            {lastProvider === "apple" && <LastProviderBadge provider="apple" />}
             {pendingProvider === "apple" ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
@@ -163,3 +184,11 @@ export function LoginForm({
     </form>
   );
 }
+
+const LastProviderBadge = ({ provider }: { provider: OAuthProvider }) => {
+  return (
+    <Badge className="absolute -right-2 -top-2 px-2 uppercase leading-none">
+      Last
+    </Badge>
+  );
+};
