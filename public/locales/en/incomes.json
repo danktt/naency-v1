@@ -1,0 +1,153 @@
+{
+  "header": {
+    "title": "Incomes",
+    "subtitle": "Manage your incomes."
+  },
+  "metrics": {
+    "loadingValue": "Loading...",
+    "loadingDescription": "Updating financial metrics...",
+    "errorValue": "--",
+    "errorDescription": "We couldn't load the metrics.",
+    "totalIncomes": {
+      "title": "Total incomes",
+      "change": "{{value}} received in the selected period"
+    },
+    "totalExpenses": {
+      "title": "Total expenses",
+      "change": "{{value}} spent in the selected period"
+    },
+    "netBalance": {
+      "title": "Net balance",
+      "change": "Net balance of {{value}} in the selected period"
+    }
+  },
+  "table": {
+    "empty": "No incomes recorded.",
+    "emptyError": "Could not load incomes.",
+    "summary": "{{count}} income recorded",
+    "summary_other": "{{count}} incomes recorded",
+    "summaryEmpty": "No incomes recorded",
+    "summaryError": "Error loading incomes",
+    "refresh": "Refresh",
+    "noData": "-",
+    "columns": {
+      "date": "Date",
+      "amount": "Amount",
+      "status": "Status",
+      "isPaid": "Status",
+      "paidAt": "Paid at",
+      "description": "Description",
+      "account": "Account",
+      "type": "Type",
+      "category": "Category",
+      "method": "Method",
+      "actions": "Actions"
+    },
+    "type": {
+      "paid": "Paid",
+      "unique": "Paid",
+      "installment": "Installment {{current}} of {{total}}",
+      "recurring": "Recurring"
+    },
+    "status": {
+      "pending": "Pending",
+      "paidOnTime": "Paid on time",
+      "paidLate": "Paid late",
+      "paidEarly": "Paid early",
+      "paid": "Paid",
+      "notPaidYet": "Not paid yet"
+    },
+    "noDate": "No date",
+    "actions": {
+      "view": "View income",
+      "edit": "Edit income",
+      "delete": "Delete income"
+    }
+  },
+  "form": {
+    "trigger": "Create income",
+    "title": "Create income",
+    "editTitle": "Edit income",
+    "editDescription": "Update the information below to edit this income entry.",
+    "description": "Fill in the information below to create an income entry.",
+    "mode": {
+      "label": "Transaction type",
+      "unique": "Unique",
+      "installment": "Installment",
+      "recurring": "Recurring"
+    },
+    "payment": {
+      "help": "Control the payment status and real receipt date of this income.",
+      "markAsPaid": "Mark as received",
+      "paidAt": "Payment date",
+      "paidAtPlaceholder": "Select a payment date"
+    },
+    "dates": {
+      "help": "Configure when this income should be received or start recurring.",
+      "receivedDate": "Received date",
+      "firstInstallment": "First installment date",
+      "totalInstallments": "Total installments",
+      "recurring": {
+        "frequencyLabel": "Recurrence frequency",
+        "frequencyPlaceholder": "Select frequency",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "startDate": "Start date",
+        "endDate": "End date (optional)"
+      },
+      "selectDate": "Select a date"
+    },
+    "details": {
+      "help": "Provide the main information used for tracking and reporting this income.",
+      "amount": "Amount",
+      "account": "Account",
+      "accountLoading": "Loading accounts...",
+      "accountPlaceholder": "Select an account",
+      "accountEmpty": "No account registered",
+      "description": "Description",
+      "descriptionPlaceholder": "e.g.: Salary, freelance, bonus...",
+      "method": "Payment method",
+      "methodPlaceholder": "Select a method",
+      "category": "Category"
+    },
+    "extras": {
+      "help": "Add optional details or supporting information for this income.",
+      "receipt": "Receipt (URL)"
+    },
+    "keepOpen": "Keep open",
+    "cancel": "Cancel",
+    "submit": "Create",
+    "update": "Save changes",
+    "toast": {
+      "success": "Income successfully registered.",
+      "error": "Could not register the income.",
+      "updateSuccess": "Income successfully updated.",
+      "updateError": "Could not update the income."
+    },
+    "validation": {
+      "description": "Enter a description.",
+      "amount": "Enter an amount greater than zero.",
+      "account": "Select an account.",
+      "category": "Select a category.",
+      "attachment": "Enter a valid URL.",
+      "totalInstallments": "Enter at least two installments.",
+      "paidAt": "Select the payment date."
+    },
+    "paymentMethods": {
+      "pix": "Pix",
+      "transfer": "Transfer",
+      "debit": "Debit",
+      "credit": "Credit",
+      "cash": "Cash",
+      "boleto": "Boleto",
+      "investment": "Investment"
+    },
+    "modes": {
+      "unique": "unique",
+      "installment": "installment",
+      "recurring": "recurring"
+    }
+  }
+}

@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import type { ElementType } from "react";
 
 import {
   Collapsible,
@@ -26,7 +27,7 @@ export function NavMain({
   items: {
     title: string;
     url: string;
-    icon: LucideIcon;
+    icon: ElementType;
     isActive?: boolean;
     items?: {
       title: string;
@@ -48,7 +49,7 @@ export function NavMain({
                 isActive={item.isActive}
               >
                 <Link href={item.url}>
-                  <item.icon />
+                  <item.icon className="text-icon-subtle" />
                   <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>

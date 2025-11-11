@@ -39,6 +39,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-icon-primary: var(--icon-primary);
+  --color-icon-subtle: var(--icon-subtle);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -81,6 +83,8 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.854 0.129 174.692);
+  --icon-primary: oklch(0.8034 0.129 174.69);
+  --icon-subtle: oklch(0.552 0.016 285.938);
 }
 
 .dark {
@@ -90,7 +94,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.854 0.129 174.692);
+  --primary: oklch(0.8034 0.129 174.69);
   --primary-foreground: oklch(0.141 0.005 285.823);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
@@ -104,7 +108,7 @@
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.854 0.129 174.692);
+  --ring: oklch(0.8034 0.129 174.69);
   --chart-1: oklch(0.6189 0.2069 23.39);
   --chart-2: oklch(0.6 0.1355 177.53);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -112,12 +116,14 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.854 0.129 174.692);
+  --sidebar-primary: oklch(0.8034 0.129 174.69);
   --sidebar-primary-foreground: oklch(0.141 0.005 285.823);
   --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.854 0.129 174.692);
+  --sidebar-ring: oklch(0.8034 0.129 174.69);
+  --icon-primary: oklch(0.8034 0.129 174.69);
+  --icon-subtle: oklch(0.705 0.015 286.067);
 }
 
 @layer base {
@@ -126,5 +132,18 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Remove spinners de inputs numéricos */
+  .no-spinner::-webkit-outer-spin-button,
+  .no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .no-spinner[type="number"] {
+    -moz-appearance: textfield;
   }
 }
