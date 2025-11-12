@@ -237,20 +237,6 @@ export function DatePicker() {
             />
           </div>
         </div>
-        <p
-          className="px-4 pb-4 pt-3 text-center text-xs text-muted-foreground"
-          aria-live="polite"
-        >
-          Range calendar with presets -{" "}
-          <a
-            className="underline hover:text-foreground"
-            href="https://daypicker.dev/"
-            target="_blank"
-            rel="noopener nofollow"
-          >
-            React DayPicker
-          </a>
-        </p>
       </PopoverContent>
     </Popover>
   );
