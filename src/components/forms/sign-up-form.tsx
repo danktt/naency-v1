@@ -56,8 +56,6 @@ export function SignUpForm({
           redirectUrlComplete: "/dashboard",
         });
       } catch (error) {
-        console.error("Failed to authenticate with Clerk", error);
-
         const clerkError =
           typeof error === "object" && error && "errors" in error
             ? (error as {

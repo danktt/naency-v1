@@ -36,7 +36,6 @@ import {
   type CategoryTemplate,
   DEFAULT_CATEGORY_TEMPLATES,
 } from "@/config/defaultCategories";
-import { formatCents } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { FieldCurrencyAmount } from "../FieldCurrencyAmount";
@@ -408,11 +407,9 @@ export default function OnboardingAnimationModal() {
         if (!isActive) return;
         setFinancialGroupResult(result);
       })
-      .catch((error) => {
+      .catch((_error) => {
         if (!isActive) return;
         fetchedUserIdRef.current = null;
-        // eslint-disable-next-line no-console
-        console.error("Failed to fetch financial group", error);
         setFinancialGroupResult(null);
       });
 
@@ -457,41 +454,97 @@ export default function OnboardingAnimationModal() {
     resetState();
   };
 
-  const handleAccountStepContinue = async () => {
-    setErrorMessage(null);
-    if (accountWasCreated) {
-      goToStep("categories", 1);
-      return;
-    }
+  type ValidatedAccountValues = {
+    name: string;
+    type: AccountType;
+    initialBalance: number;
+  };
+
+  const validateAccountForm = async (): Promise<
+    | { ok: true; values: ValidatedAccountValues }
+    | { ok: false; message: string }
+  > => {
     const values = form.getValues();
     const trimmedName = values.name?.trim() ?? "";
 
+    if (values.name !== trimmedName) {
+      form.setValue("name", trimmedName, { shouldDirty: true });
+    }
+
     if (!trimmedName) {
-      setErrorMessage("Informe o nome da conta.");
-      return;
+      form.setError("name", {
+        type: "manual",
+        message: "Informe o nome da conta.",
+      });
+      return { ok: false, message: "Informe o nome da conta." };
     }
 
-    if (values.initialBalance < 0) {
-      setErrorMessage("Informe um saldo inicial válido.");
-      return;
+    const isValid = await form.trigger([
+      "name",
+      "type",
+      "initialBalance",
+      "currency",
+    ]);
+
+    if (!isValid) {
+      return {
+        ok: false,
+        message: "Corrija os dados da conta antes de continuar.",
+      };
     }
 
-    try {
-      await createAccount({
+    return {
+      ok: true,
+      values: {
         name: trimmedName,
         type: values.type,
         initialBalance: values.initialBalance,
-      });
+      },
+    };
+  };
 
-      setAccountWasCreated(true);
-      goToStep("categories", 1);
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível criar a conta. Tente novamente.",
-      );
+  const ensureAccountCreated = async (): Promise<
+    | { status: "success" }
+    | { status: "validation"; message: string }
+    | { status: "error"; message: string }
+  > => {
+    const validation = await validateAccountForm();
+
+    if (!validation.ok) {
+      return { status: "validation", message: validation.message };
     }
+
+    if (accountWasCreated) {
+      setErrorMessage(null);
+      return { status: "success" };
+    }
+
+    try {
+      await createAccount(validation.values);
+      setAccountWasCreated(true);
+      setErrorMessage(null);
+      return { status: "success" };
+    } catch (error) {
+      return {
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível criar a conta. Tente novamente.",
+      };
+    }
+  };
+
+  const handleAccountStepContinue = async () => {
+    const validation = await validateAccountForm();
+
+    if (!validation.ok) {
+      setErrorMessage(validation.message);
+      return;
+    }
+
+    setErrorMessage(null);
+    goToStep("categories", 1);
   };
 
   // Handlers for categories and finishing are below
@@ -545,6 +598,16 @@ export default function OnboardingAnimationModal() {
 
   const handleCompleteOnboarding = async () => {
     setErrorMessage(null);
+    const accountResult = await ensureAccountCreated();
+
+    if (accountResult.status !== "success") {
+      setErrorMessage(accountResult.message);
+      if (accountResult.status === "validation") {
+        goToStep("account", -1);
+      }
+      return;
+    }
+
     try {
       const categoriesPayload = getSelectedCategoriesPayload();
       if (categoriesPayload.length > 0) {
@@ -563,7 +626,33 @@ export default function OnboardingAnimationModal() {
     }
   };
 
+  const handleSkipToFinal = async () => {
+    setErrorMessage(null);
+    const accountResult = await ensureAccountCreated();
+
+    if (accountResult.status !== "success") {
+      setErrorMessage(accountResult.message);
+      if (accountResult.status === "validation") {
+        goToStep("account", -1);
+      }
+      return;
+    }
+
+    goToStep("final", 1);
+  };
+
   const handleFinish = async () => {
+    setErrorMessage(null);
+    const accountResult = await ensureAccountCreated();
+
+    if (accountResult.status !== "success") {
+      setErrorMessage(accountResult.message);
+      if (accountResult.status === "validation") {
+        goToStep("account", -1);
+      }
+      return;
+    }
+
     try {
       await completeOnboarding();
       setFinancialGroupResult((previous) =>
@@ -572,12 +661,13 @@ export default function OnboardingAnimationModal() {
       queryClient.invalidateQueries({ queryKey: ["financialGroups"] });
       closeModal();
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Erro ao finalizar onboarding:", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível concluir o onboarding. Tente novamente.",
+      );
     }
   };
-
-  // Navigation helpers handled inline with goToStep
 
   const toggleCategoryExpansion = (categoryKey: string) => {
     setExpandedCategories((previous) => ({
@@ -835,7 +925,7 @@ export default function OnboardingAnimationModal() {
                       <FieldCurrencyAmount
                         control={form.control}
                         amountName="initialBalance"
-                        currencyName="initialBalance"
+                        currencyName="currency"
                         label="Saldo inicial"
                       />
                       <FormField
@@ -1281,8 +1371,9 @@ export default function OnboardingAnimationModal() {
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => goToStep("final", 1)}
+                          onClick={handleSkipToFinal}
                           className="group"
+                          disabled={isCreatingAccount}
                         >
                           Pular
                         </Button>
@@ -1290,10 +1381,12 @@ export default function OnboardingAnimationModal() {
                           type="button"
                           onClick={handleCompleteOnboarding}
                           className="group"
-                          disabled={isImportingCategories}
+                          disabled={isImportingCategories || isCreatingAccount}
                         >
-                          {isImportingCategories ? "Concluindo..." : "Concluir"}{" "}
-                          {!isImportingCategories ? (
+                          {isImportingCategories || isCreatingAccount
+                            ? "Concluindo..."
+                            : "Concluir"}{" "}
+                          {!isImportingCategories && !isCreatingAccount ? (
                             <IconArrowRight className="size-4 ml-1 group-hover:translate-x-1 transition-transform duration-300" />
                           ) : null}
                         </Button>

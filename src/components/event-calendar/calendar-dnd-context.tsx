@@ -121,7 +121,6 @@ export function CalendarDndProvider({
 
     // Add safety check for data.current
     if (!active.data.current) {
-      console.error("Missing data in drag start event", event);
       return;
     }
 
@@ -308,8 +307,7 @@ export function CalendarDndProvider({
           end: newEnd,
         });
       }
-    } catch (error) {
-      console.error("Error in drag end handler:", error);
+    } catch {
     } finally {
       // Always reset state
       setActiveEvent(null);

@@ -180,14 +180,7 @@ export function createIncomeColumns({
         const isPaid = row.original.isPaid;
 
         if (isPaid) {
-          return (
-            <Badge
-              variant="success"
-              className="bg-emerald-100 text-emerald-700"
-            >
-              {t("table.status.paid")}
-            </Badge>
-          );
+          return <Badge variant="success">{t("table.status.paid")}</Badge>;
         }
 
         return (

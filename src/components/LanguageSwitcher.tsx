@@ -34,7 +34,7 @@ export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
   }, []);
 
   const currentLangCode = isMounted
-    ? i18n.resolvedLanguage ?? i18n.language
+    ? (i18n.resolvedLanguage ?? i18n.language)
     : languages[0].code;
 
   const currentLang =
@@ -51,9 +51,7 @@ export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
         }
 
         if (value !== i18n.language) {
-          i18n.changeLanguage(value).catch((error) => {
-            console.error("Failed to change language", error);
-          });
+          i18n.changeLanguage(value).catch(() => {});
         }
       }}
     >

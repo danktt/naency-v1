@@ -48,9 +48,7 @@ if (!i18n.isInitialized) {
         useSuspense: false,
       },
     })
-    .catch((error) => {
-      console.error("Failed to initialize i18next", error);
-    });
+    .catch(() => {});
 }
 
 export { i18n };

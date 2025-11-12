@@ -102,7 +102,15 @@ const toNumber = (value: unknown) => {
 
 const createMonthRange = (date: Date) => {
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+  const end = new Date(
+    date.getFullYear(),
+    date.getMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+    999,
+  );
 
   return { start, end };
 };
@@ -242,9 +250,8 @@ export const transactionsRouter = createTRPCRouter({
         referenceDateRaw instanceof Date
           ? referenceDateRaw
           : new Date(referenceDateRaw);
-      const { start: monthStart, end: monthEnd } = createMonthRange(
-        referenceDate,
-      );
+      const { start: monthStart, end: monthEnd } =
+        createMonthRange(referenceDate);
       const months = input?.months ?? 6;
       const trendStart = createTrendStart(monthEnd, months);
 
@@ -269,31 +276,19 @@ export const transactionsRouter = createTRPCRouter({
             total: sum(transactions.amount),
           })
           .from(transactions)
-          .where(
-            and(
-              ...monthConditions,
-              eq(transactions.type, "income"),
-            ),
-          ),
+          .where(and(...monthConditions, eq(transactions.type, "income"))),
         ctx.db
           .select({
             total: sum(transactions.amount),
           })
           .from(transactions)
-          .where(
-            and(
-              ...monthConditions,
-              eq(transactions.type, "expense"),
-            ),
-          ),
+          .where(and(...monthConditions, eq(transactions.type, "expense"))),
         ctx.db
           .select({
             count: sql<number>`count(*)`,
           })
           .from(transactions)
-          .where(
-            and(...monthConditions, eq(transactions.is_paid, false)),
-          ),
+          .where(and(...monthConditions, eq(transactions.is_paid, false))),
         ctx.db
           .select({
             total: sum(transactions.amount),
@@ -353,12 +348,7 @@ export const transactionsRouter = createTRPCRouter({
               eq(categories.group_id, groupId),
             ),
           )
-          .where(
-            and(
-              ...monthConditions,
-              eq(transactions.type, "expense"),
-            ),
-          )
+          .where(and(...monthConditions, eq(transactions.type, "expense")))
           .groupBy(
             transactions.category_id,
             transactions.category_name_snapshot,
@@ -382,7 +372,8 @@ export const transactionsRouter = createTRPCRouter({
 
       const previousIncomes = toNumber(previousIncomeAggregate?.total);
       const previousExpenses = toNumber(previousExpenseAggregate?.total);
-      const accumulatedBalance = previousIncomes - previousExpenses + monthBalance;
+      const accumulatedBalance =
+        previousIncomes - previousExpenses + monthBalance;
 
       const pendingPaymentsCount = toNumber(pendingPaymentsRow?.count);
 
@@ -390,7 +381,13 @@ export const transactionsRouter = createTRPCRouter({
         string,
         { incomes: number; expenses: number }
       >();
-      monthlyTrendResult.rows.forEach((row) => {
+      const monthlyTrendRows = monthlyTrendResult.rows as Array<{
+        month: string;
+        incomes: string | number | null;
+        expenses: string | number | null;
+      }>;
+
+      monthlyTrendRows.forEach((row) => {
         monthlyTrendMap.set(row.month, {
           incomes: toNumber(row.incomes),
           expenses: toNumber(row.expenses),
