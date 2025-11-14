@@ -33,7 +33,8 @@
     "columns": {
       "date": "Data",
       "amount": "Valor",
-      "status": "Status",
+      "status": "Recebido",
+      "paidAt": "Data de recebimento",
       "description": "Descrição",
       "account": "Conta",
       "type": "Tipo",
@@ -42,10 +43,12 @@
       "actions": "Ações"
     },
     "status": {
+      "paid": "Recebido",
       "pending": "Pendente",
-      "paidOnTime": "Pago no prazo",
-      "paidLate": "Pago atrasado",
-      "paidEarly": "Pago antecipadamente"
+      "paidOnTime": "Recebido no prazo",
+      "paidLate": "Recebido atrasado",
+      "paidEarly": "Recebido antecipadamente",
+      "notPaidYet": "Não recebido ainda"
     },
     "type": {
       "unique": "Pago",

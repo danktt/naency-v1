@@ -1,0 +1,36 @@
+{
+  "header": {
+    "title": "Provisions",
+    "subtitle": "Track the money you set aside for future expenses."
+  },
+  "metrics": {
+    "loadingValue": "Loading...",
+    "loadingDescription": "Updating provision metrics...",
+    "errorValue": "--",
+    "errorDescription": "Unable to load data right now.",
+    "plannedTotal": {
+      "title": "Planned total",
+      "change": "{{value}} planned for the selected month"
+    },
+    "realizedTotal": {
+      "title": "Realized total",
+      "change": "{{value}} already spent this month"
+    },
+    "remainingTotal": {
+      "title": "Remaining budget",
+      "change": "{{value}} still available for this month"
+    },
+    "coverage": {
+      "title": "Coverage",
+      "change": "Coverage of {{value}} over the planned total"
+    },
+    "overBudgetTotal": {
+      "title": "Over budget",
+      "change": "{{value}} above the planned amount"
+    },
+    "tabs": {
+      "incomes": "Incomes",
+      "expenses": "Expenses"
+    }
+  }
+}

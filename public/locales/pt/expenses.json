@@ -34,7 +34,7 @@
       "date": "Data",
       "amount": "Valor",
       "status": "Status",
-      "isPaid": "Status",
+      "isPaid": "Pago",
       "paidAt": "Pago em",
       "description": "Descrição",
       "account": "Conta",
@@ -151,4 +151,3 @@
     }
   }
 }
-

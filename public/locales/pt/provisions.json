@@ -1,0 +1,36 @@
+{
+  "header": {
+    "title": "Provisões",
+    "subtitle": "Acompanhe o dinheiro reservado para despesas futuras."
+  },
+  "metrics": {
+    "loadingValue": "Carregando...",
+    "loadingDescription": "Atualizando métricas de provisões...",
+    "errorValue": "--",
+    "errorDescription": "Não foi possível carregar os dados.",
+    "plannedTotal": {
+      "title": "Total planejado",
+      "change": "{{value}} planejados para o mês selecionado"
+    },
+    "realizedTotal": {
+      "title": "Total realizado",
+      "change": "{{value}} já utilizados neste mês"
+    },
+    "remainingTotal": {
+      "title": "Saldo disponível",
+      "change": "{{value}} ainda disponíveis para este mês"
+    },
+    "coverage": {
+      "title": "Cobertura",
+      "change": "Cobertura de {{value}} sobre o total planejado"
+    },
+    "overBudgetTotal": {
+      "title": "Acima do planejado",
+      "change": "{{value}} além do valor planejado"
+    },
+    "tabs": {
+      "incomes": "Receitas",
+      "expenses": "Despesas"
+    }
+  }
+}

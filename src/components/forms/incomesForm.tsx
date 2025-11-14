@@ -1,5 +1,6 @@
 "use client";
 
+import { Tab, Tabs } from "@heroui/tabs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -47,7 +48,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
@@ -492,38 +492,30 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                       </FormLabel>
                       <FormControl>
                         <Tabs
-                          value={field.value}
-                          onValueChange={(value) => {
+                          fullWidth
+                          selectedKey={field.value}
+                          onSelectionChange={(value) => {
                             if (isEditing) return;
                             field.onChange(
                               value as CreateIncomeFormValues["mode"],
                             );
                           }}
-                          className="w-full"
                         >
-                          <TabsList className="grid w-full grid-cols-3 rounded-xl bg-muted/60 p-1">
-                            <TabsTrigger
-                              value="unique"
-                              className="rounded-lg"
-                              disabled={isEditing}
-                            >
-                              {t("form.mode.unique")}
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="installment"
-                              className="rounded-lg"
-                              disabled={isEditing}
-                            >
-                              {t("form.mode.installment")}
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="recurring"
-                              className="rounded-lg"
-                              disabled={isEditing}
-                            >
-                              {t("form.mode.recurring")}
-                            </TabsTrigger>
-                          </TabsList>
+                          <Tab
+                            key="unique"
+                            disabled={isEditing}
+                            title={t("form.mode.unique")}
+                          />
+                          <Tab
+                            key="installment"
+                            disabled={isEditing}
+                            title={t("form.mode.installment")}
+                          />
+                          <Tab
+                            key="recurring"
+                            disabled={isEditing}
+                            title={t("form.mode.recurring")}
+                          />
                         </Tabs>
                       </FormControl>
                       <FormMessage />

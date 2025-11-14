@@ -112,28 +112,81 @@ export function createIncomeColumns({
         const isRecurring = Boolean(tx.recurringId);
         const isInstallment = Boolean(tx.installmentGroupId);
         const isPaid = Boolean(tx.isPaid);
+        const expectedDate = tx.date ? new Date(tx.date) : null;
+        const paidAtDate = tx.paidAt ? new Date(tx.paidAt) : null;
 
         let badgeClass = "";
         let badgeIcon: React.ReactNode = null;
         let badgeLabel = "";
 
         if (!isRecurring && !isInstallment) {
-          badgeClass = isPaid
-            ? "border-success/40 bg-success/10 text-success flex items-center gap-1"
-            : "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
+          type PaymentStatus =
+            | "pending"
+            | "paidOnTime"
+            | "paidLate"
+            | "paidEarly"
+            | "paid";
+          type PaymentStatusKey = `table.status.${PaymentStatus}`;
+
+          const normalizeDate = (value: Date) =>
+            new Date(
+              value.getFullYear(),
+              value.getMonth(),
+              value.getDate(),
+            ).getTime();
+
+          const paymentStatus: PaymentStatus = (() => {
+            if (!isPaid) {
+              return "pending";
+            }
+            if (!expectedDate || !paidAtDate) {
+              return "paid";
+            }
+
+            const expectedTime = normalizeDate(expectedDate);
+            const paidTime = normalizeDate(paidAtDate);
+
+            if (paidTime === expectedTime) {
+              return "paidOnTime";
+            }
+            if (paidTime > expectedTime) {
+              return "paidLate";
+            }
+            return "paidEarly";
+          })();
+
+          const paymentClassMap: Record<PaymentStatus, string> = {
+            pending:
+              "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1",
+            paidOnTime:
+              "border-success/40 bg-success/10 text-success flex items-center gap-1",
+            paidLate:
+              "border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1",
+            paidEarly:
+              "border-sky-400/40 bg-sky-400/10 text-sky-500 flex items-center gap-1",
+            paid: "border-success/40 bg-success/10 text-success flex items-center gap-1",
+          };
+
+          const paymentIconClassMap: Record<PaymentStatus, string> = {
+            pending: "fill-amber-500 text-amber-500",
+            paidOnTime: "fill-success text-success",
+            paidLate: "fill-destructive text-destructive",
+            paidEarly: "fill-sky-500 text-sky-500",
+            paid: "fill-success text-success",
+          };
+
+          const statusKey: PaymentStatusKey = `table.status.${paymentStatus}`;
+
+          badgeClass = paymentClassMap[paymentStatus];
           badgeIcon = (
             <IconCircle
               className={cn(
                 "size-2 shrink-0",
-                isPaid
-                  ? "fill-success text-success"
-                  : "fill-amber-500 text-amber-500",
+                paymentIconClassMap[paymentStatus],
               )}
             />
           );
-          badgeLabel = isPaid
-            ? t("table.status.paid")
-            : t("table.status.pending");
+          badgeLabel = t(statusKey);
         } else if (isInstallment) {
           badgeClass =
             "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
@@ -173,23 +226,7 @@ export function createIncomeColumns({
         );
       },
     },
-    {
-      accessorKey: "isPaid",
-      header: t("table.columns.isPaid"),
-      cell: ({ row }) => {
-        const isPaid = row.original.isPaid;
 
-        if (isPaid) {
-          return <Badge variant="success">{t("table.status.paid")}</Badge>;
-        }
-
-        return (
-          <Badge variant="secondary" className="bg-muted text-muted-foreground">
-            {t("table.status.pending")}
-          </Badge>
-        );
-      },
-    },
     {
       accessorKey: "paidAt",
       header: t("table.columns.paidAt"),
@@ -201,9 +238,7 @@ export function createIncomeColumns({
 
         if (!isPaid) {
           return (
-            <span className="text-xs text-muted-foreground">
-              {t("table.status.notPaidYet")}
-            </span>
+            <Badge variant="destructive">{t("table.status.notPaidYet")}</Badge>
           );
         }
 

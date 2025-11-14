@@ -62,6 +62,18 @@
   "payments": {
     "title": "Payment status",
     "description": "Follow which transactions are on time, late or pending.",
+    "sections": {
+      "incomes": {
+        "title": "Incomes",
+        "description": "Payment status for this month's incomes.",
+        "cta": "Go to incomes"
+      },
+      "expenses": {
+        "title": "Expenses",
+        "description": "Payment status for this month's expenses.",
+        "cta": "Go to expenses"
+      }
+    },
     "statuses": {
       "onTime": {
         "title": "Paid on time",

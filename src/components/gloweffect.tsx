@@ -291,6 +291,7 @@ interface GlowCardProps {
   children: React.ReactNode;
   className?: string;
   contentClassName?: string;
+  hasAction?: React.ReactNode;
 }
 
 const GlowCard = ({
@@ -300,9 +301,10 @@ const GlowCard = ({
   children,
   className,
   contentClassName,
+  hasAction,
 }: GlowCardProps) => {
   const showHeader = Boolean(title || description || trailing);
-
+  const showAction = Boolean(hasAction);
   return (
     <div className={cn("relative rounded-xl border p", className)}>
       <GlowingEffect
@@ -322,17 +324,20 @@ const GlowCard = ({
       >
         {showHeader ? (
           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-            <div className="flex flex-col gap-1">
-              {title ? (
-                <h3 className="text-lg font-semibold text-black dark:text-white">
-                  {title}
-                </h3>
-              ) : null}
-              {description ? (
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  {description}
-                </p>
-              ) : null}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-1">
+                {title ? (
+                  <h3 className="text-lg font-semibold text-black dark:text-white">
+                    {title}
+                  </h3>
+                ) : null}
+                {description ? (
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    {description}
+                  </p>
+                ) : null}
+              </div>
+              {showAction && <div className="shrink-0">{showAction}</div>}
             </div>
             {trailing ? <div className="shrink-0">{trailing}</div> : null}
           </div>

@@ -7,6 +7,7 @@ import { createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
   accounts: accountsRouter,
+  bankAccounts: accountsRouter,
   categories: categoriesRouter,
   financialGroups: financialGroupsRouter,
   transactions: transactionsRouter,
