@@ -52,7 +52,6 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { useDateStore } from "@/stores/useDateStore";
-import { DottedGlowBackground } from "../DottedGlowBackground";
 import { Checkbox } from "../ui/checkbox";
 import { ScrollArea } from "../ui/scroll-area";
 
@@ -145,7 +144,7 @@ const getDefaultValues = (
   const now = new Date();
   const mode = overrides?.mode ?? "unique";
   const date = overrides?.date ?? now;
-  const isPaid = overrides?.isPaid ?? false;
+  const inferredIsPaid = overrides?.isPaid ?? mode === "unique";
 
   const values: CreateExpenseFormValues = {
     description: "",
@@ -159,8 +158,8 @@ const getDefaultValues = (
     mode,
     totalInstallments: 2,
     recurrenceType: "monthly",
-    isPaid,
-    paidAt: overrides?.paidAt ?? (isPaid ? date : undefined),
+    isPaid: inferredIsPaid,
+    paidAt: overrides?.paidAt ?? (inferredIsPaid ? date : undefined),
   };
 
   const merged = {
@@ -237,7 +236,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const [isStartDatePopoverOpen, setIsStartDatePopoverOpen] =
     React.useState(false);
   const [isEndDatePopoverOpen, setIsEndDatePopoverOpen] = React.useState(false);
-  const [isPaidAtPopoverOpen, setIsPaidAtPopoverOpen] = React.useState(false);
   const [keepOpen, setKeepOpen] = React.useState(false);
   const keepOpenId = React.useId();
   const keepOpenRef = React.useRef(keepOpen);
@@ -286,7 +284,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     setIsDatePopoverOpen(false);
     setIsStartDatePopoverOpen(false);
     setIsEndDatePopoverOpen(false);
-    setIsPaidAtPopoverOpen(false);
 
     if (isEditing && effectiveExpense) {
       form.reset(mapExpenseToDefaultValues(effectiveExpense));
@@ -358,44 +355,21 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const isUnique = modeValue === "unique";
   const isInstallment = modeValue === "installment";
   const isRecurring = modeValue === "recurring";
-  const isPaidValue = form.watch("isPaid");
   const dateValue = form.watch("date");
-
-  React.useEffect(() => {
-    if (!dialogOpen) {
-      return;
-    }
-
-    if (!isPaidValue) {
-      form.setValue("paidAt", undefined, { shouldDirty: false });
-      return;
-    }
-
-    const currentMode = form.getValues("mode");
-    if (!isEditing && currentMode === "unique") {
-      form.setValue("paidAt", form.getValues("date"), {
-        shouldDirty: false,
-      });
-      return;
-    }
-
-    const paidAt = form.getValues("paidAt");
-    if (!paidAt) {
-      form.setValue("paidAt", form.getValues("date"), {
-        shouldDirty: false,
-      });
-    }
-  }, [dialogOpen, dateValue, form, isEditing, isPaidValue]);
 
   React.useEffect(() => {
     if (!dialogOpen || isEditing) {
       return;
     }
 
-    if (modeValue !== "unique" && form.getValues("isPaid")) {
-      form.setValue("isPaid", false, { shouldDirty: true });
+    if (modeValue === "unique") {
+      form.setValue("isPaid", true, { shouldDirty: false });
+      form.setValue("paidAt", dateValue, { shouldDirty: false });
+    } else {
+      form.setValue("isPaid", false, { shouldDirty: false });
+      form.setValue("paidAt", undefined, { shouldDirty: false });
     }
-  }, [dialogOpen, form, isEditing, modeValue]);
+  }, [dateValue, dialogOpen, form, isEditing, modeValue]);
 
   const onSubmit = React.useCallback(
     (values: CreateExpenseFormValues) => {
@@ -403,7 +377,13 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
       const attachmentUrl = values.attachmentUrl?.trim().length
         ? values.attachmentUrl.trim()
         : undefined;
-      const paidAt = values.isPaid ? (values.paidAt ?? values.date) : undefined;
+      const shouldAutoMarkPaid = !isEditing && values.mode === "unique";
+      const isPaid = shouldAutoMarkPaid ? true : values.isPaid;
+      const paidAt = shouldAutoMarkPaid
+        ? values.date
+        : values.isPaid
+          ? (values.paidAt ?? values.date)
+          : undefined;
 
       const payload = {
         type: "expense" as const,
@@ -419,7 +399,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
         recurrenceType: values.recurrenceType,
         startDate: values.startDate,
         endDate: values.endDate,
-        isPaid: values.isPaid,
+        isPaid,
         paidAt,
       };
 
@@ -854,109 +834,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </section>
-
-                  {/* === Payment Section === */}
-                  <section className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      {t("form.payment.help")}
-                    </p>
-                    <div className="space-y-3">
-                      <FormField
-                        control={form.control}
-                        name="isPaid"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value}
-                                  onCheckedChange={(checked) =>
-                                    field.onChange(Boolean(checked))
-                                  }
-                                  disabled={isSubmitting}
-                                />
-                              </FormControl>
-                              <FormLabel className="text-sm font-medium">
-                                {t("form.payment.markAsPaid")}
-                              </FormLabel>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <AnimatePresence initial={false}>
-                        {isPaidValue && (
-                          <motion.div key="paid-at" {...motionProps}>
-                            <FormField
-                              control={form.control}
-                              name="paidAt"
-                              render={({ field }) => {
-                                const selected = field.value;
-                                return (
-                                  <FormItem>
-                                    <FormLabel>
-                                      {t("form.payment.paidAt")}
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Popover
-                                        open={isPaidAtPopoverOpen}
-                                        onOpenChange={setIsPaidAtPopoverOpen}
-                                      >
-                                        <PopoverTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            className={cn(
-                                              "w-full justify-start text-left font-normal",
-                                              !selected &&
-                                                "text-muted-foreground",
-                                            )}
-                                            disabled={isSubmitting}
-                                          >
-                                            <IconCalendar className="mr-2 h-4 w-4" />
-                                            {selected
-                                              ? format(selected, "PPP", {
-                                                  locale,
-                                                })
-                                              : t(
-                                                  "form.payment.paidAtPlaceholder",
-                                                )}
-                                            <IconChevronDown className="ml-auto h-4 w-4" />
-                                          </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent
-                                          className="w-auto p-0"
-                                          align="start"
-                                        >
-                                          <Calendar
-                                            mode="single"
-                                            selected={selected}
-                                            onSelect={(next) => {
-                                              if (next) {
-                                                field.onChange(next);
-                                                setIsPaidAtPopoverOpen(false);
-                                              }
-                                            }}
-                                            defaultMonth={
-                                              selected ??
-                                              form.getValues("date") ??
-                                              dateRange.to
-                                            }
-                                            locale={locale}
-                                          />
-                                        </PopoverContent>
-                                      </Popover>
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
                   </section>
 
                   {/* === Details Section === */}

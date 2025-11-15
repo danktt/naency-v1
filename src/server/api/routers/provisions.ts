@@ -3,10 +3,12 @@ import {
   copySchema,
   gridInputSchema,
   optionalPeriodSchema,
+  plannedVsActualChartInputSchema,
 } from "../../schemas/provisions";
 import {
   bulkUpsertProvisions,
   copyProvisionsToPeriod,
+  getPlannedVsActualChart,
   getProvisionsGrid,
   getProvisionsMetrics,
 } from "../../services/provisions";
@@ -60,6 +62,18 @@ export const provisionsRouter = createTRPCRouter({
         to: input.to,
         overwrite: input.overwrite,
         categoryIds: input.categoryIds,
+      });
+    }),
+  plannedVsActualChart: protectedProcedure
+    .input(plannedVsActualChartInputSchema)
+    .query(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+      return getPlannedVsActualChart({
+        db: ctx.db,
+        groupId,
+        period: input?.period,
+        type: input?.type ?? "expense",
+        limit: input?.limit ?? 6,
       });
     }),
 });

@@ -35,3 +35,11 @@ export const copySchema = z.object({
   overwrite: z.boolean().optional(),
   categoryIds: z.array(z.string().uuid()).optional(),
 });
+
+export const plannedVsActualChartInputSchema = z
+  .object({
+    period: optionalPeriodSchema.optional(),
+    type: z.enum(["expense", "income"]).optional(),
+    limit: z.number().int().min(1).max(12).optional(),
+  })
+  .optional();
