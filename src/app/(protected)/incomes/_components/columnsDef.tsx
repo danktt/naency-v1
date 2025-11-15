@@ -157,21 +157,21 @@ export function createIncomeColumns({
 
           const paymentClassMap: Record<PaymentStatus, string> = {
             pending:
-              "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1",
+              "border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1",
             paidOnTime:
               "border-success/40 bg-success/10 text-success flex items-center gap-1",
             paidLate:
               "border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1",
             paidEarly:
-              "border-sky-400/40 bg-sky-400/10 text-sky-500 flex items-center gap-1",
+              "border-success/40 bg-success/10 text-success flex items-center gap-1",
             paid: "border-success/40 bg-success/10 text-success flex items-center gap-1",
           };
 
           const paymentIconClassMap: Record<PaymentStatus, string> = {
-            pending: "fill-amber-500 text-amber-500",
+            pending: "fill-destructive text-destructive",
             paidOnTime: "fill-success text-success",
             paidLate: "fill-destructive text-destructive",
-            paidEarly: "fill-sky-500 text-sky-500",
+            paidEarly: "fill-success text-success",
             paid: "fill-success text-success",
           };
 
@@ -226,7 +226,6 @@ export function createIncomeColumns({
         );
       },
     },
-
     {
       accessorKey: "paidAt",
       header: t("table.columns.paidAt"),
@@ -237,18 +236,13 @@ export function createIncomeColumns({
           : null;
 
         if (!isPaid) {
-          return (
-            <Badge variant="destructive">{t("table.status.notPaidYet")}</Badge>
-          );
+          return <Badge variant="muted">{t("table.status.notPaidYet")}</Badge>;
         }
 
         return (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <i className="fa-regular fa-calendar-check text-success" />
-            <span className="text-sm font-medium text-success">
-              {paidAt ? formatDate(paidAt) : "-"}
-            </span>
-          </div>
+          <span className="text-sm font-medium text-muted-foreground">
+            {paidAt ? formatDate(paidAt) : "-"}
+          </span>
         );
       },
     },
@@ -271,7 +265,7 @@ export function createIncomeColumns({
         const account =
           getAccountName?.(row.original) ?? row.original.accountName;
         if (!account) return t("table.noData");
-        return <Badge variant="secondary">{account as string}</Badge>;
+        return <Badge variant="muted">{account as string}</Badge>;
       },
     },
     {
@@ -281,7 +275,7 @@ export function createIncomeColumns({
         const category =
           getCategoryMeta?.(row.original) ?? row.original.categoryName;
         if (!category) return t("table.noData");
-        return <Badge variant="secondary">{category as string}</Badge>;
+        return <Badge variant="muted">{category as string}</Badge>;
       },
     },
     {
@@ -289,7 +283,7 @@ export function createIncomeColumns({
       header: t("table.columns.method"),
       cell: ({ row }) => {
         const key = `form.paymentMethods.${row.original.method}` as const;
-        return <Badge variant="secondary">{t(key)}</Badge>;
+        return <Badge variant="muted">{t(key)}</Badge>;
       },
     },
   ];

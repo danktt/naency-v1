@@ -385,32 +385,18 @@ export default function DashboardPage() {
         </div>
 
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {isLoadingState
-            ? Array.from({ length: 5 }).map((_, index) => (
-                <li key={`skeleton-${index}`} className="list-none">
-                  <div className="border-border/60 relative h-full rounded-xl border p-6">
-                    <div className="mb-4 flex items-center justify-between">
-                      <Skeleton className="h-4 w-1/3" />
-                      <Skeleton className="h-8 w-8 rounded-full" />
-                    </div>
-                    <div className="space-y-2">
-                      <Skeleton className="h-8 w-2/3" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                  </div>
-                </li>
-              ))
-            : snapshotCards.map((card) => (
-                <GridItem
-                  key={card.key}
-                  icon={card.icon}
-                  title={card.title}
-                  value={card.value}
-                  valueClassName={card.valueClassName}
-                  iconContainerClassName={card.iconContainerClassName}
-                  description={card.subtitle}
-                />
-              ))}
+          {snapshotCards.map((card) => (
+            <GridItem
+              key={card.key}
+              icon={card.icon}
+              title={card.title}
+              value={card.value}
+              valueClassName={card.valueClassName}
+              iconContainerClassName={card.iconContainerClassName}
+              description={card.subtitle}
+              isLoading={isLoadingState}
+            />
+          ))}
         </ul>
       </section>
 

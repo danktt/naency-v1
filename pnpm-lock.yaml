@@ -239,6 +239,9 @@ importers:
       vaul:
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      wasm:
+        specifier: link:@neondatabase/serverless/wasm
+        version: link:@neondatabase/serverless/wasm
       zod:
         specifier: ^4.1.12
         version: 4.1.12

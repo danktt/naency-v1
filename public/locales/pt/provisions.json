@@ -41,5 +41,30 @@
       "empty": "Nenhuma categoria encontrada para este filtro.",
       "error": "Não foi possível carregar as categorias agora."
     }
+  },
+  "categories": {
+    "plannedLabel": "Valor planejado"
+  },
+  "rowActions": {
+    "edit": "Editar valor planejado",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "saving": "Salvando..."
+  },
+  "copyDialog": {
+    "title": "Copiar plano para outro mês",
+    "description": "Duplique os valores planejados de {{monthLabel}} para outro mês.",
+    "targetMonthLabel": "Mês de destino",
+    "targetYearLabel": "Ano de destino",
+    "overwriteLabel": "Sobrescrever valores existentes",
+    "overwriteWarning": "O mês de destino já possui valores planejados. Ative a opção de sobrescrever para continuar.",
+    "submit": "Copiar plano",
+    "cancel": "Fechar"
+  },
+  "toasts": {
+    "plannedUpdateSuccess": "Provisão atualizada com sucesso.",
+    "plannedUpdateError": "Não foi possível atualizar a provisão.",
+    "copySuccess": "Plano copiado com sucesso.",
+    "copyError": "Não foi possível copiar o plano."
   }
 }

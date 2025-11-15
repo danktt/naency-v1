@@ -3,6 +3,7 @@
 import { Tab, Tabs } from "@heroui/tabs";
 import {
   Icon12Hours,
+  IconAlertTriangle,
   IconChartBar,
   IconChevronLeft,
   IconChevronRight,
@@ -11,13 +12,42 @@ import {
   IconWallet,
 } from "@tabler/icons-react";
 import React from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { GlowCard, GridItem } from "@/components/gloweffect";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDateRange } from "@/helpers/formatDate";
 import { trpc } from "@/lib/trpc/client";
+
 import { CategoryRow } from "./_components/CategoryRow";
 
 type MetricKey =
@@ -33,6 +63,12 @@ type MetricConfig = {
   changeKey: string;
   icon: typeof IconCurrencyDollar;
   format: "currency" | "percentage";
+};
+
+type CopyFormValues = {
+  month: string;
+  year: string;
+  overwrite: boolean;
 };
 
 const metricConfigs: MetricConfig[] = [
@@ -106,6 +142,36 @@ export default function ProvisionsPage() {
   const [expandedCategories, setExpandedCategories] = React.useState<
     Set<string>
   >(new Set());
+  const [updatingCategoryId, setUpdatingCategoryId] = React.useState<
+    string | null
+  >(null);
+  const [isCopyDialogOpen, setCopyDialogOpen] = React.useState(false);
+  const [targetHasData, setTargetHasData] = React.useState(false);
+  const copyForm = useForm<CopyFormValues>({
+    defaultValues: {
+      month: String(selectedPeriod.month),
+      year: String(selectedPeriod.year),
+      overwrite: false,
+    },
+  });
+
+  const watchedMonth = copyForm.watch("month");
+  const watchedYear = copyForm.watch("year");
+
+  React.useEffect(() => {
+    setTargetHasData(false);
+    copyForm.clearErrors("overwrite");
+  }, [watchedMonth, watchedYear, copyForm]);
+
+  React.useEffect(() => {
+    if (isCopyDialogOpen) return;
+    copyForm.reset({
+      month: String(selectedPeriod.month),
+      year: String(selectedPeriod.year),
+      overwrite: false,
+    });
+    setTargetHasData(false);
+  }, [isCopyDialogOpen, selectedPeriod.month, selectedPeriod.year, copyForm]);
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -160,6 +226,20 @@ export default function ProvisionsPage() {
     },
   });
 
+  const copyMutation = trpc.provisions.copyFromPrevious.useMutation({
+    onSuccess: async (_data, variables) => {
+      toast.success(translate("toasts.copySuccess"));
+      await Promise.all([
+        utils.provisions.grid.invalidate(gridInput),
+        utils.provisions.grid.invalidate({ period: variables.to }),
+        utils.provisions.metrics.invalidate(variables.to),
+      ]);
+    },
+    onError: () => {
+      toast.error(translate("toasts.copyError"));
+    },
+  });
+
   const totalsByKey: Record<MetricKey, number> = React.useMemo(
     () => ({
       plannedTotal: metricsData?.plannedTotal ?? 0,
@@ -187,8 +267,31 @@ export default function ProvisionsPage() {
   );
 
   const getLocale = React.useCallback(() => {
-    return i18n.language?.startsWith("pt") ? "pt-BR" : "en-US";
-  }, [i18n.language]);
+    const lang = (isMounted ? i18n.language : fallbackLng) ?? "en";
+    return lang.startsWith("pt") ? "pt-BR" : "en-US";
+  }, [i18n.language, fallbackLng, isMounted]);
+
+  const monthOptions = React.useMemo(() => {
+    const locale = getLocale();
+    return Array.from({ length: 12 }).map((_, month) => {
+      const date = new Date(2024, month, 1);
+      const label = new Intl.DateTimeFormat(locale, { month: "long" }).format(
+        date,
+      );
+      return {
+        value: String(month),
+        label: `${label.charAt(0).toUpperCase()}${label.slice(1)}`,
+      };
+    });
+  }, [getLocale]);
+
+  const yearOptions = React.useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }).map((_, index) => {
+      const year = currentYear - 2 + index;
+      return { value: String(year), label: String(year) };
+    });
+  }, []);
   const getDescription = React.useCallback(
     (config: MetricConfig) => {
       if (isMetricsLoading && !metricsData) {
@@ -204,6 +307,21 @@ export default function ProvisionsPage() {
       return translate(config.changeKey, { value: formattedValue });
     },
     [isMetricsError, isMetricsLoading, metricsData, totalsByKey, translate],
+  );
+
+  const checkTargetHasData = React.useCallback(
+    async (target: { month: number; year: number }) => {
+      try {
+        const data = await utils.provisions.grid.fetch({ period: target });
+        if (!data?.rows?.length) {
+          return false;
+        }
+        return data.rows.some((row) => row.planned !== 0);
+      } catch {
+        return false;
+      }
+    },
+    [utils.provisions.grid],
   );
 
   const categoryTree = React.useMemo<TreeNode[]>(() => {
@@ -260,18 +378,29 @@ export default function ProvisionsPage() {
   }, []);
 
   const updateCategoryPlanned = React.useCallback(
-    (categoryId: string, plannedAmount: number) => {
-      bulkUpsertMutation.mutate({
-        period: periodInput,
-        entries: [
-          {
-            categoryId,
-            plannedAmount,
-          },
-        ],
-      });
+    async (categoryId: string, plannedAmount: number) => {
+      try {
+        setUpdatingCategoryId(categoryId);
+        await bulkUpsertMutation.mutateAsync({
+          period: periodInput,
+          entries: [
+            {
+              categoryId,
+              plannedAmount,
+            },
+          ],
+        });
+        toast.success(translate("toasts.plannedUpdateSuccess"));
+      } catch (error) {
+        toast.error(translate("toasts.plannedUpdateError"));
+        throw error;
+      } finally {
+        setUpdatingCategoryId((current) =>
+          current === categoryId ? null : current,
+        );
+      }
     },
-    [bulkUpsertMutation, periodInput],
+    [bulkUpsertMutation, periodInput, translate],
   );
 
   const selectedPeriodLabel = React.useMemo(() => {
@@ -297,6 +426,33 @@ export default function ProvisionsPage() {
     });
   }, []);
 
+  const handleCopySubmit = copyForm.handleSubmit(async (values) => {
+    const targetPeriod = {
+      month: Number(values.month),
+      year: Number(values.year),
+    };
+    try {
+      const hasData = await checkTargetHasData(targetPeriod);
+      setTargetHasData(hasData);
+      if (hasData && !values.overwrite) {
+        copyForm.setError("overwrite", {
+          type: "manual",
+          message: translate("copyDialog.overwriteWarning"),
+        });
+        return;
+      }
+      copyForm.clearErrors("overwrite");
+      await copyMutation.mutateAsync({
+        from: periodInput,
+        to: targetPeriod,
+        overwrite: values.overwrite,
+      });
+      setCopyDialogOpen(false);
+    } catch {
+      // Errors handled via mutation toasts
+    }
+  });
+
   const renderTree = (nodes: TreeNode[]) =>
     nodes.map((node) => (
       <div key={node.categoryId} className="space-y-2">
@@ -321,6 +477,7 @@ export default function ProvisionsPage() {
               : undefined
           }
           isParent={node.children.length > 0}
+          isUpdating={updatingCategoryId === node.categoryId}
         />
         {node.children.length > 0 &&
           expandedCategories.has(node.categoryId) && (
@@ -344,12 +501,148 @@ export default function ProvisionsPage() {
             {translate("header.subtitle")}
           </p>
         </div>
-        <div>
-          <Button variant="secondary">
-            <IconCopy stroke={1.5} />
-            {translate("header.copyButtonTitle")}
-          </Button>
-        </div>
+        <Dialog open={isCopyDialogOpen} onOpenChange={setCopyDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="secondary">
+              <IconCopy stroke={1.5} />
+              {translate("header.copyButtonTitle")}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{translate("copyDialog.title")}</DialogTitle>
+              <DialogDescription>
+                {translate("copyDialog.description", {
+                  monthLabel: selectedPeriodLabel,
+                })}
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...copyForm}>
+              <form onSubmit={handleCopySubmit} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={copyForm.control}
+                    name="month"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {translate("copyDialog.targetMonthLabel")}
+                        </FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {monthOptions.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={copyForm.control}
+                    name="year"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {translate("copyDialog.targetYearLabel")}
+                        </FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {yearOptions.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={copyForm.control}
+                  name="overwrite"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) => {
+                              field.onChange(Boolean(checked));
+                              copyForm.clearErrors("overwrite");
+                            }}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            {translate("copyDialog.overwriteLabel")}
+                          </FormLabel>
+                        </div>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {targetHasData ? (
+                  <Alert variant="destructive">
+                    <IconAlertTriangle className="text-destructive" />
+                    <AlertTitle>
+                      {translate("copyDialog.overwriteLabel")}
+                    </AlertTitle>
+                    <AlertDescription>
+                      {translate("copyDialog.overwriteWarning")}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
+                <DialogFooter className="gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setCopyDialogOpen(false)}
+                    disabled={copyMutation.isPending}
+                  >
+                    {translate("copyDialog.cancel")}
+                  </Button>
+                  <Button type="submit" disabled={copyMutation.isPending}>
+                    {copyMutation.isPending
+                      ? t("rowActions.saving")
+                      : translate("copyDialog.submit")}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </section>
 
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">

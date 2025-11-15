@@ -7,11 +7,20 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+
+import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+
+type CategoryFormValues = {
+  plannedAmount: number;
+  currency: "BRL" | "USD";
+};
 
 interface CategoryRowProps {
   category: {
@@ -23,11 +32,12 @@ interface CategoryRowProps {
     planned: number;
     spent: number;
   };
-  onUpdatePlanned: (value: number) => void;
+  onUpdatePlanned: (value: number) => Promise<void> | void;
   hasChildren?: boolean;
   isExpanded?: boolean;
   onToggle?: () => void;
   isParent?: boolean;
+  isUpdating?: boolean;
 }
 
 export function CategoryRow({
@@ -37,20 +47,48 @@ export function CategoryRow({
   isExpanded = false,
   onToggle,
   isParent = false,
+  isUpdating = false,
 }: CategoryRowProps) {
+  const { t } = useTranslation("provisions");
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState(category.planned.toString());
+  const form = useForm<CategoryFormValues>({
+    defaultValues: {
+      plannedAmount: Math.round(category.planned * 100),
+      currency: "BRL",
+    },
+  });
+
+  useEffect(() => {
+    if (isEditing) return;
+    form.reset({
+      plannedAmount: Math.round(category.planned * 100),
+      currency: form.getValues("currency") ?? "BRL",
+    });
+  }, [category.planned, form, isEditing]);
 
   const difference = category.planned - category.spent;
   const percentage =
     category.planned > 0 ? (category.spent / category.planned) * 100 : 0;
   const isOverBudget = percentage > 100;
 
-  const handleBlur = () => {
-    const value = parseFloat(inputValue) || 0;
-    onUpdatePlanned(value);
+  const canEdit = !isParent;
+
+  const handleCancelEdit = () => {
+    form.reset({
+      plannedAmount: Math.round(category.planned * 100),
+      currency: form.getValues("currency") ?? "BRL",
+    });
     setIsEditing(false);
   };
+
+  const handleSubmit = form.handleSubmit(async (values) => {
+    try {
+      await Promise.resolve(onUpdatePlanned(values.plannedAmount / 100));
+      setIsEditing(false);
+    } catch {
+      // keep editing state so user can retry
+    }
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -116,24 +154,57 @@ export function CategoryRow({
                 </span>
               </div>
             ) : isEditing ? (
-              <Input
-                type="number"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onBlur={handleBlur}
-                onKeyDown={(e) => e.key === "Enter" && handleBlur()}
-                className="h-9"
-                autoFocus
-              />
+              <Form {...form}>
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  <FieldCurrencyAmount<CategoryFormValues>
+                    control={form.control}
+                    amountName="plannedAmount"
+                    currencyName="currency"
+                    label={t("categories.plannedLabel")}
+                    disabled={isUpdating}
+                    required
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                      disabled={isUpdating}
+                    >
+                      {t("rowActions.cancel")}
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={isUpdating || !form.formState.isDirty}
+                    >
+                      {isUpdating
+                        ? t("rowActions.saving")
+                        : t("rowActions.save")}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                icon={<IconPencil stroke={1.5} />}
-              >
-                {formatCurrency(category.planned)}
-              </Button>
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 items-center rounded-md border border-border bg-muted/50 px-3">
+                  <span className="text-sm font-semibold text-foreground">
+                    {formatCurrency(category.planned)}
+                  </span>
+                </div>
+                {canEdit ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                    disabled={isUpdating}
+                  >
+                    <IconPencil stroke={1.5} className="me-1" />
+                    {t("rowActions.edit")}
+                  </Button>
+                ) : null}
+              </div>
             )}
           </div>
 
@@ -157,8 +228,8 @@ export function CategoryRow({
             <div
               className={`flex h-9 items-center gap-2 rounded-md px-3 ${
                 isOverBudget
-                  ? "bg-destructive/10 text-destructive"
-                  : "bg-accent/10 text-accent-foreground"
+                  ? "bg-destructive/20 text-destructive"
+                  : "bg-success/20 text-accent-foreground"
               }`}
             >
               {isOverBudget ? (
@@ -189,7 +260,7 @@ export function CategoryRow({
         <Progress
           value={Math.min(percentage, 100)}
           className="h-2"
-          color={isOverBudget ? "destructive" : "accent"}
+          indicatorClassName={isOverBudget ? "bg-destructive" : "bg-success"}
         />
       </div>
     </div>

@@ -257,7 +257,13 @@ const GridItem = ({
         <div className="border-0.75 relative z-2 flex h-full flex-col justify-between gap-4 overflow-hidden rounded-xl p-6 ">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-black dark:text-white">
-              {isLoading ? <Skeleton className="h-5 w-24" /> : title}
+              {isLoading ? (
+                <Skeleton asChild>
+                  <span className="inline-block h-5 w-24" />
+                </Skeleton>
+              ) : (
+                title
+              )}
             </h3>
             <div
               className={cn(
@@ -276,10 +282,22 @@ const GridItem = ({
                 valueClassName,
               )}
             >
-              {isLoading ? <Skeleton className="h-8 w-24" /> : value}
+              {isLoading ? (
+                <Skeleton asChild>
+                  <span className="inline-block h-8 w-24" />
+                </Skeleton>
+              ) : (
+                value
+              )}
             </p>
             <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed min-h-8">
-              {isLoading ? <Skeleton className="h-4 w-2/3" /> : description}
+              {isLoading ? (
+                <Skeleton asChild>
+                  <span className="inline-block h-4 w-2/3" />
+                </Skeleton>
+              ) : (
+                description
+              )}
             </p>
           </div>
         </div>

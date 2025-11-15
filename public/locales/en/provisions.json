@@ -41,5 +41,30 @@
       "empty": "No categories found for this selection.",
       "error": "We couldn't load the categories right now."
     }
+  },
+  "categories": {
+    "plannedLabel": "Planned amount"
+  },
+  "rowActions": {
+    "edit": "Edit planned amount",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving..."
+  },
+  "copyDialog": {
+    "title": "Copy plan to another month",
+    "description": "Duplicate the planned values from {{monthLabel}} to another month.",
+    "targetMonthLabel": "Target month",
+    "targetYearLabel": "Target year",
+    "overwriteLabel": "Overwrite existing values",
+    "overwriteWarning": "The target month already has planned values. Enable overwrite to continue.",
+    "submit": "Copy plan",
+    "cancel": "Close"
+  },
+  "toasts": {
+    "plannedUpdateSuccess": "Provision updated successfully.",
+    "plannedUpdateError": "Unable to update provision.",
+    "copySuccess": "Plan copied successfully.",
+    "copyError": "Unable to copy the plan."
   }
 }
