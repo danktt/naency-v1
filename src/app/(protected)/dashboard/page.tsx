@@ -1,6 +1,14 @@
 "use client";
 
 import {
+  IconAlarm,
+  IconArrowDownRight,
+  IconArrowUpRight,
+  IconClock,
+  IconPigMoney,
+  IconWallet,
+} from "@tabler/icons-react";
+import {
   AlarmClock,
   ArrowDownRight,
   ArrowUpRight,
@@ -23,7 +31,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-
 import { GlowCard, GridItem } from "@/components/gloweffect";
 import {
   ChartContainer,
@@ -129,7 +136,7 @@ export default function DashboardPage() {
       title: string;
       value: string;
       subtitle: string;
-      icon: React.ReactNode;
+      icon: React.ElementType;
       valueClassName?: string;
       iconContainerClassName?: string;
     }> = [
@@ -140,7 +147,7 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.totalIncomes)
           : formatCurrency(0),
         subtitle: translate("snapshot.cards.incomes.subtitle"),
-        icon: <ArrowUpRight className="size-4" />,
+        icon: IconArrowUpRight,
         iconContainerClassName:
           "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
       },
@@ -151,7 +158,7 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.totalExpenses)
           : formatCurrency(0),
         subtitle: translate("snapshot.cards.expenses.subtitle"),
-        icon: <ArrowDownRight className="size-4" />,
+        icon: IconArrowDownRight,
         iconContainerClassName:
           "bg-rose-500/10 text-rose-600 dark:text-rose-400",
       },
@@ -162,11 +169,11 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.monthBalance)
           : formatCurrency(0),
         subtitle: translate("snapshot.cards.monthBalance.subtitle"),
-        icon: <Wallet className="size-4" />,
+        icon: IconWallet,
         valueClassName:
           snapshot && snapshot.monthBalance < 0
             ? "text-rose-500"
-            : "text-emerald-500",
+            : "text-blue-500",
         iconContainerClassName: monthBalanceIconClassName,
       },
       {
@@ -176,7 +183,7 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.accumulatedBalance)
           : formatCurrency(0),
         subtitle: translate("snapshot.cards.accumulatedBalance.subtitle"),
-        icon: <PiggyBank className="size-4" />,
+        icon: IconPigMoney,
         valueClassName:
           snapshot && snapshot.accumulatedBalance < 0
             ? "text-rose-500"
@@ -190,7 +197,7 @@ export default function DashboardPage() {
         subtitle: translate("snapshot.cards.pending.subtitle", {
           count: pendingCount,
         }),
-        icon: <AlarmClock className="size-4" />,
+        icon: IconAlarm,
         iconContainerClassName:
           "bg-amber-500/10 text-amber-600 dark:text-amber-400",
       },
@@ -385,18 +392,21 @@ export default function DashboardPage() {
         </div>
 
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {snapshotCards.map((card) => (
-            <GridItem
-              key={card.key}
-              icon={card.icon}
-              title={card.title}
-              value={card.value}
-              valueClassName={card.valueClassName}
-              iconContainerClassName={card.iconContainerClassName}
-              description={card.subtitle}
-              isLoading={isLoadingState}
-            />
-          ))}
+          {snapshotCards.map((card) => {
+            const Icon = card.icon as React.ElementType;
+            return (
+              <GridItem
+                key={card.key}
+                icon={<Icon className="size-5 " stroke={1.5} />}
+                title={card.title}
+                value={card.value}
+                valueClassName={card.valueClassName}
+                iconContainerClassName={card.iconContainerClassName}
+                description={card.subtitle}
+                isLoading={isLoadingState}
+              />
+            );
+          })}
         </ul>
       </section>
 
