@@ -20,6 +20,7 @@ type MetricKey = "totalIncomes" | "totalExpenses" | "netBalance";
 
 const metricConfigs: Array<{
   key: MetricKey;
+  iconContainerClassName: string;
   titleKey: string;
   changeKey: string;
   icon: typeof IconCurrencyDollar;
@@ -29,18 +30,22 @@ const metricConfigs: Array<{
     titleKey: "metrics.totalIncomes.title",
     changeKey: "metrics.totalIncomes.change",
     icon: IconCurrencyDollar,
+    iconContainerClassName:
+      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   },
   {
     key: "totalExpenses",
     titleKey: "metrics.totalExpenses.title",
     changeKey: "metrics.totalExpenses.change",
     icon: IconWallet,
+    iconContainerClassName: "bg-red-500/10 text-red-600 dark:text-red-400",
   },
   {
     key: "netBalance",
     titleKey: "metrics.netBalance.title",
     changeKey: "metrics.netBalance.change",
     icon: IconChartBar,
+    iconContainerClassName: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   },
 ];
 
@@ -148,12 +153,8 @@ export default function IncomesPage() {
           return (
             <GridItem
               key={metric.titleKey}
-              icon={
-                <Icon
-                  className="size-5 text-black dark:text-neutral-400"
-                  stroke={1.5}
-                />
-              }
+              icon={<Icon className="size-5 " stroke={1.5} />}
+              iconContainerClassName={metric.iconContainerClassName}
               title={translate(metric.titleKey)}
               value={getValue(metric.key)}
               description={getDescription(metric.changeKey, metric.key)}

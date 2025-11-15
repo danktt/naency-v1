@@ -5,10 +5,15 @@ export const formatDate = (dateString: string | Date | null | undefined) => {
   return date.toLocaleDateString("pt-BR");
 };
 
-export const formatDateRange = (
-  fromInput: Date | string | number | null | undefined,
-  toInput: Date | string | number | null | undefined,
-): string => {
+export const formatDateRange = ({
+  fromInput,
+  toInput,
+  locale = "pt-BR",
+}: {
+  fromInput: Date | string | number | null | undefined;
+  toInput: Date | string | number | null | undefined;
+  locale: string;
+}) => {
   const normalize = (
     value: Date | string | number | null | undefined,
   ): Date | null => {
@@ -23,8 +28,8 @@ export const formatDateRange = (
 
   if (!from || !to) return "Invalid period";
 
-  const fromMonth = from.toLocaleDateString("en-US", { month: "long" });
-  const toMonth = to.toLocaleDateString("en-US", { month: "long" });
+  const fromMonth = from.toLocaleDateString(locale, { month: "long" });
+  const toMonth = to.toLocaleDateString(locale, { month: "long" });
 
   const fromYear = from.getFullYear();
   const toYear = to.getFullYear();

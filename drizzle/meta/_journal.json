@@ -50,6 +50,13 @@
       "when": 1762727762091,
       "tag": "0006_opposite_killer_shrike",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1763011200000,
+      "tag": "0007_zippy_husk",
+      "breakpoints": true
     }
   ]
 }

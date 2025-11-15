@@ -1,6 +1,7 @@
 import {
   boolean,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -226,4 +227,81 @@ export const provisions = pgTable("provisions", {
     scale: 2,
   }).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  note: text("note"),
+});
+
+export const provision_templates = pgTable("provision_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  group_id: uuid("group_id")
+    .notNull()
+    .references(() => financial_groups.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 191 }).notNull(),
+  description: text("description"),
+  created_by: uuid("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const provision_template_items = pgTable("provision_template_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  template_id: uuid("template_id")
+    .notNull()
+    .references(() => provision_templates.id, { onDelete: "cascade" }),
+  category_id: uuid("category_id")
+    .notNull()
+    .references(() => categories.id),
+  planned_amount: numeric("planned_amount", {
+    precision: 14,
+    scale: 2,
+  }).notNull(),
+});
+
+export const provision_audit_logs = pgTable("provision_audit_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  group_id: uuid("group_id")
+    .notNull()
+    .references(() => financial_groups.id, { onDelete: "cascade" }),
+  user_id: uuid("user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  category_id: uuid("category_id").references(() => categories.id, {
+    onDelete: "set null",
+  }),
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  previous_amount: numeric("previous_amount", { precision: 14, scale: 2 }),
+  new_amount: numeric("new_amount", { precision: 14, scale: 2 }),
+  context: jsonb("context")
+    .$type<Record<string, unknown>>()
+    .default({})
+    .notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const provision_recurring_rules = pgTable("provision_recurring_rules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  group_id: uuid("group_id")
+    .notNull()
+    .references(() => financial_groups.id, { onDelete: "cascade" }),
+  category_id: uuid("category_id")
+    .notNull()
+    .references(() => categories.id),
+  planned_amount: numeric("planned_amount", {
+    precision: 14,
+    scale: 2,
+  }).notNull(),
+  start_month: integer("start_month").notNull(),
+  start_year: integer("start_year").notNull(),
+  end_month: integer("end_month"),
+  end_year: integer("end_year"),
+  apply_automatically: boolean("apply_automatically").default(true).notNull(),
+  created_by: uuid("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  notes: text("notes"),
 });

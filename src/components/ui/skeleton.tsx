@@ -1,13 +1,20 @@
-import { cn } from "@/lib/utils"
+import { Slot } from "@radix-ui/react-slot";
 
-function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
+import { cn } from "@/lib/utils";
+
+type SkeletonProps = React.ComponentProps<"div"> & {
+  asChild?: boolean;
+};
+
+function Skeleton({ className, asChild = false, ...props }: SkeletonProps) {
+  const Comp = asChild ? Slot : "div";
   return (
-    <div
+    <Comp
       data-slot="skeleton"
       className={cn("bg-accent animate-pulse rounded-md", className)}
       {...props}
     />
-  )
+  );
 }
 
-export { Skeleton }
+export { Skeleton };

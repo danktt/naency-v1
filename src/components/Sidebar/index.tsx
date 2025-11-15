@@ -2,6 +2,8 @@
 
 import { useUser } from "@clerk/nextjs";
 import {
+  IconBuildingBank,
+  IconCategory,
   IconCreditCard,
   IconCurrencyDollar,
   IconLayoutDashboard,
@@ -50,14 +52,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: IconWallet,
       },
       {
-        title: "Transfers",
+        title: "Account transfers",
         url: "/transfers",
         icon: IconTransfer,
+      },
+      {
+        title: "Bank Accounts",
+        url: "/bank-accounts",
+        icon: IconBuildingBank,
       },
       {
         title: "Provisions",
         url: "/provisions",
         icon: IconCreditCard,
+      },
+      {
+        title: "Categories",
+        url: "/categories",
+        icon: IconCategory,
       },
     ];
 
@@ -73,7 +85,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     () => [
       {
         title: "Support",
-        url: "/help",
+        url: "/",
         icon: LifeBuoy,
       },
       {

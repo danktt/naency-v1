@@ -1,12 +1,12 @@
 "use client";
 
 import { ClerkProvider } from "@clerk/nextjs";
+import { HeroUIProvider } from "@heroui/react";
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import { I18nextProvider } from "react-i18next";
-
-import { TRPCProvider } from "@/lib/trpc/provider";
 import { i18n } from "@/lib/i18n/client";
+import { TRPCProvider } from "@/lib/trpc/provider";
 
 type ProvidersProps = {
   children: ReactNode;
@@ -30,7 +30,7 @@ export function Providers({ children }: ProvidersProps) {
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <HeroUIProvider>{children}</HeroUIProvider>
           </ThemeProvider>
         </I18nextProvider>
       </TRPCProvider>

@@ -4,6 +4,7 @@ import { animate } from "framer-motion";
 import { CalendarDays, CheckCircle2, Zap } from "lucide-react";
 import { memo, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "./ui/skeleton";
 
 interface GlowingEffectProps {
   blur?: number;
@@ -226,6 +227,7 @@ interface GridItemProps {
   description: string;
   valueClassName?: string;
   iconContainerClassName?: string;
+  isLoading?: boolean;
 }
 
 const GridItem = ({
@@ -235,6 +237,7 @@ const GridItem = ({
   description,
   valueClassName,
   iconContainerClassName,
+  isLoading = false,
 }: GridItemProps) => {
   return (
     <li className="list-none">
@@ -254,7 +257,13 @@ const GridItem = ({
         <div className="border-0.75 relative z-2 flex h-full flex-col justify-between gap-4 overflow-hidden rounded-xl p-6 ">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-black dark:text-white">
-              {title}
+              {isLoading ? (
+                <Skeleton asChild>
+                  <span className="inline-block h-5 w-24" />
+                </Skeleton>
+              ) : (
+                title
+              )}
             </h3>
             <div
               className={cn(
@@ -262,7 +271,7 @@ const GridItem = ({
                 iconContainerClassName,
               )}
             >
-              {icon}
+              {isLoading ? <Skeleton className="h-5 w-5" /> : icon}
             </div>
           </div>
 
@@ -273,10 +282,22 @@ const GridItem = ({
                 valueClassName,
               )}
             >
-              {value}
+              {isLoading ? (
+                <Skeleton asChild>
+                  <span className="inline-block h-8 w-24" />
+                </Skeleton>
+              ) : (
+                value
+              )}
             </p>
             <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed min-h-8">
-              {description}
+              {isLoading ? (
+                <Skeleton asChild>
+                  <span className="inline-block h-4 w-2/3" />
+                </Skeleton>
+              ) : (
+                description
+              )}
             </p>
           </div>
         </div>
@@ -291,6 +312,7 @@ interface GlowCardProps {
   children: React.ReactNode;
   className?: string;
   contentClassName?: string;
+  hasAction?: React.ReactNode;
 }
 
 const GlowCard = ({
@@ -300,9 +322,10 @@ const GlowCard = ({
   children,
   className,
   contentClassName,
+  hasAction,
 }: GlowCardProps) => {
   const showHeader = Boolean(title || description || trailing);
-
+  const showAction = Boolean(hasAction);
   return (
     <div className={cn("relative rounded-xl border p", className)}>
       <GlowingEffect
@@ -322,17 +345,20 @@ const GlowCard = ({
       >
         {showHeader ? (
           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-            <div className="flex flex-col gap-1">
-              {title ? (
-                <h3 className="text-lg font-semibold text-black dark:text-white">
-                  {title}
-                </h3>
-              ) : null}
-              {description ? (
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  {description}
-                </p>
-              ) : null}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-1">
+                {title ? (
+                  <h3 className="text-lg font-semibold text-black dark:text-white">
+                    {title}
+                  </h3>
+                ) : null}
+                {description ? (
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    {description}
+                  </p>
+                ) : null}
+              </div>
+              {showAction && <div className="shrink-0">{showAction}</div>}
             </div>
             {trailing ? <div className="shrink-0">{trailing}</div> : null}
           </div>

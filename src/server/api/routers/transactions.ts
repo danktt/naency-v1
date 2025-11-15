@@ -1,5 +1,18 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, gte, lt, lte, sql, sum } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  inArray,
+  lt,
+  lte,
+  or,
+  type SQL,
+  sql,
+  sum,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
@@ -80,6 +93,51 @@ const metricsInputSchema = z
   })
   .optional();
 
+const listTransfersInputSchema = z
+  .object({
+    month: z.number().int().min(1).max(12),
+    year: z.number().int().min(2000).max(2100),
+    accountId: z.string().uuid("Conta inválida.").optional(),
+  })
+  .optional();
+
+const transferBaseSchema = z
+  .object({
+    date: z.coerce.date(),
+    fromAccountId: z.string().uuid("Conta de origem inválida."),
+    toAccountId: z.string().uuid("Conta de destino inválida."),
+    amount: z.coerce.number(),
+    description: z.string().max(500).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!(data.date instanceof Date) || Number.isNaN(data.date.getTime())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["date"],
+        message: "Informe uma data válida.",
+      });
+    }
+
+    if (!Number.isFinite(data.amount) || data.amount <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["amount"],
+        message: "Informe um valor maior que zero.",
+      });
+    }
+  })
+  .refine(
+    (data) => data.fromAccountId !== data.toAccountId,
+    "As contas de origem e destino devem ser diferentes.",
+  );
+
+const createTransferSchema = transferBaseSchema;
+const updateTransferSchema = transferBaseSchema.and(
+  z.object({
+    id: z.string().uuid("Transferência inválida."),
+  }),
+);
+
 const dashboardSummaryInputSchema = z
   .object({
     referenceDate: z.coerce.date().optional(),
@@ -141,6 +199,9 @@ export const transactionsRouter = createTRPCRouter({
         whereConditions.push(lte(transactions.date, dateRange.to));
       }
 
+      const fromAccount = alias(bank_accounts, "from_account");
+      const toAccount = alias(bank_accounts, "to_account");
+
       const items = await ctx.db
         .select({
           id: transactions.id,
@@ -152,6 +213,11 @@ export const transactionsRouter = createTRPCRouter({
           categoryNameSnapshot: transactions.category_name_snapshot,
           accountId: transactions.account_id,
           accountName: bank_accounts.name,
+          fromAccountId: transactions.from_account_id,
+          toAccountId: transactions.to_account_id,
+          fromAccountName: fromAccount.name,
+          toAccountName: toAccount.name,
+          transferId: transactions.transfer_id,
           categoryName: categories.name,
           installmentGroupId: transactions.installment_group_id,
           installmentNumber: transactions.installment_number,
@@ -170,6 +236,20 @@ export const transactionsRouter = createTRPCRouter({
           ),
         )
         .leftJoin(categories, eq(categories.id, transactions.category_id))
+        .leftJoin(
+          fromAccount,
+          and(
+            eq(fromAccount.id, transactions.from_account_id),
+            eq(fromAccount.group_id, groupId),
+          ),
+        )
+        .leftJoin(
+          toAccount,
+          and(
+            eq(toAccount.id, transactions.to_account_id),
+            eq(toAccount.group_id, groupId),
+          ),
+        )
         .where(and(...whereConditions))
         .orderBy(desc(transactions.date))
         .limit(limit);
@@ -182,6 +262,11 @@ export const transactionsRouter = createTRPCRouter({
         method: item.method,
         accountId: item.accountId,
         accountName: item.accountName ?? "",
+        fromAccountId: item.fromAccountId,
+        toAccountId: item.toAccountId,
+        fromAccountName: item.fromAccountName ?? null,
+        toAccountName: item.toAccountName ?? null,
+        transferId: item.transferId,
         categoryId: item.categoryId,
         categoryName:
           item.categoryNameSnapshot ?? item.categoryName ?? "Sem categoria",
@@ -240,6 +325,229 @@ export const transactionsRouter = createTRPCRouter({
       };
     }),
 
+  listTransfers: protectedProcedure
+    .input(listTransfersInputSchema)
+    .query(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      const now = new Date();
+      const month = input?.month ?? now.getMonth() + 1;
+      const year = input?.year ?? now.getFullYear();
+
+      const { start: monthStart, end: monthEnd } = createMonthRange(
+        new Date(year, month - 1, 1),
+      );
+
+      const conditions = [
+        eq(transactions.group_id, groupId),
+        eq(transactions.type, "transfer"),
+        gte(transactions.date, monthStart),
+        lte(transactions.date, monthEnd),
+        input?.accountId
+          ? or(
+              eq(transactions.from_account_id, input.accountId),
+              eq(transactions.to_account_id, input.accountId),
+            )
+          : undefined,
+      ].filter((condition): condition is SQL => Boolean(condition));
+
+      const whereClause = and(...conditions);
+
+      const fromAccount = alias(bank_accounts, "from_account");
+      const toAccount = alias(bank_accounts, "to_account");
+
+      const rows = await ctx.db
+        .select({
+          id: transactions.id,
+          date: transactions.date,
+          amount: transactions.amount,
+          description: transactions.description,
+          fromAccountId: transactions.from_account_id,
+          toAccountId: transactions.to_account_id,
+          fromAccountName: fromAccount.name,
+          toAccountName: toAccount.name,
+          isPaid: transactions.is_paid,
+          paidAt: transactions.paid_at,
+        })
+        .from(transactions)
+        .leftJoin(
+          fromAccount,
+          and(
+            eq(fromAccount.id, transactions.from_account_id),
+            eq(fromAccount.group_id, groupId),
+          ),
+        )
+        .leftJoin(
+          toAccount,
+          and(
+            eq(toAccount.id, transactions.to_account_id),
+            eq(toAccount.group_id, groupId),
+          ),
+        )
+        .where(whereClause)
+        .orderBy(desc(transactions.date));
+
+      return rows.map((row) => ({
+        id: row.id,
+        date: row.date,
+        amount: toNumber(row.amount),
+        description: row.description ?? "",
+        fromAccountId: row.fromAccountId,
+        toAccountId: row.toAccountId,
+        fromAccountName: row.fromAccountName ?? "",
+        toAccountName: row.toAccountName ?? "",
+        isPaid: row.isPaid ?? false,
+        paidAt: row.paidAt,
+      }));
+    }),
+
+  createTransfer: protectedProcedure
+    .input(createTransferSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { user, groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      const accounts = await ctx.db.query.bank_accounts.findMany({
+        where: and(
+          eq(bank_accounts.group_id, groupId),
+          inArray(bank_accounts.id, [input.fromAccountId, input.toAccountId]),
+        ),
+      });
+
+      if (accounts.length !== 2) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selecione contas válidas do seu grupo.",
+        });
+      }
+
+      const transferId = uuidv4();
+      const [transfer] = await ctx.db
+        .insert(transactions)
+        .values({
+          id: uuidv4(),
+          group_id: groupId,
+          user_id: user.id,
+          type: "transfer",
+          method: "transfer",
+          account_id: input.fromAccountId,
+          from_account_id: input.fromAccountId,
+          to_account_id: input.toAccountId,
+          transfer_id: transferId,
+          amount: input.amount.toFixed(2),
+          description: input.description ?? null,
+          date: input.date,
+          is_paid: true,
+          paid_at: input.date,
+        })
+        .returning();
+
+      if (!transfer) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Não foi possível criar a transferência.",
+        });
+      }
+
+      return transfer;
+    }),
+
+  updateTransfer: protectedProcedure
+    .input(updateTransferSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      const existing = await ctx.db.query.transactions.findFirst({
+        where: and(
+          eq(transactions.id, input.id),
+          eq(transactions.group_id, groupId),
+        ),
+      });
+
+      if (!existing || existing.type !== "transfer") {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Transferência não encontrada.",
+        });
+      }
+
+      const accounts = await ctx.db.query.bank_accounts.findMany({
+        where: and(
+          eq(bank_accounts.group_id, groupId),
+          inArray(bank_accounts.id, [input.fromAccountId, input.toAccountId]),
+        ),
+      });
+
+      if (accounts.length !== 2) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selecione contas válidas do seu grupo.",
+        });
+      }
+
+      const [updated] = await ctx.db
+        .update(transactions)
+        .set({
+          account_id: input.fromAccountId,
+          from_account_id: input.fromAccountId,
+          to_account_id: input.toAccountId,
+          amount: input.amount.toFixed(2),
+          description: input.description ?? null,
+          date: input.date,
+          paid_at: input.date,
+        })
+        .where(
+          and(
+            eq(transactions.id, input.id),
+            eq(transactions.group_id, groupId),
+          ),
+        )
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Não foi possível atualizar a transferência.",
+        });
+      }
+
+      return updated;
+    }),
+
+  deleteTransfer: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid("Transferência inválida."),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      const existing = await ctx.db.query.transactions.findFirst({
+        where: and(
+          eq(transactions.id, input.id),
+          eq(transactions.group_id, groupId),
+        ),
+      });
+
+      if (!existing || existing.type !== "transfer") {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Transferência não encontrada.",
+        });
+      }
+
+      await ctx.db
+        .delete(transactions)
+        .where(
+          and(
+            eq(transactions.id, input.id),
+            eq(transactions.group_id, groupId),
+          ),
+        );
+
+      return { success: true };
+    }),
+
   dashboardSummary: protectedProcedure
     .input(dashboardSummaryInputSchema)
     .query(async ({ ctx, input }) => {
@@ -269,7 +577,8 @@ export const transactionsRouter = createTRPCRouter({
         [previousExpenseAggregate],
         monthlyTrendResult,
         expenseDistributionRows,
-        [paymentStatusRow],
+        [paymentStatusIncomeRow],
+        [paymentStatusExpenseRow],
       ] = await Promise.all([
         ctx.db
           .select({
@@ -363,7 +672,16 @@ export const transactionsRouter = createTRPCRouter({
             overdue: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = false AND ${transactions.date} < ${now} THEN 1 ELSE 0 END)`,
           })
           .from(transactions)
-          .where(and(...monthConditions)),
+          .where(and(...monthConditions, eq(transactions.type, "income"))),
+        ctx.db
+          .select({
+            onTime: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = true AND (${transactions.paid_at} IS NULL OR ${transactions.paid_at} <= ${transactions.date}) THEN 1 ELSE 0 END)`,
+            late: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = true AND ${transactions.paid_at} IS NOT NULL AND ${transactions.paid_at} > ${transactions.date} THEN 1 ELSE 0 END)`,
+            pending: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = false THEN 1 ELSE 0 END)`,
+            overdue: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = false AND ${transactions.date} < ${now} THEN 1 ELSE 0 END)`,
+          })
+          .from(transactions)
+          .where(and(...monthConditions, eq(transactions.type, "expense"))),
       ]);
 
       const monthIncomes = toNumber(monthIncomeAggregate?.total);
@@ -444,11 +762,25 @@ export const transactionsRouter = createTRPCRouter({
             : 0,
       }));
 
+      const normalizePaymentStatus = (
+        row:
+          | {
+              onTime: number | null;
+              late: number | null;
+              pending: number | null;
+              overdue: number | null;
+            }
+          | undefined,
+      ) => ({
+        onTime: toNumber(row?.onTime),
+        late: toNumber(row?.late),
+        pending: toNumber(row?.pending),
+        overdue: toNumber(row?.overdue),
+      });
+
       const paymentStatus = {
-        onTime: toNumber(paymentStatusRow?.onTime),
-        late: toNumber(paymentStatusRow?.late),
-        pending: toNumber(paymentStatusRow?.pending),
-        overdue: toNumber(paymentStatusRow?.overdue),
+        incomes: normalizePaymentStatus(paymentStatusIncomeRow),
+        expenses: normalizePaymentStatus(paymentStatusExpenseRow),
       };
 
       return {

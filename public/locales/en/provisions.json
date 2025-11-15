@@ -1,0 +1,70 @@
+{
+  "header": {
+    "title": "Provisions",
+    "subtitle": "Track the money you set aside for future expenses.",
+    "copyButtonTitle": "Copy current month"
+  },
+  "metrics": {
+    "loadingValue": "Loading...",
+    "loadingDescription": "Updating provision metrics...",
+    "errorValue": "--",
+    "errorDescription": "Unable to load data right now.",
+    "plannedTotal": {
+      "title": "Planned total",
+      "change": "{{value}} planned for the selected month"
+    },
+    "realizedTotal": {
+      "title": "Realized total",
+      "change": "{{value}} already spent this month"
+    },
+    "remainingTotal": {
+      "title": "Remaining budget",
+      "change": "{{value}} still available for this month"
+    },
+    "coverage": {
+      "title": "Coverage",
+      "change": "Coverage of {{value}} over the planned total"
+    },
+    "overBudgetTotal": {
+      "title": "Over budget",
+      "change": "{{value}} above the planned amount"
+    },
+    "tabs": {
+      "incomes": "Incomes",
+      "expenses": "Expenses"
+    }
+  },
+  "charts": {
+    "monthly": {
+      "title": "Provision breakdown",
+      "description": "Compare planned versus realized amounts per category.",
+      "empty": "No categories found for this selection.",
+      "error": "We couldn't load the categories right now."
+    }
+  },
+  "categories": {
+    "plannedLabel": "Planned amount"
+  },
+  "rowActions": {
+    "edit": "Edit planned amount",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving..."
+  },
+  "copyDialog": {
+    "title": "Copy plan to another month",
+    "description": "Duplicate the planned values from {{monthLabel}} to another month.",
+    "targetMonthLabel": "Target month",
+    "targetYearLabel": "Target year",
+    "overwriteLabel": "Overwrite existing values",
+    "overwriteWarning": "The target month already has planned values. Enable overwrite to continue.",
+    "submit": "Copy plan",
+    "cancel": "Close"
+  },
+  "toasts": {
+    "plannedUpdateSuccess": "Provision updated successfully.",
+    "plannedUpdateError": "Unable to update provision.",
+    "copySuccess": "Plan copied successfully.",
+    "copyError": "Unable to copy the plan."
+  }
+}

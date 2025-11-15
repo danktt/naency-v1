@@ -25,3 +25,5 @@
    - Adicionar e2e/Playwright para validar fluxo da tela (loading states, erros, troca de período).
 
 
+
+
