@@ -2,10 +2,8 @@ import {
   IconCalendar,
   IconCircle,
   IconCreditCard,
-  IconEdit,
-  IconEye,
+  IconDotsVertical,
   IconRepeat,
-  IconTrash,
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -14,6 +12,13 @@ import type * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import { cn } from "@/lib/utils";
@@ -28,6 +33,8 @@ type ExpenseColumnsOptions = {
   onViewExpense?: (expense: ExpenseTableRow) => void;
   onEditExpense?: (expense: ExpenseTableRow) => void;
   onDeleteExpense?: (expense: ExpenseTableRow) => void;
+  onMarkAsPaid?: (expense: ExpenseTableRow) => void;
+  onMarkAsPending?: (expense: ExpenseTableRow) => void;
   getCategoryMeta?: (expense: ExpenseTableRow) => CategoryMeta | null;
   getAccountName?: (expense: ExpenseTableRow) => string | null;
 };
@@ -44,11 +51,19 @@ export function createExpenseColumns({
     onViewExpense,
     onEditExpense,
     onDeleteExpense,
+    onMarkAsPaid,
+    onMarkAsPending,
     getCategoryMeta,
     getAccountName,
   } = options;
 
-  const hasActions = Boolean(onViewExpense || onEditExpense || onDeleteExpense);
+  const hasActions = Boolean(
+    onViewExpense ||
+      onEditExpense ||
+      onDeleteExpense ||
+      onMarkAsPaid ||
+      onMarkAsPending,
+  );
 
   const columns: ColumnDef<ExpenseTableRow>[] = [
     {
@@ -294,39 +309,69 @@ export function createExpenseColumns({
       id: "actions",
       header: t("table.columns.actions"),
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          {onViewExpense && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => onViewExpense(row.original)}
-              title={t("table.actions.view")}
+              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+              size="icon"
             >
-              <IconEye className="size-4" />
+              <IconDotsVertical />
+              <span className="sr-only">Open menu</span>
             </Button>
-          )}
-          {onEditExpense && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEditExpense(row.original)}
-              title={t("table.actions.edit")}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              disabled={!onEditExpense}
+              onSelect={(event) => {
+                event.preventDefault();
+                onEditExpense?.(row.original);
+              }}
             >
-              <IconEdit className="size-4" />
-            </Button>
-          )}
-          {onDeleteExpense && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDeleteExpense(row.original)}
-              title={t("table.actions.delete")}
-              className="text-destructive hover:text-destructive"
+              {t("table.actions.editExpense", {
+                defaultValue: "Editar despesa",
+              })}
+            </DropdownMenuItem>
+            {!row.original.isPaid ? (
+              <DropdownMenuItem
+                disabled={!onMarkAsPaid}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  onMarkAsPaid?.(row.original);
+                }}
+              >
+                {t("table.actions.markAsPaid", {
+                  defaultValue: "Marcar como pago",
+                })}
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                disabled={!onMarkAsPending}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  onMarkAsPending?.(row.original);
+                }}
+              >
+                {t("table.actions.markAsPending", {
+                  defaultValue: "Marcar como pendente",
+                })}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={!onDeleteExpense}
+              onSelect={(event) => {
+                event.preventDefault();
+                onDeleteExpense?.(row.original);
+              }}
             >
-              <IconTrash className="size-4" />
-            </Button>
-          )}
-        </div>
+              {t("table.actions.deleteExpense", {
+                defaultValue: "Deletar",
+              })}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     });
   }

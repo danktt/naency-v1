@@ -181,6 +181,93 @@ const createTrendStart = (end: Date, months: number) => {
 // ==== ROUTER ====
 
 export const transactionsRouter = createTRPCRouter({
+  delete: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid("Transação inválida."),
+        type: transactionTypeSchema,
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      const existing = await ctx.db.query.transactions.findFirst({
+        where: and(
+          eq(transactions.id, input.id),
+          eq(transactions.group_id, groupId),
+          eq(transactions.type, input.type),
+        ),
+      });
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Transação não encontrada.",
+        });
+      }
+
+      await ctx.db
+        .delete(transactions)
+        .where(
+          and(
+            eq(transactions.id, input.id),
+            eq(transactions.group_id, groupId),
+            eq(transactions.type, input.type),
+          ),
+        );
+
+      return { success: true };
+    }),
+
+  updatePaymentStatus: protectedProcedure
+    .input(
+      z
+        .object({
+          id: z.string().uuid("Transação inválida."),
+          type: transactionTypeSchema,
+        })
+        .merge(paymentStatusSchema),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      const existing = await ctx.db.query.transactions.findFirst({
+        where: and(
+          eq(transactions.id, input.id),
+          eq(transactions.group_id, groupId),
+          eq(transactions.type, input.type),
+        ),
+      });
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Transação não encontrada.",
+        });
+      }
+
+      const nextPaidAt =
+        input.isPaid ?? existing.is_paid
+          ? input.paidAt ?? existing.paid_at ?? new Date()
+          : null;
+
+      await ctx.db
+        .update(transactions)
+        .set({
+          is_paid: input.isPaid ?? existing.is_paid ?? false,
+          paid_at: nextPaidAt,
+        })
+        .where(
+          and(
+            eq(transactions.id, input.id),
+            eq(transactions.group_id, groupId),
+            eq(transactions.type, input.type),
+          ),
+        );
+
+      return { success: true };
+    }),
+
   list: protectedProcedure
     .input(listTransactionsSchema)
     .query(async ({ ctx, input }) => {
