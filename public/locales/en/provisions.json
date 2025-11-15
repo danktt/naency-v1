@@ -1,7 +1,8 @@
 {
   "header": {
     "title": "Provisions",
-    "subtitle": "Track the money you set aside for future expenses."
+    "subtitle": "Track the money you set aside for future expenses.",
+    "copyButtonTitle": "Copy current month"
   },
   "metrics": {
     "loadingValue": "Loading...",
@@ -31,6 +32,14 @@
     "tabs": {
       "incomes": "Incomes",
       "expenses": "Expenses"
+    }
+  },
+  "charts": {
+    "monthly": {
+      "title": "Provision breakdown",
+      "description": "Compare planned versus realized amounts per category.",
+      "empty": "No categories found for this selection.",
+      "error": "We couldn't load the categories right now."
     }
   }
 }

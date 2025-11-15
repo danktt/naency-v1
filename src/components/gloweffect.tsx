@@ -4,6 +4,7 @@ import { animate } from "framer-motion";
 import { CalendarDays, CheckCircle2, Zap } from "lucide-react";
 import { memo, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "./ui/skeleton";
 
 interface GlowingEffectProps {
   blur?: number;
@@ -226,6 +227,7 @@ interface GridItemProps {
   description: string;
   valueClassName?: string;
   iconContainerClassName?: string;
+  isLoading?: boolean;
 }
 
 const GridItem = ({
@@ -235,6 +237,7 @@ const GridItem = ({
   description,
   valueClassName,
   iconContainerClassName,
+  isLoading = false,
 }: GridItemProps) => {
   return (
     <li className="list-none">
@@ -254,7 +257,7 @@ const GridItem = ({
         <div className="border-0.75 relative z-2 flex h-full flex-col justify-between gap-4 overflow-hidden rounded-xl p-6 ">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-black dark:text-white">
-              {title}
+              {isLoading ? <Skeleton className="h-5 w-24" /> : title}
             </h3>
             <div
               className={cn(
@@ -262,7 +265,7 @@ const GridItem = ({
                 iconContainerClassName,
               )}
             >
-              {icon}
+              {isLoading ? <Skeleton className="h-5 w-5" /> : icon}
             </div>
           </div>
 
@@ -273,10 +276,10 @@ const GridItem = ({
                 valueClassName,
               )}
             >
-              {value}
+              {isLoading ? <Skeleton className="h-8 w-24" /> : value}
             </p>
             <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed min-h-8">
-              {description}
+              {isLoading ? <Skeleton className="h-4 w-2/3" /> : description}
             </p>
           </div>
         </div>

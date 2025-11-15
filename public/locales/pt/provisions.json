@@ -1,7 +1,8 @@
 {
   "header": {
-    "title": "Provisões",
-    "subtitle": "Acompanhe o dinheiro reservado para despesas futuras."
+    "title": "Provisionamento",
+    "subtitle": "Acompanhe o dinheiro reservado para despesas futuras.",
+    "copyButtonTitle": "Copiar mês atual"
   },
   "metrics": {
     "loadingValue": "Carregando...",
@@ -31,6 +32,14 @@
     "tabs": {
       "incomes": "Receitas",
       "expenses": "Despesas"
+    }
+  },
+  "charts": {
+    "monthly": {
+      "title": "Distribuição das provisões",
+      "description": "Compare valores planejados e realizados por categoria.",
+      "empty": "Nenhuma categoria encontrada para este filtro.",
+      "error": "Não foi possível carregar as categorias agora."
     }
   }
 }
