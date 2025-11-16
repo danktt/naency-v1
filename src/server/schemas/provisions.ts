@@ -43,3 +43,11 @@ export const plannedVsActualChartInputSchema = z
     limit: z.number().int().min(1).max(12).optional(),
   })
   .optional();
+
+export const expenseDistributionInputSchema = z
+  .object({
+    period: optionalPeriodSchema.optional(),
+    type: z.enum(["expense", "income"]).optional(),
+    limit: z.number().int().min(1).max(15).optional(),
+  })
+  .optional();

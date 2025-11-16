@@ -102,7 +102,7 @@ export function PlannedCostVsActualCostChart({
             {emptyLabel}
           </div>
         ) : (
-          <ChartContainer config={chartConfig}>
+          <ChartContainer config={chartConfig} className="h-[320px]">
             <BarChart
               accessibilityLayer
               data={chartData}

@@ -1,49 +1,164 @@
 "use client";
 
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { Pie, PieChart } from "recharts";
 
 import { GlowCard } from "@/components/gloweffect";
-import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/helpers/formatCurrency";
+import { trpc } from "@/lib/trpc/client";
 
-const data = [
-  { id: "housing", label: "Moradia", value: 35 },
-  { id: "groceries", label: "Mercado", value: 20 },
-  { id: "transport", label: "Transporte", value: 15 },
-  { id: "health", label: "Saúde", value: 10 },
-  { id: "fun", label: "Lazer", value: 8 },
-  { id: "others", label: "Outros", value: 12 },
-];
+type DistributionChartExpensesProps = {
+  period: { month: number; year: number };
+  type: "expense" | "income";
+};
 
-const chartConfig = data.reduce<Record<string, { label: string }>>(
-  (acc, item, index) => {
-    acc[item.id] = {
-      label: item.label,
-      color: `var(--chart-${(index % 5) + 1})`,
-    };
-    return acc;
-  },
-  {},
-) satisfies ChartConfig;
+export function DistributionChartExpenses({
+  period,
+  type,
+}: DistributionChartExpensesProps) {
+  const { t } = useTranslation("provisions");
 
-export function DistributionChartExpenses() {
+  const { data, isLoading } = trpc.provisions.expenseDistribution.useQuery({
+    period,
+    type,
+    limit: 10,
+  });
+
+  const chartData = React.useMemo(() => {
+    if (!data?.length) {
+      return [];
+    }
+
+    return data.map((item) => ({
+      category: item.label,
+      visitors: item.value,
+      fill: item.color,
+      percentage: item.percentage,
+    }));
+  }, [data]);
+
+  const chartConfig = React.useMemo<ChartConfig>(() => {
+    if (!data?.length) {
+      return {};
+    }
+
+    return data.reduce<Record<string, { label: string; color: string }>>(
+      (acc, item) => {
+        acc[item.categoryId] = {
+          label: item.label,
+          color: item.color,
+        };
+        return acc;
+      },
+      {},
+    );
+  }, [data]);
+
+  const title = t("charts.distribution.title", {
+    defaultValue: "Distribuição de Despesas",
+  });
+  const description = t("charts.distribution.description", {
+    defaultValue: "Principais categorias realizadas no período",
+  });
+
+  const isLoadingState = isLoading && !data;
+  const hasData = chartData.length > 0;
+
   return (
     <GlowCard
-      title="Distribuição de Despesas"
-      description="Principais categorias do mês"
+      title={title}
+      description={description}
+      contentClassName="flex flex-col"
     >
-      <ChartContainer config={chartConfig} className="h-64">
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="value"
-            nameKey="label"
-            innerRadius={60}
-            outerRadius={90}
-            paddingAngle={2}
-          />
-        </PieChart>
-      </ChartContainer>
+      {isLoadingState ? (
+        <Skeleton className="aspect-square max-h-[250px] w-full" />
+      ) : hasData ? (
+        <>
+          <div className="flex-1 pb-0">
+            <ChartContainer
+              config={chartConfig}
+              className="mx-auto aspect-square max-h-[250px]"
+            >
+              <PieChart>
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      hideLabel
+                      formatter={(value, _name, item) => {
+                        const itemWithPercentage = item?.payload as {
+                          percentage?: number;
+                        };
+                        const percentage =
+                          typeof itemWithPercentage?.percentage === "number"
+                            ? itemWithPercentage.percentage
+                            : undefined;
+
+                        return (
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {formatCurrency(Number(value))}
+                            </span>
+                            {percentage !== undefined ? (
+                              <span className="text-muted-foreground text-xs">
+                                {t("charts.distribution.tooltip.percentage", {
+                                  defaultValue: "{{value}}% do total",
+                                  value: percentage.toFixed(1),
+                                })}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      }}
+                    />
+                  }
+                />
+                <Pie
+                  data={chartData}
+                  dataKey="visitors"
+                  nameKey="category"
+                  innerRadius={60}
+                  paddingAngle={2}
+                  cornerRadius={6}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+              </PieChart>
+            </ChartContainer>
+          </div>
+        </>
+      ) : (
+        <Empty className="aspect-square max-h-[250px] w-full">
+          <EmptyHeader>
+            <EmptyTitle>
+              {t("charts.distribution.empty.title", {
+                defaultValue: "Sem dados",
+              })}
+            </EmptyTitle>
+            <EmptyDescription>
+              {t("charts.distribution.empty.description", {
+                defaultValue:
+                  "Não há despesas realizadas neste período para exibir.",
+              })}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
     </GlowCard>
   );
 }

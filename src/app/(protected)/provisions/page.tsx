@@ -337,7 +337,10 @@ export default function ProvisionsPage() {
         </div>
       </section>
       <section className="grid gap-4 sm:grid-cols-2">
-        <DistributionChartExpenses />
+        <DistributionChartExpenses
+          period={selectedPeriod}
+          type={selectedType}
+        />
         <PlannedCostVsActualCostChart
           period={selectedPeriod}
           type={selectedType}

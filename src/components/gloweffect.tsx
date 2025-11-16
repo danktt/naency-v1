@@ -240,69 +240,52 @@ const GridItem = ({
   isLoading = false,
 }: GridItemProps) => {
   return (
-    <li className="list-none">
-      <div className="relative h-full rounded-xl border p">
-        {/* Bordas animadas em #61eaca */}
-        <GlowingEffect
-          blur={0}
-          borderWidth={2}
-          spread={70}
-          glow={true}
-          disabled={false}
-          proximity={64}
-          inactiveZone={0.05}
-        />
-
-        {/* Conteúdo do card */}
-        <div className="border-0.75 relative z-2 flex h-full flex-col justify-between gap-4 overflow-hidden rounded-xl p-6 ">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-black dark:text-white">
-              {isLoading ? (
-                <Skeleton asChild>
-                  <span className="inline-block h-5 w-24" />
-                </Skeleton>
-              ) : (
-                title
-              )}
-            </h3>
-            <div
-              className={cn(
-                "w-fit rounded-full bg-muted p-2 text-black dark:text-neutral-400",
-                iconContainerClassName,
-              )}
-            >
-              {isLoading ? <Skeleton className="h-5 w-5" /> : icon}
-            </div>
-          </div>
-
-          <div>
-            <p
-              className={cn(
-                "text-2xl font-semibold text-black dark:text-white",
-                valueClassName,
-              )}
-            >
-              {isLoading ? (
-                <Skeleton asChild>
-                  <span className="inline-block h-8 w-24" />
-                </Skeleton>
-              ) : (
-                value
-              )}
-            </p>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed min-h-8">
-              {isLoading ? (
-                <Skeleton asChild>
-                  <span className="inline-block h-4 w-2/3" />
-                </Skeleton>
-              ) : (
-                description
-              )}
-            </p>
-          </div>
+    <GlowCard className="w-full">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-black dark:text-white">
+          {isLoading ? (
+            <Skeleton asChild>
+              <span className="inline-block h-5 w-24" />
+            </Skeleton>
+          ) : (
+            title
+          )}
+        </h3>
+        <div
+          className={cn(
+            "w-fit rounded-full bg-muted p-2 text-black dark:text-neutral-400",
+            iconContainerClassName,
+          )}
+        >
+          {isLoading ? <Skeleton className="h-5 w-5" /> : icon}
         </div>
       </div>
-    </li>
+      <div>
+        <p
+          className={cn(
+            "text-2xl font-semibold text-black dark:text-white",
+            valueClassName,
+          )}
+        >
+          {isLoading ? (
+            <Skeleton asChild>
+              <span className="inline-block h-8 w-24" />
+            </Skeleton>
+          ) : (
+            value
+          )}
+        </p>
+        <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed min-h-8">
+          {isLoading ? (
+            <Skeleton asChild>
+              <span className="inline-block h-4 w-2/3" />
+            </Skeleton>
+          ) : (
+            description
+          )}
+        </p>
+      </div>
+    </GlowCard>
   );
 };
 interface GlowCardProps {
@@ -345,7 +328,7 @@ const GlowCard = ({
       >
         {showHeader ? (
           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between w-full gap-2">
               <div className="flex flex-col gap-1">
                 {title ? (
                   <h3 className="text-lg font-semibold text-black dark:text-white">
@@ -358,7 +341,7 @@ const GlowCard = ({
                   </p>
                 ) : null}
               </div>
-              {showAction && <div className="shrink-0">{showAction}</div>}
+              {showAction && <div className="shrink-0">{hasAction}</div>}
             </div>
             {trailing ? <div className="shrink-0">{trailing}</div> : null}
           </div>

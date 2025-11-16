@@ -4,58 +4,21 @@ import {
   IconAlarm,
   IconArrowDownRight,
   IconArrowUpRight,
-  IconClock,
   IconPigMoney,
   IconWallet,
 } from "@tabler/icons-react";
-import {
-  AlarmClock,
-  ArrowDownRight,
-  ArrowUpRight,
-  CheckCircle2,
-  CircleDollarSign,
-  Clock,
-  PiggyBank,
-  Wallet,
-} from "lucide-react";
-import Link from "next/link";
+import { CheckCircle2, CircleDollarSign, Clock } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { GlowCard, GridItem } from "@/components/gloweffect";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
-
-type SnapshotKey =
-  | "incomes"
-  | "expenses"
-  | "monthBalance"
-  | "accumulatedBalance"
-  | "pending";
+import { DistributionCard } from "./_components/DistributionCard";
+import { MonthlyTrendCard } from "./_components/MonthlyTrendCard";
+import { type PaymentSection, PaymentsCard } from "./_components/PaymentsCard";
+import {
+  type SnapshotCard,
+  SnapshotSection,
+} from "./_components/SnapshotSection";
 
 type PaymentStatusKey = "onTime" | "late" | "pending";
 
@@ -121,7 +84,7 @@ export default function DashboardPage() {
 
   const isLoadingState = isLoading && !data;
 
-  const snapshotCards = React.useMemo(() => {
+  const snapshotCards = React.useMemo<SnapshotCard[]>(() => {
     const snapshot = data?.snapshot;
 
     const pendingCount = snapshot?.pendingPaymentsCount ?? 0;
@@ -131,15 +94,7 @@ export default function DashboardPage() {
       ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
       : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
 
-    const cards: Array<{
-      key: SnapshotKey;
-      title: string;
-      value: string;
-      subtitle: string;
-      icon: React.ElementType;
-      valueClassName?: string;
-      iconContainerClassName?: string;
-    }> = [
+    const cards: SnapshotCard[] = [
       {
         key: "incomes",
         title: translate("snapshot.cards.incomes.title"),
@@ -242,6 +197,10 @@ export default function DashboardPage() {
     };
   }, [activeMonthlyIndex, monthlyTrendData]);
 
+  const handleMonthlyBarHover = React.useCallback((index: number | null) => {
+    setActiveMonthlyIndex(index);
+  }, []);
+
   const distributionData = React.useMemo(() => {
     if (!data?.expenseDistribution?.length) {
       return [];
@@ -259,7 +218,7 @@ export default function DashboardPage() {
     });
   }, [data?.expenseDistribution, translate]);
 
-  const paymentSections = React.useMemo(() => {
+  const paymentSections = React.useMemo<PaymentSection[]>(() => {
     const statusDefinitions: Array<{
       key: PaymentStatusKey;
       icon: React.ReactNode;
@@ -359,7 +318,7 @@ export default function DashboardPage() {
   }, [distributionData]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <section className="flex flex-col gap-2">
         <h2 className="text-2xl font-semibold tracking-tight">
           {translate("heading.title")}
@@ -369,403 +328,45 @@ export default function DashboardPage() {
         </p>
       </section>
 
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-base font-semibold">
-              {translate("snapshot.title")}
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              {translate("snapshot.description")}
-            </p>
-          </div>
-          {isError ? (
-            <button
-              type="button"
-              onClick={() => void refetch()}
-              className="text-primary inline-flex items-center gap-1 text-sm font-medium"
-            >
-              {translate("actions.retry")}
-              <ArrowUpRight className="size-4" />
-            </button>
-          ) : null}
-        </div>
+      <SnapshotSection
+        title={translate("snapshot.title")}
+        description={translate("snapshot.description")}
+        retryLabel={translate("actions.retry")}
+        isLoading={isLoadingState}
+        isError={isError}
+        cards={snapshotCards}
+        onRetry={() => void refetch()}
+      />
 
-        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {snapshotCards.map((card) => {
-            const Icon = card.icon as React.ElementType;
-            return (
-              <GridItem
-                key={card.key}
-                icon={<Icon className="size-5 " stroke={1.5} />}
-                title={card.title}
-                value={card.value}
-                valueClassName={card.valueClassName}
-                iconContainerClassName={card.iconContainerClassName}
-                description={card.subtitle}
-                isLoading={isLoadingState}
-              />
-            );
-          })}
-        </ul>
-      </section>
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <MonthlyTrendCard
+          data={monthlyTrendData}
+          highlightedEntry={highlightedMonthlyEntry}
+          patternId={monthlyPatternId}
+          chartConfig={monthlyChartConfig}
+          axisFormatter={axisFormatter}
+          translate={translate}
+          onBarHover={handleMonthlyBarHover}
+          isLoading={isLoadingState}
+        />
 
-      <section className="grid gap-6 lg:grid-cols-7">
-        <GlowCard
-          className="lg:col-span-4"
-          title={translate("charts.monthly.title")}
-          description={translate("charts.monthly.description")}
-          contentClassName="gap-6"
-        >
-          {isLoadingState ? (
-            <Skeleton className="h-[320px] w-full" />
-          ) : monthlyTrendData.length ? (
-            <>
-              {highlightedMonthlyEntry ? (
-                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {highlightedMonthlyEntry.data.label}
-                  </span>
-                  <span>
-                    {translate("charts.monthly.legend.incomes")}:{" "}
-                    {formatCurrency(highlightedMonthlyEntry.data.incomes)}
-                  </span>
-                  <span>
-                    {translate("charts.monthly.legend.expenses")}:{" "}
-                    {formatCurrency(highlightedMonthlyEntry.data.expenses)}
-                  </span>
-                </div>
-              ) : null}
-              <ChartContainer config={monthlyChartConfig} className="h-[320px]">
-                <BarChart
-                  data={monthlyTrendData}
-                  barCategoryGap={24}
-                  onMouseLeave={() => setActiveMonthlyIndex(null)}
-                >
-                  <rect
-                    x="0"
-                    y="0"
-                    width="100%"
-                    height="100%"
-                    fill={`url(#${monthlyPatternId})`}
-                  />
-                  <defs>
-                    <MonthlyTrendBackgroundPattern id={monthlyPatternId} />
-                  </defs>
-                  <CartesianGrid vertical={false} strokeDasharray="4 4" />
-                  <XAxis
-                    dataKey="label"
-                    axisLine={false}
-                    tickLine={false}
-                    tickMargin={12}
-                    tickFormatter={(value) =>
-                      typeof value === "string" ? value.split(" ")[0] : value
-                    }
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(value) =>
-                      axisFormatter.format(Number(value))
-                    }
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={
-                      <ChartTooltipContent
-                        indicator="dashed"
-                        labelFormatter={(_label, payload) =>
-                          payload?.[0]?.payload?.label
-                        }
-                        formatter={(value) => (
-                          <span className="font-medium">
-                            {formatCurrency(Number(value))}
-                          </span>
-                        )}
-                      />
-                    }
-                  />
-                  <Bar
-                    dataKey="incomes"
-                    fill="var(--color-incomes)"
-                    radius={6}
-                    maxBarSize={48}
-                  >
-                    {monthlyTrendData.map((_, index) => (
-                      <Cell
-                        key={`monthly-incomes-${index}`}
-                        fillOpacity={
-                          highlightedMonthlyEntry &&
-                          highlightedMonthlyEntry.index !== index
-                            ? 0.35
-                            : 1
-                        }
-                        stroke={
-                          highlightedMonthlyEntry?.index === index
-                            ? "var(--color-incomes)"
-                            : undefined
-                        }
-                        strokeWidth={
-                          highlightedMonthlyEntry?.index === index ? 1.5 : 0
-                        }
-                        className="cursor-pointer transition-all duration-200 ease-out"
-                        onMouseEnter={() => setActiveMonthlyIndex(index)}
-                      />
-                    ))}
-                  </Bar>
-                  <Bar
-                    dataKey="expenses"
-                    fill="var(--color-expenses)"
-                    radius={6}
-                    maxBarSize={48}
-                  >
-                    {monthlyTrendData.map((_, index) => (
-                      <Cell
-                        key={`monthly-expenses-${index}`}
-                        fillOpacity={
-                          highlightedMonthlyEntry &&
-                          highlightedMonthlyEntry.index !== index
-                            ? 0.35
-                            : 1
-                        }
-                        stroke={
-                          highlightedMonthlyEntry?.index === index
-                            ? "var(--color-expenses)"
-                            : undefined
-                        }
-                        strokeWidth={
-                          highlightedMonthlyEntry?.index === index ? 1.5 : 0
-                        }
-                        className="cursor-pointer transition-all duration-200 ease-out"
-                        onMouseEnter={() => setActiveMonthlyIndex(index)}
-                      />
-                    ))}
-                  </Bar>
-                  <ChartLegend content={<ChartLegendContent />} />
-                </BarChart>
-              </ChartContainer>
-            </>
-          ) : (
-            <Empty className="h-[320px]">
-              <EmptyHeader>
-                <EmptyTitle>
-                  {translate("charts.monthly.empty.title")}
-                </EmptyTitle>
-                <EmptyDescription>
-                  {translate("charts.monthly.empty.description")}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </GlowCard>
-
-        <GlowCard
-          className="lg:col-span-3"
-          title={translate("payments.title")}
-          description={translate("payments.description")}
-          contentClassName="gap-6"
-        >
-          {isLoadingState ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <Skeleton key={`status-${index}`} className="h-[72px] w-full" />
-              ))}
-            </div>
-          ) : hasPaymentStatuses ? (
-            <Tabs defaultValue="incomes">
-              <TabsList>
-                {paymentSections.map((section) => (
-                  <TabsTrigger key={section.key} value={section.key}>
-                    {section.title}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {paymentSections.map((section) => (
-                <TabsContent key={section.key} value={section.key}>
-                  <div className="space-y-3 rounded-lg border border-border/40 bg-muted/30 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold">{section.title}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {section.description}
-                        </p>
-                      </div>
-                      <Link
-                        href={section.href}
-                        className="text-primary inline-flex items-center gap-1 text-xs font-medium"
-                      >
-                        {section.cta}
-                        <ArrowUpRight className="size-3" />
-                      </Link>
-                    </div>
-                    <div className="space-y-3">
-                      {section.statuses.map((status) => (
-                        <div
-                          key={`${section.key}-${status.key}`}
-                          className="border-border/50 bg-background/60 flex items-start gap-3 rounded-lg border p-4"
-                        >
-                          <div
-                            className={`${status.accentClassName} mt-1 inline-flex size-8 items-center justify-center rounded-full`}
-                          >
-                            {status.icon}
-                          </div>
-                          <div className="flex flex-1 flex-col gap-1">
-                            <p className="text-sm font-medium">
-                              {status.title}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              {status.description}
-                            </p>
-                          </div>
-                          <span className="text-foreground text-xl font-semibold">
-                            {numberFormatter.format(status.value)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          ) : (
-            <Empty className="h-[240px]">
-              <EmptyHeader>
-                <EmptyTitle>{translate("payments.empty.title")}</EmptyTitle>
-                <EmptyDescription>
-                  {translate("payments.empty.description")}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </GlowCard>
+        <PaymentsCard
+          sections={paymentSections}
+          hasPaymentStatuses={hasPaymentStatuses}
+          isLoading={isLoadingState}
+          translate={translate}
+          formatNumber={(value) => numberFormatter.format(value)}
+        />
       </section>
 
       <section>
-        <GlowCard
-          title={translate("charts.distribution.title")}
-          description={translate("charts.distribution.description")}
-          contentClassName="gap-6"
-        >
-          {isLoadingState ? (
-            <Skeleton className="h-[320px] w-full" />
-          ) : distributionData.length ? (
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-              <ChartContainer
-                className="h-[320px] w-full max-w-xl"
-                config={distributionChartConfig}
-              >
-                <PieChart>
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent
-                        formatter={(
-                          value,
-                          _name,
-                          _item,
-                          _index,
-                          tooltipPayload,
-                        ) => {
-                          const payloadWithPercentage = tooltipPayload as {
-                            percentage?: number;
-                          };
-                          const percentage =
-                            typeof payloadWithPercentage?.percentage ===
-                            "number"
-                              ? payloadWithPercentage.percentage
-                              : undefined;
-
-                          return (
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {formatCurrency(Number(value))}
-                              </span>
-                              {percentage !== undefined ? (
-                                <span className="text-muted-foreground text-xs">
-                                  {translate(
-                                    "charts.distribution.tooltip.percentage",
-                                    {
-                                      value: percentage.toFixed(1),
-                                    },
-                                  )}
-                                </span>
-                              ) : null}
-                            </div>
-                          );
-                        }}
-                      />
-                    }
-                  />
-                  <Pie
-                    data={distributionData}
-                    dataKey="value"
-                    nameKey="label"
-                    innerRadius={70}
-                    outerRadius={120}
-                    strokeWidth={4}
-                  >
-                    {distributionData.map((entry) => (
-                      <Cell key={entry.id} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <ChartLegend content={<ChartLegendContent />} />
-                </PieChart>
-              </ChartContainer>
-              <div className="space-y-4 md:w-64">
-                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  {translate("charts.distribution.breakdownTitle")}
-                </h4>
-                <ul className="space-y-3">
-                  {distributionData.map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex items-center justify-between gap-3 text-sm"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="size-2.5 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span className="text-muted-foreground">
-                          {item.label}
-                        </span>
-                      </div>
-                      <span className="font-medium">
-                        {item.percentage.toFixed(1)}%
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          ) : (
-            <Empty className="h-[320px] w-full">
-              <EmptyHeader>
-                <EmptyTitle>
-                  {translate("charts.distribution.empty.title")}
-                </EmptyTitle>
-                <EmptyDescription>
-                  {translate("charts.distribution.empty.description")}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </GlowCard>
+        <DistributionCard
+          data={distributionData}
+          chartConfig={distributionChartConfig}
+          isLoading={isLoadingState}
+          translate={translate}
+        />
       </section>
     </div>
-  );
-}
-
-function MonthlyTrendBackgroundPattern({ id }: { id: string }) {
-  return (
-    <pattern
-      id={id}
-      x="0"
-      y="0"
-      width="12"
-      height="12"
-      patternUnits="userSpaceOnUse"
-    >
-      <circle cx="2" cy="2" r="1" fill="hsl(var(--muted) / 0.25)" />
-    </pattern>
   );
 }

@@ -162,7 +162,7 @@ export default function IncomesPage() {
           );
         })}
       </ul>
-      <section>
+      <section className="grid grid-cols-1 ">
         <IncomesTable />
       </section>
     </div>

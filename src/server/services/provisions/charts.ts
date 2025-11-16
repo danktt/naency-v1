@@ -121,3 +121,77 @@ export async function getPlannedVsActualChart({
     color: row.color ?? null,
   }));
 }
+
+export type ExpenseDistributionEntry = {
+  categoryId: string;
+  label: string;
+  value: number;
+  color: string;
+  percentage: number;
+};
+
+type ExpenseDistributionParams = {
+  db: DbClient;
+  groupId: string;
+  period?: PeriodInput;
+  type?: "expense" | "income";
+  limit?: number;
+};
+
+export async function getExpenseDistribution({
+  db,
+  groupId,
+  period,
+  type = "expense",
+  limit = 10,
+}: ExpenseDistributionParams): Promise<ExpenseDistributionEntry[]> {
+  const { rows } = await getProvisionsGrid({
+    db,
+    groupId,
+    period,
+    includeInactive: false,
+    type,
+  });
+
+  const metadata = new Map<string, { type: "expense" | "income"; parentId: string | null }>();
+  rows.forEach((row) => {
+    metadata.set(row.categoryId, { type: row.type, parentId: row.parentId });
+  });
+
+  const treeRows = buildTree(
+    rows.map((row) => ({
+      categoryId: row.categoryId,
+      name: row.name,
+      planned: row.planned,
+      realized: row.realized,
+      color: row.color,
+    })),
+    metadata,
+  );
+
+  treeRows.forEach((root) => {
+    aggregateTree(root);
+  });
+
+  const parents = treeRows.filter((row) => row.parentId === null && row.type === type);
+
+  // Filter out categories with zero realized value and sort by realized value
+  const withRealized = parents
+    .filter((row) => row.realized > 0)
+    .sort((a, b) => b.realized - a.realized)
+    .slice(0, limit);
+
+  const totalValue = withRealized.reduce((sum, row) => sum + row.realized, 0);
+
+  if (totalValue === 0) {
+    return [];
+  }
+
+  return withRealized.map((row, index) => ({
+    categoryId: row.categoryId,
+    label: row.name,
+    value: Number(row.realized.toFixed(2)),
+    color: row.color ?? `var(--chart-${(index % 5) + 1})`,
+    percentage: Number(((row.realized / totalValue) * 100).toFixed(1)),
+  }));
+}

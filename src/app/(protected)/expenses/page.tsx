@@ -162,7 +162,7 @@ export default function ExpensesPage() {
           );
         })}
       </ul>
-      <section>
+      <section className="grid grid-cols-1 ">
         <ExpensesTable />
       </section>
     </div>
