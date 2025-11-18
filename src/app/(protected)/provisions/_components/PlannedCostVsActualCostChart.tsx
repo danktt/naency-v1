@@ -50,13 +50,13 @@ export function PlannedCostVsActualCostChart({
           label: t("charts.plannedVsActual.planned", {
             defaultValue: "Planejado",
           }),
-          color: "var(--chart-1)",
+          color: "var(--chart-2)",
         },
         realized: {
           label: t("charts.plannedVsActual.realized", {
             defaultValue: "Realizado",
           }),
-          color: "var(--chart-2)",
+          color: "var(--chart-1)",
         },
       }) satisfies ChartConfig,
     [t],

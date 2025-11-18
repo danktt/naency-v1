@@ -1,4 +1,4 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
@@ -121,5 +121,154 @@ export const categoriesRouter = createTRPCRouter({
       }
 
       return { inserted, skipped: false };
+    }),
+  create: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1),
+        type: z.enum(["expense", "income"]),
+        color: z.string().min(1).default("#cccccc"),
+        icon: z.string().default(""),
+        parent_id: z.string().uuid().nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      // Validate parent exists and belongs to same group if provided
+      if (input.parent_id) {
+        const parent = await ctx.db.query.categories.findFirst({
+          where: and(
+            eq(categories.id, input.parent_id),
+            eq(categories.group_id, groupId),
+          ),
+        });
+
+        if (!parent) {
+          throw new Error("Parent category not found");
+        }
+      }
+
+      const categoryId = uuidv4();
+
+      const [newCategory] = await ctx.db
+        .insert(categories)
+        .values({
+          id: categoryId,
+          group_id: groupId,
+          parent_id: input.parent_id ?? null,
+          name: input.name,
+          type: input.type,
+          color: input.color,
+          icon: input.icon,
+          is_active: true,
+        })
+        .returning();
+
+      return newCategory;
+    }),
+  update: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        name: z.string().min(1).optional(),
+        type: z.enum(["expense", "income"]).optional(),
+        color: z.string().min(1).optional(),
+        icon: z.string().optional(),
+        parent_id: z.string().uuid().nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      // Verify category exists and belongs to group
+      const existing = await ctx.db.query.categories.findFirst({
+        where: and(eq(categories.id, input.id), eq(categories.group_id, groupId)),
+      });
+
+      if (!existing) {
+        throw new Error("Category not found");
+      }
+
+      // Validate parent exists and belongs to same group if provided
+      if (input.parent_id !== undefined && input.parent_id !== null) {
+        if (input.parent_id === input.id) {
+          throw new Error("Category cannot be its own parent");
+        }
+
+        const parent = await ctx.db.query.categories.findFirst({
+          where: and(
+            eq(categories.id, input.parent_id),
+            eq(categories.group_id, groupId),
+          ),
+        });
+
+        if (!parent) {
+          throw new Error("Parent category not found");
+        }
+
+        // Check for circular reference: ensure parent is not a descendant
+        let currentParentId = parent.parent_id;
+        while (currentParentId) {
+          if (currentParentId === input.id) {
+            throw new Error("Cannot create circular reference");
+          }
+          const currentParent = await ctx.db.query.categories.findFirst({
+            where: eq(categories.id, currentParentId),
+          });
+          currentParentId = currentParent?.parent_id ?? null;
+        }
+      }
+
+      const updateData: {
+        name?: string;
+        type?: "expense" | "income";
+        color?: string;
+        icon?: string;
+        parent_id?: string | null;
+        updated_at?: Date;
+      } = {
+        updated_at: new Date(),
+      };
+
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.type !== undefined) updateData.type = input.type;
+      if (input.color !== undefined) updateData.color = input.color;
+      if (input.icon !== undefined) updateData.icon = input.icon;
+      if (input.parent_id !== undefined) updateData.parent_id = input.parent_id;
+
+      const [updated] = await ctx.db
+        .update(categories)
+        .set(updateData)
+        .where(and(eq(categories.id, input.id), eq(categories.group_id, groupId)))
+        .returning();
+
+      return updated;
+    }),
+  delete: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
+
+      // Verify category exists and belongs to group
+      const existing = await ctx.db.query.categories.findFirst({
+        where: and(eq(categories.id, input.id), eq(categories.group_id, groupId)),
+      });
+
+      if (!existing) {
+        throw new Error("Category not found");
+      }
+
+      // Soft delete: toggle is_active
+      const [updated] = await ctx.db
+        .update(categories)
+        .set({
+          is_active: sql`NOT ${categories.is_active}`,
+          updated_at: new Date(),
+        })
+        .where(and(eq(categories.id, input.id), eq(categories.group_id, groupId)))
+        .returning();
+
+      return updated;
     }),
 });

@@ -291,11 +291,11 @@ export default function DashboardPage() {
     () => ({
       incomes: {
         label: translate("charts.monthly.legend.incomes"),
-        color: "hsl(142, 72%, 45%)",
+        color: "var(--chart-2)",
       },
       expenses: {
         label: translate("charts.monthly.legend.expenses"),
-        color: "hsl(0, 72%, 55%)",
+        color: "var(--chart-1)",
       },
     }),
     [translate],

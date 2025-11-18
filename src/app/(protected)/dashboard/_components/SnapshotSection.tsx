@@ -1,7 +1,7 @@
 "use client";
 
-import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
+import type * as React from "react";
 
 import { GridItem } from "@/components/gloweffect";
 
@@ -73,4 +73,3 @@ export function SnapshotSection({
     </section>
   );
 }
-
