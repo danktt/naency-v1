@@ -1,16 +1,10 @@
 import "dotenv/config";
-import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@/server/db/client";
-import {
-  categories,
-  financial_group_members,
-  financial_groups,
-  users,
-} from "@/server/db/schema";
+import { category_presets } from "@/server/db/schema";
 
 // Presets organizados
-const defaultPreset = [
+const defaultPresets = [
   {
     name: "Alimentação",
     icon: "utensils",
@@ -92,70 +86,36 @@ const defaultPreset = [
   },
 ];
 
-async function insertCategories(groupId: string) {
-  for (const parent of defaultPreset) {
+async function main() {
+  for (const parent of defaultPresets) {
     const parentId = uuidv4();
-    await db.insert(categories).values({
+
+    await db.insert(category_presets).values({
       id: parentId,
-      group_id: groupId,
       parent_id: null,
       name: parent.name,
-      type: parent.type as "expense" | "income",
-      color: parent.color,
       icon: parent.icon,
+      color: parent.color,
+      type: parent.type as "expense" | "income",
     });
 
     if (parent.children?.length) {
       const children = parent.children.map((child) => ({
         id: uuidv4(),
-        group_id: groupId,
         parent_id: parentId,
         name: child.name,
-        type: parent.type as "expense" | "income",
-        color: parent.color,
         icon: child.icon,
+        color: parent.color,
+        type: parent.type,
       }));
 
-      await db.insert(categories).values(children);
+      await db
+        .insert(category_presets)
+        .values(children as (typeof category_presets.$inferInsert)[]);
     }
   }
-}
 
-async function main() {
-  const userEmail = "teste@naency.app";
-  const exists = await db.query.users.findFirst({
-    where: (u) => eq(u.email, userEmail),
-  });
-
-  const userId = exists?.id ?? uuidv4();
-
-  if (!exists) {
-    await db.insert(users).values({
-      id: userId,
-      clerk_id: "fake",
-      name: "Usuário Teste",
-      email: userEmail,
-    });
-  }
-
-  const groupId = uuidv4();
-  await db.insert(financial_groups).values({
-    id: groupId,
-    name: "Financeiro Pessoal",
-    owner_id: userId,
-  });
-
-  await db.insert(financial_group_members).values({
-    id: uuidv4(),
-    group_id: groupId,
-    user_id: userId,
-    role: "owner",
-  });
-
-  await insertCategories(groupId);
-
-  console.log("✅ Seed completo!");
-  console.log({ userId, groupId });
+  console.log("✅ Presets de categorias inseridos com sucesso!");
   process.exit(0);
 }
 

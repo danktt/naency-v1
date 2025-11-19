@@ -1,5 +1,6 @@
 import { accountsRouter } from "./routers/accounts";
 import { categoriesRouter } from "./routers/categories";
+import { categoryPresetsRouter } from "./routers/categoryPresets";
 import { financialGroupsRouter } from "./routers/financialGroups";
 import { provisionsRouter } from "./routers/provisions";
 
@@ -13,6 +14,7 @@ export const appRouter = createTRPCRouter({
   financialGroups: financialGroupsRouter,
   transactions: transactionsRouter,
   provisions: provisionsRouter,
+  categoryPresets: categoryPresetsRouter,
 });
 
 export type AppRouter = typeof appRouter;
