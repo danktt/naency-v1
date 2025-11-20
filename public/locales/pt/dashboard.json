@@ -1,7 +1,12 @@
 {
   "heading": {
     "title": "Visão geral financeira",
-    "description": "Acompanhe como suas contas estão evoluindo neste mês."
+    "description": "Acompanhe como suas contas estão evoluindo neste mês.",
+    "greeting": {
+      "morning": "Bom dia, {{name}}!",
+      "afternoon": "Boa tarde, {{name}}!",
+      "evening": "Boa noite, {{name}}!"
+    }
   },
   "actions": {
     "retry": "Tentar novamente"

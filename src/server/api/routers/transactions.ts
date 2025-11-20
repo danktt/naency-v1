@@ -5,6 +5,7 @@ import {
   eq,
   gte,
   inArray,
+  isNull,
   lt,
   lte,
   or,
@@ -247,8 +248,8 @@ export const transactionsRouter = createTRPCRouter({
       }
 
       const nextPaidAt =
-        input.isPaid ?? existing.is_paid
-          ? input.paidAt ?? existing.paid_at ?? new Date()
+        (input.isPaid ?? existing.is_paid)
+          ? (input.paidAt ?? existing.paid_at ?? new Date())
           : null;
 
       await ctx.db
@@ -666,6 +667,7 @@ export const transactionsRouter = createTRPCRouter({
         expenseDistributionRows,
         [paymentStatusIncomeRow],
         [paymentStatusExpenseRow],
+        [initialBalanceAggregate],
       ] = await Promise.all([
         ctx.db
           .select({
@@ -678,7 +680,13 @@ export const transactionsRouter = createTRPCRouter({
             total: sum(transactions.amount),
           })
           .from(transactions)
-          .where(and(...monthConditions, eq(transactions.type, "expense"))),
+          .where(
+            and(
+              ...monthConditions,
+              eq(transactions.type, "expense"),
+              isNull(transactions.credit_bill_id),
+            ),
+          ),
         ctx.db
           .select({
             count: sql<number>`count(*)`,
@@ -707,6 +715,7 @@ export const transactionsRouter = createTRPCRouter({
               eq(transactions.group_id, groupId),
               eq(transactions.type, "expense"),
               lt(transactions.date, monthStart),
+              isNull(transactions.credit_bill_id),
             ),
           ),
         ctx.db.execute(
@@ -718,7 +727,7 @@ export const transactionsRouter = createTRPCRouter({
             SELECT
               TO_CHAR(DATE_TRUNC('month', t.date), 'YYYY-MM') AS month,
               SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END) AS incomes,
-              SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END) AS expenses
+              SUM(CASE WHEN t.type = 'expense' AND t.credit_bill_id IS NULL THEN t.amount ELSE 0 END) AS expenses
             FROM transactions t
             WHERE
               t.group_id = ${groupId}
@@ -744,7 +753,13 @@ export const transactionsRouter = createTRPCRouter({
               eq(categories.group_id, groupId),
             ),
           )
-          .where(and(...monthConditions, eq(transactions.type, "expense")))
+          .where(
+            and(
+              ...monthConditions,
+              eq(transactions.type, "expense"),
+              isNull(transactions.credit_bill_id),
+            ),
+          )
           .groupBy(
             transactions.category_id,
             transactions.category_name_snapshot,
@@ -769,6 +784,12 @@ export const transactionsRouter = createTRPCRouter({
           })
           .from(transactions)
           .where(and(...monthConditions, eq(transactions.type, "expense"))),
+        ctx.db
+          .select({
+            total: sum(bank_accounts.initial_balance),
+          })
+          .from(bank_accounts)
+          .where(eq(bank_accounts.group_id, groupId)),
       ]);
 
       const monthIncomes = toNumber(monthIncomeAggregate?.total);
@@ -777,8 +798,9 @@ export const transactionsRouter = createTRPCRouter({
 
       const previousIncomes = toNumber(previousIncomeAggregate?.total);
       const previousExpenses = toNumber(previousExpenseAggregate?.total);
+      const initialBalance = toNumber(initialBalanceAggregate?.total);
       const accumulatedBalance =
-        previousIncomes - previousExpenses + monthBalance;
+        initialBalance + previousIncomes - previousExpenses + monthBalance;
 
       const pendingPaymentsCount = toNumber(pendingPaymentsRow?.count);
 

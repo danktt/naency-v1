@@ -242,7 +242,7 @@ const GridItem = ({
   return (
     <GlowCard className="w-full">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-black dark:text-white">
+        <h3 className="text-sm  text-black dark:text-muted-foreground">
           {isLoading ? (
             <Skeleton asChild>
               <span className="inline-block h-5 w-24" />
@@ -322,7 +322,7 @@ const GlowCard = ({
       />
       <div
         className={cn(
-          "border-0.75 relative z-2 flex flex-col gap-4 overflow-hidden rounded-xl p-6",
+          "border-0.75 relative z-2 flex flex-col gap-4 overflow-hidden rounded-xl px-6 py-4",
           contentClassName,
         )}
       >

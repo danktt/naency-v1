@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import {
   IconAlarm,
   IconArrowDownRight,
@@ -28,6 +29,7 @@ const getMonthLabel = (date: Date, formatter: Intl.DateTimeFormat) => {
 };
 
 export default function DashboardPage() {
+  const { user } = useUser();
   const { t, i18n } = useTranslation("dashboard");
   const [isMounted, setIsMounted] = React.useState(false);
 
@@ -81,6 +83,13 @@ export default function DashboardPage() {
       }),
     [i18n.language],
   );
+
+  const greetingKey = React.useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "heading.greeting.morning";
+    if (hour >= 12 && hour < 18) return "heading.greeting.afternoon";
+    return "heading.greeting.evening";
+  }, []);
 
   const isLoadingState = isLoading && !data;
 
@@ -144,17 +153,6 @@ export default function DashboardPage() {
             ? "text-rose-500"
             : undefined,
         iconContainerClassName: "bg-primary/10 text-primary",
-      },
-      {
-        key: "pending",
-        title: translate("snapshot.cards.pending.title"),
-        value: numberFormatter.format(pendingCount),
-        subtitle: translate("snapshot.cards.pending.subtitle", {
-          count: pendingCount,
-        }),
-        icon: IconAlarm,
-        iconContainerClassName:
-          "bg-amber-500/10 text-amber-600 dark:text-amber-400",
       },
     ];
 
@@ -321,7 +319,7 @@ export default function DashboardPage() {
     <div className="space-y-4">
       <section className="flex flex-col gap-2">
         <h2 className="text-2xl font-semibold tracking-tight">
-          {translate("heading.title")}
+          {translate(greetingKey, { name: user?.fullName ?? "" })}
         </h2>
         <p className="text-muted-foreground text-sm">
           {translate("heading.description")}

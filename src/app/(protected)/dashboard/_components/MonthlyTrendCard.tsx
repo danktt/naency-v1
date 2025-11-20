@@ -3,7 +3,6 @@
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 
 import { GlowCard } from "@/components/gloweffect";
-import { Button } from "@/components/ui/button";
 import {
   ChartContainer,
   ChartLegend,
