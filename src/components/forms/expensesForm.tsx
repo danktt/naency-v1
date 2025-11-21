@@ -100,7 +100,8 @@ const createExpenseFormSchema = (t: TFunction<"expenses">) =>
       amount: z.number().int().min(1, t("form.validation.amount")),
       currency: z.enum(["BRL", "USD", "EUR"]),
       date: z.date(),
-      accountId: z.string().uuid(t("form.validation.account")),
+      accountId: z.string().uuid(t("form.validation.account")).optional(),
+      creditCardId: z.string().uuid(t("form.validation.creditCard")).optional(),
       categoryId: z.string().uuid(t("form.validation.category")),
       method: z.enum(paymentMethodValues),
       attachmentUrl: z
@@ -132,6 +133,24 @@ const createExpenseFormSchema = (t: TFunction<"expenses">) =>
           message: t("form.validation.paidAt"),
         });
       }
+
+      if (data.method === "credit") {
+        if (!data.creditCardId) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["creditCardId"],
+            message: t("form.validation.creditCard"),
+          });
+        }
+      } else {
+        if (!data.accountId) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["accountId"],
+            message: t("form.validation.account"),
+          });
+        }
+      }
     });
 
 type CreateExpenseFormValues = z.infer<
@@ -152,6 +171,7 @@ const getDefaultValues = (
     currency: "BRL",
     date,
     accountId: "",
+    creditCardId: "",
     categoryId: "",
     method: "pix",
     attachmentUrl: "",
@@ -204,6 +224,7 @@ function mapExpenseToDefaultValues(
     amount: Number.isNaN(amountInCents) ? 0 : amountInCents,
     date: expense.date ? new Date(expense.date) : new Date(),
     accountId: expense.accountId ?? "",
+    creditCardId: expense.creditCardId ?? "",
     categoryId: expense.categoryId ?? "",
     method: expense.method,
     attachmentUrl: expense.attachmentUrl ?? "",
@@ -312,6 +333,14 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     enabled: dialogOpen,
   });
 
+  const creditCardsQuery = trpc.creditCards.list.useQuery(undefined, {
+    enabled: dialogOpen,
+  });
+
+  const hasAccounts = (accountsQuery.data?.length ?? 0) > 0;
+  const hasCreditCards = (creditCardsQuery.data?.length ?? 0) > 0;
+  const method = form.watch("method");
+
   const invalidateTransactionsData = React.useCallback(async () => {
     await Promise.all([
       utils.transactions.list.invalidate({ type: "expense" }),
@@ -348,8 +377,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const isSubmitting = isEditing
     ? updateExpenseMutation.isPending
     : createExpenseMutation.isPending;
-  const hasAccounts = (accountsQuery.data?.length ?? 0) > 0;
-  const isFormDisabled = !hasAccounts;
+  const isFormDisabled = method === "credit" ? !hasCreditCards : !hasAccounts;
 
   const modeValue = form.watch("mode");
   const isUnique = modeValue === "unique";
@@ -849,55 +877,108 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                         label={t("form.details.amount")}
                         required
                       />
-                      <FormField
-                        control={form.control}
-                        name="accountId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {t("form.details.account")}{" "}
-                              <span className="text-destructive">*</span>
-                            </FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              onOpenChange={(openState) =>
-                                !openState && field.onBlur()
-                              }
-                              value={field.value}
-                              disabled={
-                                accountsQuery.isLoading ||
-                                !hasAccounts ||
-                                isSubmitting
-                              }
-                            >
-                              <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue
-                                    placeholder={
-                                      accountsQuery.isLoading
-                                        ? t("form.details.accountLoading")
-                                        : hasAccounts
-                                          ? t("form.details.accountPlaceholder")
-                                          : t("form.details.accountEmpty")
-                                    }
-                                  />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {accountsQuery.data?.map((account) => (
-                                  <SelectItem
-                                    key={account.id}
-                                    value={account.id}
-                                  >
-                                    {account.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {method === "credit" ? (
+                        <FormField
+                          control={form.control}
+                          name="creditCardId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                {t("form.details.creditCard")}{" "}
+                                <span className="text-destructive">*</span>
+                              </FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                onOpenChange={(openState) =>
+                                  !openState && field.onBlur()
+                                }
+                                value={field.value}
+                                disabled={
+                                  creditCardsQuery.isLoading ||
+                                  !hasCreditCards ||
+                                  isSubmitting
+                                }
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue
+                                      placeholder={
+                                        creditCardsQuery.isLoading
+                                          ? t("form.details.creditCardLoading")
+                                          : hasCreditCards
+                                            ? t(
+                                                "form.details.creditCardPlaceholder",
+                                              )
+                                            : t("form.details.creditCardEmpty")
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {creditCardsQuery.data?.map((card) => (
+                                    <SelectItem key={card.id} value={card.id}>
+                                      {card.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : (
+                        <FormField
+                          control={form.control}
+                          name="accountId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                {t("form.details.account")}{" "}
+                                <span className="text-destructive">*</span>
+                              </FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                onOpenChange={(openState) =>
+                                  !openState && field.onBlur()
+                                }
+                                value={field.value}
+                                disabled={
+                                  accountsQuery.isLoading ||
+                                  !hasAccounts ||
+                                  isSubmitting
+                                }
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue
+                                      placeholder={
+                                        accountsQuery.isLoading
+                                          ? t("form.details.accountLoading")
+                                          : hasAccounts
+                                            ? t(
+                                                "form.details.accountPlaceholder",
+                                              )
+                                            : t("form.details.accountEmpty")
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {accountsQuery.data?.map((account) => (
+                                    <SelectItem
+                                      key={account.id}
+                                      value={account.id}
+                                    >
+                                      {account.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                       <FormField
                         control={form.control}
                         name="description"

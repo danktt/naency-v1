@@ -264,6 +264,13 @@ export function createIncomeColumns({
       cell: ({ row }) => {
         const account =
           getAccountName?.(row.original) ?? row.original.accountName;
+
+        if (row.original.method === "credit") {
+          return (
+            <Badge variant="outline">{t("form.paymentMethods.credit")}</Badge>
+          );
+        }
+
         if (!account) return t("table.noData");
         return <Badge variant="muted">{account as string}</Badge>;
       },

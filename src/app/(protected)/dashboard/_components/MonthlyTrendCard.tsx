@@ -100,9 +100,7 @@ export function MonthlyTrendCard({
               height="100%"
               fill={`url(#${patternId})`}
             />
-            <defs>
-              <MonthlyTrendBackgroundPattern id={patternId} />
-            </defs>
+
             <CartesianGrid vertical={false} strokeDasharray="4 4" />
             <XAxis
               dataKey="label"

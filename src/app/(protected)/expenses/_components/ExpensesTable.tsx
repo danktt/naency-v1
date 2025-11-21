@@ -162,6 +162,16 @@ export function ExpensesTable() {
         return;
       }
 
+      if (expense.method === "credit") {
+        toast.info(
+          t("table.toast.creditCardPaymentInfo", {
+            defaultValue:
+              "Despesas de cartão de crédito são pagas através da fatura.",
+          }),
+        );
+        return;
+      }
+
       setMarkAsPaidDate(expense.paidAt ? new Date(expense.paidAt) : new Date());
       setExpenseToMarkAsPaid(expense);
       setIsMarkAsPaidDatePopoverOpen(false);

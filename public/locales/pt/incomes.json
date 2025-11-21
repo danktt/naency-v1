@@ -45,10 +45,10 @@
     "status": {
       "paid": "Recebido",
       "pending": "Pendente",
-      "paidOnTime": "Recebido no prazo",
-      "paidLate": "Recebido atrasado",
-      "paidEarly": "Recebido antecipadamente",
-      "notPaidYet": "Não recebido ainda"
+      "paidOnTime": "Recebido",
+      "paidLate": "Recebido",
+      "paidEarly": "Recebido",
+      "notPaidYet": "Não recebido"
     },
     "type": {
       "unique": "Pago",
