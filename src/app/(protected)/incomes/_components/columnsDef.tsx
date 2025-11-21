@@ -2,10 +2,8 @@ import {
   IconCalendar,
   IconCircle,
   IconCreditCard,
-  IconEdit,
-  IconEye,
+  IconDotsVertical,
   IconRepeat,
-  IconTrash,
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -13,6 +11,13 @@ import type { TFunction } from "i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import { cn } from "@/lib/utils";
@@ -300,39 +305,44 @@ export function createIncomeColumns({
       id: "actions",
       header: t("table.columns.actions"),
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          {onViewIncome && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => onViewIncome(row.original)}
-              title={t("table.actions.view")}
+              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+              size="icon"
             >
-              <IconEye className="size-4" />
+              <IconDotsVertical className="size-4" />
+              <span className="sr-only">Open menu</span>
             </Button>
-          )}
-          {onEditIncome && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEditIncome(row.original)}
-              title={t("table.actions.edit")}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              disabled={!onEditIncome}
+              onSelect={(event) => {
+                event.preventDefault();
+                onEditIncome?.(row.original);
+              }}
             >
-              <IconEdit className="size-4" />
-            </Button>
-          )}
-          {onDeleteIncome && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDeleteIncome(row.original)}
-              title={t("table.actions.delete")}
-              className="text-destructive hover:text-destructive"
+              {t("table.actions.edit", {
+                defaultValue: "Editar",
+              })}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={!onDeleteIncome}
+              onSelect={(event) => {
+                event.preventDefault();
+                onDeleteIncome?.(row.original);
+              }}
             >
-              <IconTrash className="size-4" />
-            </Button>
-          )}
-        </div>
+              {t("table.actions.delete", {
+                defaultValue: "Deletar",
+              })}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     });
   }

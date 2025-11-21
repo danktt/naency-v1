@@ -100,9 +100,9 @@ const createExpenseFormSchema = (t: TFunction<"expenses">) =>
       amount: z.number().int().min(1, t("form.validation.amount")),
       currency: z.enum(["BRL", "USD", "EUR"]),
       date: z.date(),
-      accountId: z.string().uuid(t("form.validation.account")).optional(),
-      creditCardId: z.string().uuid(t("form.validation.creditCard")).optional(),
-      categoryId: z.string().uuid(t("form.validation.category")),
+      accountId: z.string().optional(),
+      creditCardId: z.string().optional(),
+      categoryId: z.string().min(1, t("form.validation.category")),
       method: z.enum(paymentMethodValues),
       attachmentUrl: z
         .string()
@@ -415,8 +415,15 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
       const payload = {
         type: "expense" as const,
-        accountId: values.accountId,
-        categoryId: values.categoryId,
+        accountId:
+          values.method === "credit"
+            ? undefined
+            : values.accountId || undefined,
+        creditCardId:
+          values.method === "credit"
+            ? values.creditCardId || undefined
+            : undefined,
+        categoryId: values.categoryId || undefined,
         amount: amountInCents / 100,
         description: values.description,
         date: values.date,

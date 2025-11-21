@@ -17,7 +17,7 @@ import {
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import { cn } from "@/lib/utils";
-import { accountTypeLabels, type AccountFormValues } from "./constants";
+import { type AccountFormValues, accountTypeLabels } from "./constants";
 import type { BankAccount } from "./types";
 import {
   formatAccountNumber,
@@ -45,8 +45,10 @@ export function BankAccountCard({
   const accountNumber = formatAccountNumber(account.id);
 
   return (
-    <button
-      type="button"
+    // biome-ignore lint/a11y/useSemanticElements: preventing nested button error
+    <div
+      role="button"
+      tabIndex={0}
       className={cn(
         "group relative w-full cursor-pointer rounded-lg border-2 transition-all text-left bg-transparent p-0",
         isSelected
@@ -54,6 +56,12 @@ export function BankAccountCard({
           : "border-border hover:border-primary/50",
       )}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
       <div className="flex gap-4 p-4">
         {/* Visual Card */}
@@ -99,7 +107,11 @@ export function BankAccountCard({
               <p className="text-sm text-muted-foreground">{account.name}</p>
             </div>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuTrigger
+                asChild
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -160,7 +172,6 @@ export function BankAccountCard({
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
-
