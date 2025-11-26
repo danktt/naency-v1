@@ -2,7 +2,6 @@
 
 import { useUser } from "@clerk/nextjs";
 import {
-  IconAlarm,
   IconArrowDownRight,
   IconArrowUpRight,
   IconPigMoney,
@@ -10,7 +9,7 @@ import {
 } from "@tabler/icons-react";
 import { CheckCircle2, CircleDollarSign, Clock } from "lucide-react";
 import * as React from "react";
-import { useTranslation } from "react-i18next";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
 import { DistributionCard } from "./_components/DistributionCard";
@@ -30,25 +29,6 @@ const getMonthLabel = (date: Date, formatter: Intl.DateTimeFormat) => {
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const { t, i18n } = useTranslation("dashboard");
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const fallbackLng =
-    (Array.isArray(i18n.options?.fallbackLng) && i18n.options.fallbackLng[0]) ||
-    (typeof i18n.options?.fallbackLng === "string"
-      ? i18n.options.fallbackLng
-      : "en");
-
-  const fallbackT = React.useMemo(
-    () => i18n.getFixedT(fallbackLng, "dashboard"),
-    [i18n, fallbackLng],
-  );
-
-  const translate = isMounted ? t : fallbackT;
 
   const referenceDate = React.useMemo(() => new Date(), []);
   const months = 12;
@@ -61,42 +41,41 @@ export default function DashboardPage() {
 
   const numberFormatter = React.useMemo(
     () =>
-      new Intl.NumberFormat(i18n.language ?? "pt-BR", {
+      new Intl.NumberFormat("pt-BR", {
         maximumFractionDigits: 0,
       }),
-    [i18n.language],
+    [],
   );
 
   const monthFormatter = React.useMemo(
     () =>
-      new Intl.DateTimeFormat(i18n.language ?? "pt-BR", {
+      new Intl.DateTimeFormat("pt-BR", {
         month: "short",
       }),
-    [i18n.language],
+    [],
   );
 
   const axisFormatter = React.useMemo(
     () =>
-      new Intl.NumberFormat(i18n.language ?? "pt-BR", {
+      new Intl.NumberFormat("pt-BR", {
         notation: "compact",
         maximumFractionDigits: 1,
       }),
-    [i18n.language],
+    [],
   );
 
-  const greetingKey = React.useMemo(() => {
+  const greeting = React.useMemo(() => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "heading.greeting.morning";
-    if (hour >= 12 && hour < 18) return "heading.greeting.afternoon";
-    return "heading.greeting.evening";
-  }, []);
+    const name = user?.fullName ?? "";
+    if (hour >= 5 && hour < 12) return `Bom dia, ${name}!`;
+    if (hour >= 12 && hour < 18) return `Boa tarde, ${name}!`;
+    return `Boa noite, ${name}!`;
+  }, [user?.fullName]);
 
   const isLoadingState = isLoading && !data;
 
   const snapshotCards = React.useMemo<SnapshotCard[]>(() => {
     const snapshot = data?.snapshot;
-
-    const pendingCount = snapshot?.pendingPaymentsCount ?? 0;
 
     const monthBalanceIsNegative = (snapshot?.monthBalance ?? 0) < 0;
     const monthBalanceIconClassName = monthBalanceIsNegative
@@ -106,33 +85,33 @@ export default function DashboardPage() {
     const cards: SnapshotCard[] = [
       {
         key: "incomes",
-        title: translate("snapshot.cards.incomes.title"),
+        title: "Receitas",
         value: snapshot
           ? formatCurrency(snapshot.totalIncomes)
           : formatCurrency(0),
-        subtitle: translate("snapshot.cards.incomes.subtitle"),
+        subtitle: "Total recebido neste mês.",
         icon: IconArrowUpRight,
         iconContainerClassName:
           "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
       },
       {
         key: "expenses",
-        title: translate("snapshot.cards.expenses.title"),
+        title: "Despesas",
         value: snapshot
           ? formatCurrency(snapshot.totalExpenses)
           : formatCurrency(0),
-        subtitle: translate("snapshot.cards.expenses.subtitle"),
+        subtitle: "Todos os gastos registrados no período.",
         icon: IconArrowDownRight,
         iconContainerClassName:
           "bg-rose-500/10 text-rose-600 dark:text-rose-400",
       },
       {
         key: "monthBalance",
-        title: translate("snapshot.cards.monthBalance.title"),
+        title: "Saldo do mês",
         value: snapshot
           ? formatCurrency(snapshot.monthBalance)
           : formatCurrency(0),
-        subtitle: translate("snapshot.cards.monthBalance.subtitle"),
+        subtitle: "Receitas menos despesas do mês corrente.",
         icon: IconWallet,
         valueClassName:
           snapshot && snapshot.monthBalance < 0
@@ -142,11 +121,11 @@ export default function DashboardPage() {
       },
       {
         key: "accumulatedBalance",
-        title: translate("snapshot.cards.accumulatedBalance.title"),
+        title: "Saldo acumulado",
         value: snapshot
           ? formatCurrency(snapshot.accumulatedBalance)
           : formatCurrency(0),
-        subtitle: translate("snapshot.cards.accumulatedBalance.subtitle"),
+        subtitle: "Saldo considerando meses anteriores.",
         icon: IconPigMoney,
         valueClassName:
           snapshot && snapshot.accumulatedBalance < 0
@@ -157,7 +136,7 @@ export default function DashboardPage() {
     ];
 
     return cards;
-  }, [data?.snapshot, numberFormatter, translate]);
+  }, [data?.snapshot]);
 
   const monthlyTrendData = React.useMemo(() => {
     if (!data?.monthlyTrend?.length) {
@@ -205,8 +184,7 @@ export default function DashboardPage() {
     }
 
     return data.expenseDistribution.map((item, index) => {
-      const label =
-        item.label ?? translate("charts.distribution.uncategorized");
+      const label = item.label ?? "Sem categoria";
 
       return {
         ...item,
@@ -214,7 +192,7 @@ export default function DashboardPage() {
         label,
       };
     });
-  }, [data?.expenseDistribution, translate]);
+  }, [data?.expenseDistribution]);
 
   const paymentSections = React.useMemo<PaymentSection[]>(() => {
     const statusDefinitions: Array<{
@@ -246,36 +224,57 @@ export default function DashboardPage() {
     };
 
     return (["incomes", "expenses"] as const).map((sectionKey) => {
-      const sectionLabel = `payments.sections.${sectionKey}` as const;
       const sectionDataset = dataset[sectionKey];
 
       const statuses = statusDefinitions.map((definition) => {
         const value = sectionDataset?.[definition.key] ?? 0;
-        const description =
-          definition.key === "pending"
-            ? translate(`payments.statuses.${definition.key}.description`, {
-                overdue: numberFormatter.format(sectionDataset?.overdue ?? 0),
-              })
-            : translate(`payments.statuses.${definition.key}.description`);
+
+        let description = "";
+        if (definition.key === "onTime") {
+          description = "Transações pagas até a data de vencimento.";
+        } else if (definition.key === "late") {
+          description = "Transações pagas após a data de vencimento.";
+        } else if (definition.key === "pending") {
+          const overdue = numberFormatter.format(sectionDataset?.overdue ?? 0);
+          description = `Inclui ${overdue} transações em atraso.`;
+        }
+
+        let title = "";
+        if (definition.key === "onTime") title = "Pago no prazo";
+        if (definition.key === "late") title = "Pago com atraso";
+        if (definition.key === "pending") title = "Atrasado / pendente";
 
         return {
           ...definition,
-          title: translate(`payments.statuses.${definition.key}.title`),
+          title,
           description,
           value,
         };
       });
 
+      const titles = {
+        incomes: "Receitas",
+        expenses: "Despesas",
+      };
+      const descriptions = {
+        incomes: "Status das receitas registradas neste mês.",
+        expenses: "Status das despesas registradas neste mês.",
+      };
+      const ctas = {
+        incomes: "Ir para receitas",
+        expenses: "Ir para despesas",
+      };
+
       return {
         key: sectionKey,
         href: sectionKey === "incomes" ? "/incomes" : "/expenses",
-        title: translate(`${sectionLabel}.title`),
-        description: translate(`${sectionLabel}.description`),
-        cta: translate(`${sectionLabel}.cta`),
+        title: titles[sectionKey],
+        description: descriptions[sectionKey],
+        cta: ctas[sectionKey],
         statuses,
       };
     });
-  }, [data?.paymentStatus, numberFormatter, translate]);
+  }, [data?.paymentStatus, numberFormatter]);
 
   const hasPaymentStatuses = React.useMemo(
     () =>
@@ -288,15 +287,15 @@ export default function DashboardPage() {
   const monthlyChartConfig = React.useMemo(
     () => ({
       incomes: {
-        label: translate("charts.monthly.legend.incomes"),
+        label: "Receitas",
         color: "var(--chart-2)",
       },
       expenses: {
-        label: translate("charts.monthly.legend.expenses"),
+        label: "Despesas",
         color: "var(--chart-1)",
       },
     }),
-    [translate],
+    [],
   );
 
   const distributionChartConfig = React.useMemo(() => {
@@ -319,17 +318,17 @@ export default function DashboardPage() {
     <div className="space-y-4">
       <section className="flex flex-col gap-2">
         <h2 className="text-2xl font-semibold tracking-tight">
-          {translate(greetingKey, { name: user?.fullName ?? "" })}
+          {isLoadingState ? <Skeleton className="w-96 h-6" /> : greeting}
         </h2>
         <p className="text-muted-foreground text-sm">
-          {translate("heading.description")}
+          Acompanhe como suas contas estão evoluindo neste mês.
         </p>
       </section>
 
       <SnapshotSection
-        title={translate("snapshot.title")}
-        description={translate("snapshot.description")}
-        retryLabel={translate("actions.retry")}
+        title="Resumo do mês atual"
+        description="Monitore entradas, saídas e saldo em tempo real."
+        retryLabel="Tentar novamente"
         isLoading={isLoadingState}
         isError={isError}
         cards={snapshotCards}
@@ -343,7 +342,6 @@ export default function DashboardPage() {
           patternId={monthlyPatternId}
           chartConfig={monthlyChartConfig}
           axisFormatter={axisFormatter}
-          translate={translate}
           onBarHover={handleMonthlyBarHover}
           isLoading={isLoadingState}
         />
@@ -352,7 +350,6 @@ export default function DashboardPage() {
           sections={paymentSections}
           hasPaymentStatuses={hasPaymentStatuses}
           isLoading={isLoadingState}
-          translate={translate}
           formatNumber={(value) => numberFormatter.format(value)}
         />
       </section>
@@ -362,7 +359,6 @@ export default function DashboardPage() {
           data={distributionData}
           chartConfig={distributionChartConfig}
           isLoading={isLoadingState}
-          translate={translate}
         />
       </section>
     </div>

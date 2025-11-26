@@ -6,7 +6,6 @@ import {
   IconChartBar,
 } from "@tabler/icons-react";
 import * as React from "react";
-import { useTranslation } from "react-i18next";
 
 import { ExpensesForm } from "@/components/forms/expensesForm";
 import { GridItem } from "@/components/gloweffect";
@@ -20,56 +19,42 @@ type MetricKey = "totalExpenses" | "totalIncomes" | "netBalance";
 
 const metricConfigs: Array<{
   key: MetricKey;
-  titleKey: string;
-  changeKey: string;
+  title: string;
+  changeFormat: string;
   icon: React.ElementType;
   iconContainerClassName: string;
 }> = [
   {
     key: "totalExpenses",
-    titleKey: "metrics.totalExpenses.title",
-    changeKey: "metrics.totalExpenses.change",
+    title: "Despesas totais",
+    changeFormat: "{{value}} gastos no período selecionado",
     icon: IconArrowDownRight,
     iconContainerClassName: "bg-red-500/10 text-red-600 dark:text-red-400",
   },
   {
     key: "totalIncomes",
-    titleKey: "metrics.totalIncomes.title",
-    changeKey: "metrics.totalIncomes.change",
+    title: "Receitas totais",
+    changeFormat: "{{value}} recebidos no período selecionado",
     icon: IconArrowUpRight,
     iconContainerClassName:
       "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   },
   {
     key: "netBalance",
-    titleKey: "metrics.netBalance.title",
-    changeKey: "metrics.netBalance.change",
+    title: "Saldo líquido",
+    changeFormat: "Saldo líquido de {{value}} no período selecionado",
     icon: IconChartBar,
     iconContainerClassName: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   },
 ];
 
 export default function ExpensesPage() {
-  const { t, i18n } = useTranslation("expenses");
   const [isMounted, setIsMounted] = React.useState(false);
   const dateRange = useDateStore((state) => state.dateRange);
 
   React.useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  const fallbackLng =
-    (Array.isArray(i18n.options?.fallbackLng) && i18n.options.fallbackLng[0]) ||
-    (typeof i18n.options?.fallbackLng === "string"
-      ? i18n.options.fallbackLng
-      : "en");
-
-  const fallbackT = React.useMemo(
-    () => i18n.getFixedT(fallbackLng, "expenses"),
-    [i18n, fallbackLng],
-  );
-
-  const translate = isMounted ? t : fallbackT;
 
   const metricsQueryInput = React.useMemo(
     () => ({
@@ -103,33 +88,31 @@ export default function ExpensesPage() {
   const getValue = React.useCallback(
     (key: MetricKey) => {
       if (isMetricsLoading && !metricsData) {
-        return translate("metrics.loadingValue");
+        return "Carregando...";
       }
 
       if (isMetricsError) {
-        return translate("metrics.errorValue");
+        return "--";
       }
 
       return formatCurrency(totalsByKey[key]);
     },
-    [isMetricsError, isMetricsLoading, metricsData, totalsByKey, translate],
+    [isMetricsError, isMetricsLoading, metricsData, totalsByKey],
   );
 
   const getDescription = React.useCallback(
-    (changeKey: string, key: MetricKey) => {
+    (changeFormat: string, key: MetricKey) => {
       if (isMetricsLoading && !metricsData) {
-        return translate("metrics.loadingDescription");
+        return "Atualizando métricas financeiras...";
       }
 
       if (isMetricsError) {
-        return translate("metrics.errorDescription");
+        return "Não foi possível carregar os dados.";
       }
 
-      return translate(changeKey, {
-        value: formatCurrency(totalsByKey[key]),
-      });
+      return changeFormat.replace("{{value}}", formatCurrency(totalsByKey[key]));
     },
-    [isMetricsError, isMetricsLoading, metricsData, totalsByKey, translate],
+    [isMetricsError, isMetricsLoading, metricsData, totalsByKey],
   );
 
   return (
@@ -137,10 +120,10 @@ export default function ExpensesPage() {
       <section className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-semibold tracking-tight">
-            {translate("header.title")}
+            Despesas
           </h2>
           <p className="text-muted-foreground text-sm">
-            {translate("header.subtitle")}
+            Gerencie suas despesas.
           </p>
         </div>
         <div>
@@ -152,12 +135,12 @@ export default function ExpensesPage() {
           const Icon = metric.icon;
           return (
             <GridItem
-              key={metric.titleKey}
+              key={metric.key}
               icon={<Icon className="size-5 " stroke={1.5} />}
               iconContainerClassName={metric.iconContainerClassName}
-              title={translate(metric.titleKey)}
+              title={metric.title}
               value={getValue(metric.key)}
-              description={getDescription(metric.changeKey, metric.key)}
+              description={getDescription(metric.changeFormat, metric.key)}
             />
           );
         })}

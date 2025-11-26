@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Pie, PieChart, Cell } from "recharts";
+import { Cell, Pie, PieChart } from "recharts";
 
 import { GlowCard } from "@/components/gloweffect";
 import {
@@ -11,7 +11,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/helpers/formatCurrency";
 
@@ -27,21 +32,19 @@ interface DistributionCardProps {
   data: DistributionItem[];
   chartConfig: Record<string, { label: string; color: string }>;
   isLoading: boolean;
-  translate: (key: string, options?: Record<string, unknown>) => string;
 }
 
 export function DistributionCard({
   data,
   chartConfig,
   isLoading,
-  translate,
 }: DistributionCardProps) {
   const hasData = data.length > 0;
 
   return (
     <GlowCard
-      title={translate("charts.distribution.title")}
-      description={translate("charts.distribution.description")}
+      title="Distribuição por categoria"
+      description="Entenda para onde o dinheiro está indo neste mês."
       contentClassName="gap-6"
     >
       {isLoading ? (
@@ -78,12 +81,7 @@ export function DistributionCard({
                           </span>
                           {percentage !== undefined ? (
                             <span className="text-muted-foreground text-xs">
-                              {translate(
-                                "charts.distribution.tooltip.percentage",
-                                {
-                                  value: percentage.toFixed(1),
-                                },
-                              )}
+                              {percentage.toFixed(1)}% das despesas do mês
                             </span>
                           ) : null}
                         </div>
@@ -109,7 +107,7 @@ export function DistributionCard({
           </ChartContainer>
           <div className="space-y-4 md:w-64">
             <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              {translate("charts.distribution.breakdownTitle")}
+              Detalhe por categoria
             </h4>
             <ul className="space-y-3">
               {data.map((item) => (
@@ -135,11 +133,9 @@ export function DistributionCard({
       ) : (
         <Empty className="h-[320px] w-full">
           <EmptyHeader>
-            <EmptyTitle>
-              {translate("charts.distribution.empty.title")}
-            </EmptyTitle>
+            <EmptyTitle>Nenhuma despesa registrada</EmptyTitle>
             <EmptyDescription>
-              {translate("charts.distribution.empty.description")}
+              Adicione despesas para ver a distribuição por categoria.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -147,4 +143,3 @@ export function DistributionCard({
     </GlowCard>
   );
 }
-

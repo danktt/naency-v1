@@ -1,4 +1,4 @@
-import type { AccountFormValues } from "./types";
+import type { AccountFormValues, CreditCardFormValues } from "./types";
 
 export const accountTypeLabels: Record<
   AccountFormValues["type"],
@@ -17,3 +17,9 @@ export const defaultFormValues: AccountFormValues = {
   color: "#6366F1",
 };
 
+export const defaultCreditCardFormValues: CreditCardFormValues = {
+  name: "",
+  brand: "",
+  creditLimit: 0,
+  currency: "BRL",
+};

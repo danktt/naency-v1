@@ -251,14 +251,18 @@ const GridItem = ({
             title
           )}
         </h3>
-        <div
-          className={cn(
-            "w-fit rounded-full bg-muted p-2 text-black dark:text-neutral-400",
-            iconContainerClassName,
-          )}
-        >
-          {isLoading ? <Skeleton className="h-5 w-5" /> : icon}
-        </div>
+        {isLoading ? (
+          <Skeleton className="h-8 w-8 rounded-full" />
+        ) : (
+          <div
+            className={cn(
+              "w-fit rounded-full bg-muted p-2 text-black dark:text-neutral-400",
+              iconContainerClassName,
+            )}
+          >
+            {icon}
+          </div>
+        )}
       </div>
       <div>
         <p

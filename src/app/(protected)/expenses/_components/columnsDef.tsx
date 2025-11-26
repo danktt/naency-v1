@@ -1,3 +1,5 @@
+"use client";
+
 import {
   IconCalendar,
   IconCircle,
@@ -7,7 +9,6 @@ import {
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
-import type { TFunction } from "i18next";
 import type * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -39,14 +40,21 @@ type ExpenseColumnsOptions = {
   getAccountName?: (expense: ExpenseTableRow) => string | null;
 };
 
-type CreateExpenseColumnsParams = ExpenseColumnsOptions & {
-  t: TFunction<"expenses">;
+type CreateExpenseColumnsParams = ExpenseColumnsOptions;
+
+const PAYMENT_METHODS: Record<string, string> = {
+  pix: "Pix",
+  transfer: "Transferência",
+  debit: "Débito",
+  credit: "Crédito",
+  cash: "Dinheiro",
+  boleto: "Boleto",
+  investment: "Investimento",
 };
 
-export function createExpenseColumns({
-  t,
-  ...options
-}: CreateExpenseColumnsParams): ColumnDef<ExpenseTableRow>[] {
+export function createExpenseColumns(
+  options: CreateExpenseColumnsParams,
+): ColumnDef<ExpenseTableRow>[] {
   const {
     onViewExpense,
     onEditExpense,
@@ -68,7 +76,7 @@ export function createExpenseColumns({
   const columns: ColumnDef<ExpenseTableRow>[] = [
     {
       accessorKey: "dateAndStatus",
-      header: t("table.columns.date"),
+      header: "Data",
       cell: ({ row }) => {
         const tx = row.original;
 
@@ -111,14 +119,14 @@ export function createExpenseColumns({
         return (
           <div className="flex items-center gap-2 text-muted-foreground">
             <IconCalendar className="size-4" />
-            <span>{t("table.noDate")}</span>
+            <span>Sem data</span>
           </div>
         );
       },
     },
     {
       id: "status",
-      header: t("table.columns.status"),
+      header: "Status",
       cell: ({ row }) => {
         const tx = row.original;
 
@@ -139,7 +147,6 @@ export function createExpenseColumns({
             | "paidLate"
             | "paidEarly"
             | "paid";
-          type PaymentStatusKey = `table.status.${PaymentStatus}`;
 
           const normalizeDate = (value: Date) =>
             new Date(
@@ -188,7 +195,13 @@ export function createExpenseColumns({
             paid: "fill-destructive text-destructive",
           };
 
-          const statusKey: PaymentStatusKey = `table.status.${paymentStatus}`;
+          const statusLabels: Record<PaymentStatus, string> = {
+            pending: "Pendente",
+            paidOnTime: "Pago",
+            paidLate: "Pago atrasado",
+            paidEarly: "Pago antecipadamente",
+            paid: "Pago",
+          };
 
           badgeClass = paymentClassMap[paymentStatus];
           badgeIcon = (
@@ -199,22 +212,19 @@ export function createExpenseColumns({
               )}
             />
           );
-          badgeLabel = t(statusKey);
+          badgeLabel = statusLabels[paymentStatus];
         } else if (isInstallment) {
           badgeClass =
             "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
           badgeIcon = (
             <IconCreditCard className="size-3 text-amber-500 shrink-0" />
           );
-          badgeLabel = t("table.type.installment", {
-            current: tx.installmentNumber,
-            total: tx.totalInstallments,
-          });
+          badgeLabel = `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
         } else if (isRecurring) {
           badgeClass =
             "border-blue-400/40 bg-blue-400/10 text-blue-500 flex items-center gap-1";
           badgeIcon = <IconRepeat className="size-3 text-blue-500 shrink-0" />;
-          badgeLabel = t("table.type.recurring");
+          badgeLabel = "Recorrente";
         }
 
         return (
@@ -229,7 +239,7 @@ export function createExpenseColumns({
     },
     {
       accessorKey: "amount",
-      header: t("table.columns.amount"),
+      header: "Valor",
       cell: ({ row }) => {
         const amount = Number(row.getValue("amount"));
         return (
@@ -242,7 +252,7 @@ export function createExpenseColumns({
 
     {
       accessorKey: "paidAt",
-      header: t("table.columns.paidAt"),
+      header: "Pago em",
       cell: ({ row }) => {
         const isPaid = row.original.isPaid;
         const paidAt = row.original.paidAt
@@ -250,7 +260,7 @@ export function createExpenseColumns({
           : null;
 
         if (!isPaid) {
-          return <Badge variant="muted">{t("table.status.notPaidYet")}</Badge>;
+          return <Badge variant="muted">Ainda não pago</Badge>;
         }
 
         return (
@@ -264,7 +274,7 @@ export function createExpenseColumns({
     },
     {
       accessorKey: "description",
-      header: t("table.columns.description"),
+      header: "Descrição",
       cell: ({ row }) => (
         <p
           className="max-w-[200px] truncate capitalize"
@@ -276,37 +286,38 @@ export function createExpenseColumns({
     },
     {
       accessorKey: "accountName",
-      header: t("table.columns.account"),
+      header: "Conta",
       cell: ({ row }) => {
         const account =
           getAccountName?.(row.original) ?? row.original.accountName;
 
         if (row.original.method === "credit") {
           return (
-            <Badge variant="outline">{t("form.paymentMethods.credit")}</Badge>
+            <Badge variant="outline">{PAYMENT_METHODS.credit}</Badge>
           );
         }
 
-        if (!account) return t("table.noData");
+        if (!account) return "-";
         return <Badge variant="muted">{account as string}</Badge>;
       },
     },
     {
       accessorKey: "categoryName",
-      header: t("table.columns.category"),
+      header: "Categoria",
       cell: ({ row }) => {
         const category =
           getCategoryMeta?.(row.original) ?? row.original.categoryName;
-        if (!category) return t("table.noData");
+        if (!category) return "-";
         return <Badge variant="muted">{category as string}</Badge>;
       },
     },
     {
       accessorKey: "method",
-      header: t("table.columns.method"),
+      header: "Forma de pagamento",
       cell: ({ row }) => {
-        const key = `form.paymentMethods.${row.original.method}` as const;
-        return <Badge variant="muted">{t(key)}</Badge>;
+        const method = row.original.method;
+        const label = method ? PAYMENT_METHODS[method] : "-";
+        return <Badge variant="muted">{label}</Badge>;
       },
     },
   ];
@@ -314,7 +325,7 @@ export function createExpenseColumns({
   if (hasActions) {
     columns.push({
       id: "actions",
-      header: t("table.columns.actions"),
+      header: "Ações",
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -324,7 +335,7 @@ export function createExpenseColumns({
               size="icon"
             >
               <IconDotsVertical />
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">Abrir menu</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -335,9 +346,7 @@ export function createExpenseColumns({
                 onEditExpense?.(row.original);
               }}
             >
-              {t("table.actions.editExpense", {
-                defaultValue: "Editar despesa",
-              })}
+              Editar despesa
             </DropdownMenuItem>
             {!row.original.isPaid ? (
               <DropdownMenuItem
@@ -347,9 +356,7 @@ export function createExpenseColumns({
                   onMarkAsPaid?.(row.original);
                 }}
               >
-                {t("table.actions.markAsPaid", {
-                  defaultValue: "Marcar como pago",
-                })}
+                Marcar como pago
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
@@ -359,9 +366,7 @@ export function createExpenseColumns({
                   onMarkAsPending?.(row.original);
                 }}
               >
-                {t("table.actions.markAsPending", {
-                  defaultValue: "Marcar como pendente",
-                })}
+                Marcar como pendente
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
@@ -373,9 +378,7 @@ export function createExpenseColumns({
                 onDeleteExpense?.(row.original);
               }}
             >
-              {t("table.actions.deleteExpense", {
-                defaultValue: "Deletar",
-              })}
+              Deletar despesa
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

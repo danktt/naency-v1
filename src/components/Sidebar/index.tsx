@@ -37,37 +37,37 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navMain = useMemo(() => {
     const routes = [
       {
-        title: "Dashboard",
+        title: "Home",
         url: "/dashboard",
         icon: IconLayoutDashboard,
       },
       {
-        title: "Incomes",
+        title: "Receitas",
         url: "/incomes",
         icon: IconCurrencyDollar,
       },
       {
-        title: "Expenses",
+        title: "Despesas",
         url: "/expenses",
         icon: IconWallet,
       },
       {
-        title: "Account transfers",
+        title: "Transferências",
         url: "/transfers",
         icon: IconTransfer,
       },
       {
-        title: "Bank Accounts",
+        title: "Contas bancárias",
         url: "/bank-accounts",
         icon: IconBuildingBank,
       },
       {
-        title: "Provisions",
+        title: "Provisões",
         url: "/provisions",
         icon: IconCreditCard,
       },
       {
-        title: "Categories",
+        title: "Categorias",
         url: "/categories",
         icon: IconCategory,
       },
@@ -84,12 +84,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navSecondary = useMemo(
     () => [
       {
-        title: "Support",
+        title: "Suporte",
         url: "/",
         icon: LifeBuoy,
       },
       {
-        title: "Feedback",
+        title: "Sugestões",
         url: "/feedback",
         icon: Send,
       },
@@ -100,17 +100,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const projects = useMemo(
     () => [
       {
-        name: "Design Engineering",
+        name: "Financeiro",
         url: "/dashboard?workspace=design",
         icon: Frame,
       },
       {
-        name: "Sales & Marketing",
+        name: "Planejamento",
         url: "/dashboard?workspace=sales",
         icon: PieChart,
       },
       {
-        name: "Product Discovery",
+        name: "Métricas",
         url: "/dashboard?workspace=product",
         icon: Bot,
       },

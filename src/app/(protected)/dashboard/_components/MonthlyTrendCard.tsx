@@ -36,7 +36,6 @@ interface MonthlyTrendCardProps {
   patternId: string;
   chartConfig: Record<string, { label: string; color: string }>;
   axisFormatter: Intl.NumberFormat;
-  translate: (key: string, options?: Record<string, unknown>) => string;
   onBarHover: (index: number | null) => void;
   isLoading: boolean;
 }
@@ -47,7 +46,6 @@ export function MonthlyTrendCard({
   patternId,
   chartConfig,
   axisFormatter,
-  translate,
   onBarHover,
   isLoading,
 }: MonthlyTrendCardProps) {
@@ -55,8 +53,8 @@ export function MonthlyTrendCard({
 
   return (
     <GlowCard
-      title={translate("charts.monthly.title")}
-      description={translate("charts.monthly.description")}
+      title="Evolução mensal"
+      description="Compare receitas e despesas mês a mês."
       hasAction={
         highlightedEntry ? (
           <div className="flex flex-col text-xs">
@@ -65,7 +63,7 @@ export function MonthlyTrendCard({
             </span>
             <div className="flex items-center justify-between gap-1">
               <span className="text-muted-foreground">
-                {translate("charts.monthly.legend.incomes")}
+                Receitas
               </span>
               <span className="font-bold text-foreground">
                 {formatCurrency(highlightedEntry.data.incomes)}
@@ -73,7 +71,7 @@ export function MonthlyTrendCard({
             </div>
             <div className="flex items-center justify-between gap-1">
               <span className="text-muted-foreground">
-                {translate("charts.monthly.legend.expenses")}
+                Despesas
               </span>
               <span className="font-bold text-foreground">
                 {formatCurrency(highlightedEntry.data.expenses)}
@@ -200,9 +198,9 @@ export function MonthlyTrendCard({
       ) : (
         <Empty className="h-[320px]">
           <EmptyHeader>
-            <EmptyTitle>{translate("charts.monthly.empty.title")}</EmptyTitle>
+            <EmptyTitle>Sem histórico ainda</EmptyTitle>
             <EmptyDescription>
-              {translate("charts.monthly.empty.description")}
+              Cadastre transações para visualizar a tendência mensal.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

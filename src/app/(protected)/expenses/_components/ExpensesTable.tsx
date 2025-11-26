@@ -7,9 +7,8 @@ import {
 } from "@tabler/icons-react";
 import type { Row } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { enUS, ptBR } from "date-fns/locale";
+import { ptBR } from "date-fns/locale";
 import * as React from "react";
-import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ExpensesForm } from "@/components/forms/expensesForm";
 import { DataTable } from "@/components/Table";
@@ -37,7 +36,6 @@ import { useDateStore } from "@/stores/useDateStore";
 import { createExpenseColumns, type ExpenseTableRow } from "./columnsDef";
 
 export function ExpensesTable() {
-  const { t, i18n } = useTranslation("expenses");
   const dateRange = useDateStore((state) => state.dateRange);
   const [editingExpense, setEditingExpense] =
     React.useState<ExpenseTableRow | null>(null);
@@ -57,10 +55,7 @@ export function ExpensesTable() {
   const [isMarkAsPendingDialogOpen, setIsMarkAsPendingDialogOpen] =
     React.useState(false);
   const utils = trpc.useUtils();
-  const calendarLocale = React.useMemo(
-    () => (i18n.language?.startsWith("pt") ? ptBR : enUS),
-    [i18n.language],
-  );
+  const calendarLocale = ptBR;
 
   const queryInput = React.useMemo(
     () => ({
@@ -77,11 +72,7 @@ export function ExpensesTable() {
     trpc.transactions.list.useQuery(queryInput);
   const deleteExpenseMutation = trpc.transactions.delete.useMutation({
     onSuccess: () => {
-      toast(
-        t("table.toast.deleteSuccess", {
-          defaultValue: "Expense deleted successfully.",
-        }),
-      );
+      toast("Despesa deletada com sucesso.");
       void utils.transactions.list.invalidate(queryInput);
       setIsDeleteDialogOpen(false);
       setExpenseToDelete(null);
@@ -92,11 +83,7 @@ export function ExpensesTable() {
   });
   const markAsPaidMutation = trpc.transactions.updatePaymentStatus.useMutation({
     onSuccess: () => {
-      toast(
-        t("table.toast.markAsPaidSuccess", {
-          defaultValue: "Expense marked as paid.",
-        }),
-      );
+      toast("Despesa marcada como paga.");
       void utils.transactions.list.invalidate(queryInput);
       setIsMarkAsPaidDialogOpen(false);
       setExpenseToMarkAsPaid(null);
@@ -108,11 +95,7 @@ export function ExpensesTable() {
   const markAsPendingMutation =
     trpc.transactions.updatePaymentStatus.useMutation({
       onSuccess: () => {
-        toast(
-          t("table.toast.markAsPendingSuccess", {
-            defaultValue: "Expense marked as pending.",
-          }),
-        );
+        toast("Despesa marcada como pendente.");
         void utils.transactions.list.invalidate(queryInput);
         setIsMarkAsPendingDialogOpen(false);
         setExpenseToMarkAsPending(null);
@@ -154,20 +137,13 @@ export function ExpensesTable() {
   const handleMarkAsPaid = React.useCallback(
     (expense: ExpenseTableRow) => {
       if (expense.isPaid) {
-        toast(
-          t("table.toast.alreadyPaid", {
-            defaultValue: "This expense is already marked as paid.",
-          }),
-        );
+        toast("Esta despesa já está marcada como paga.");
         return;
       }
 
       if (expense.method === "credit") {
         toast.info(
-          t("table.toast.creditCardPaymentInfo", {
-            defaultValue:
-              "Despesas de cartão de crédito são pagas através da fatura.",
-          }),
+          "Despesas de cartão de crédito são pagas através da fatura.",
         );
         return;
       }
@@ -177,7 +153,7 @@ export function ExpensesTable() {
       setIsMarkAsPaidDatePopoverOpen(false);
       setIsMarkAsPaidDialogOpen(true);
     },
-    [t],
+    [],
   );
 
   const confirmMarkAsPaid = React.useCallback(() => {
@@ -193,18 +169,14 @@ export function ExpensesTable() {
   const handleMarkAsPending = React.useCallback(
     (expense: ExpenseTableRow) => {
       if (!expense.isPaid) {
-        toast(
-          t("table.toast.alreadyPending", {
-            defaultValue: "This expense is already pending.",
-          }),
-        );
+        toast("Esta despesa já está pendente.");
         return;
       }
 
       setExpenseToMarkAsPending(expense);
       setIsMarkAsPendingDialogOpen(true);
     },
-    [t],
+    [],
   );
 
   const confirmMarkAsPending = React.useCallback(() => {
@@ -220,7 +192,6 @@ export function ExpensesTable() {
   const columns = React.useMemo(
     () =>
       createExpenseColumns({
-        t,
         onEditExpense: handleEditExpense,
         onDeleteExpense: handleDeleteExpense,
         onMarkAsPaid: handleMarkAsPaid,
@@ -231,17 +202,16 @@ export function ExpensesTable() {
       handleEditExpense,
       handleMarkAsPaid,
       handleMarkAsPending,
-      t,
     ],
   );
 
   const rows = data ?? [];
-  const emptyMessage = isError ? t("table.emptyError") : t("table.empty");
+  const emptyMessage = isError ? "Não foi possível carregar as despesas." : "Nenhuma despesa cadastrada.";
   const summaryLabel = isError
-    ? t("table.summaryError")
+    ? "Erro ao carregar despesas"
     : rows.length
-      ? t("table.summary", { count: rows.length })
-      : t("table.summaryEmpty");
+      ? `${rows.length} ${rows.length === 1 ? "despesa registrada" : "despesas registradas"}`
+      : "Nenhuma despesa registrada";
 
   const toolbar = (
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -253,7 +223,7 @@ export function ExpensesTable() {
         isLoading={isRefetching}
         icon={<IconRefresh className="size-4" />}
       >
-        {t("table.refresh")}
+        Atualizar
       </Button>
     </div>
   );
@@ -280,20 +250,15 @@ export function ExpensesTable() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t("table.delete.title", {
-                defaultValue: "Delete expense?",
-              })}
+              Deletar despesa?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("table.delete.description", {
-                defaultValue:
-                  "This action cannot be undone. This will permanently delete the selected expense.",
-              })}
+              Essa ação não pode ser desfeita. Isso excluirá permanentemente a despesa selecionada.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteExpenseMutation.isPending}>
-              {t("table.delete.cancel", { defaultValue: "Cancel" })}
+              Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -301,8 +266,8 @@ export function ExpensesTable() {
               disabled={deleteExpenseMutation.isPending}
             >
               {deleteExpenseMutation.isPending
-                ? t("table.delete.loading", { defaultValue: "Deleting..." })
-                : t("table.delete.confirm", { defaultValue: "Delete" })}
+                ? "Deletando..."
+                : "Deletar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -321,22 +286,15 @@ export function ExpensesTable() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t("table.markAsPaid.title", {
-                defaultValue: "Marcar despesa como paga?",
-              })}
+              Marcar despesa como paga?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("table.markAsPaid.description", {
-                defaultValue:
-                  "Escolha a data de pagamento para confirmar que esta despesa foi quitada.",
-              })}
+              Escolha a data de pagamento para confirmar que esta despesa foi quitada.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
             <p className="text-sm font-medium">
-              {t("table.markAsPaid.dateLabel", {
-                defaultValue: "Data do pagamento",
-              })}
+              Data do pagamento
             </p>
             <Popover
               open={isMarkAsPaidDatePopoverOpen}
@@ -355,9 +313,7 @@ export function ExpensesTable() {
                     ? format(markAsPaidDate, "PPP", {
                         locale: calendarLocale,
                       })
-                    : t("table.markAsPaid.datePlaceholder", {
-                        defaultValue: "Selecione uma data",
-                      })}
+                    : "Selecione uma data"}
                   <IconChevronDown className="ml-auto size-4" />
                 </Button>
               </PopoverTrigger>
@@ -379,19 +335,15 @@ export function ExpensesTable() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={markAsPaidMutation.isPending}>
-              {t("table.markAsPaid.cancel", { defaultValue: "Cancelar" })}
+              Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmMarkAsPaid}
               disabled={markAsPaidMutation.isPending}
             >
               {markAsPaidMutation.isPending
-                ? t("table.markAsPaid.loading", {
-                    defaultValue: "Atualizando...",
-                  })
-                : t("table.markAsPaid.confirm", {
-                    defaultValue: "Marcar como pago",
-                  })}
+                ? "Atualizando..."
+                : "Marcar como pago"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -408,32 +360,23 @@ export function ExpensesTable() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t("table.markAsPending.title", {
-                defaultValue: "Marcar despesa como pendente?",
-              })}
+              Marcar despesa como pendente?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("table.markAsPending.description", {
-                defaultValue:
-                  "A informação de pagamento será removida e a despesa voltará para o status pendente.",
-              })}
+              A informação de pagamento será removida e a despesa voltará para o status pendente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={markAsPendingMutation.isPending}>
-              {t("table.markAsPending.cancel", { defaultValue: "Cancelar" })}
+              Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmMarkAsPending}
               disabled={markAsPendingMutation.isPending}
             >
               {markAsPendingMutation.isPending
-                ? t("table.markAsPending.loading", {
-                    defaultValue: "Atualizando...",
-                  })
-                : t("table.markAsPending.confirm", {
-                    defaultValue: "Marcar como pendente",
-                  })}
+                ? "Atualizando..."
+                : "Marcar como pendente"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

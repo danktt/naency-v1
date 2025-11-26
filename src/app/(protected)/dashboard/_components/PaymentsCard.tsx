@@ -36,7 +36,6 @@ interface PaymentsCardProps {
   sections: PaymentSection[];
   hasPaymentStatuses: boolean;
   isLoading: boolean;
-  translate: (key: string, options?: Record<string, unknown>) => string;
   formatNumber: (value: number) => string;
 }
 
@@ -44,13 +43,12 @@ export function PaymentsCard({
   sections,
   hasPaymentStatuses,
   isLoading,
-  translate,
   formatNumber,
 }: PaymentsCardProps) {
   return (
     <GlowCard
-      title={translate("payments.title")}
-      description={translate("payments.description")}
+      title="Status de pagamentos"
+      description="Acompanhe quais transações estão em dia, atrasadas ou pendentes."
       contentClassName="gap-6"
     >
       {isLoading ? (
@@ -116,9 +114,9 @@ export function PaymentsCard({
       ) : (
         <Empty className="h-[240px]">
           <EmptyHeader>
-            <EmptyTitle>{translate("payments.empty.title")}</EmptyTitle>
+            <EmptyTitle>Nada por aqui ainda</EmptyTitle>
             <EmptyDescription>
-              {translate("payments.empty.description")}
+              Adicione transações para acompanhar o status de pagamento.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -126,4 +124,3 @@ export function PaymentsCard({
     </GlowCard>
   );
 }
-

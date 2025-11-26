@@ -127,7 +127,6 @@ export function AccountFormDialog({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="checking">Checking</SelectItem>
-                      <SelectItem value="credit">Credit</SelectItem>
                       <SelectItem value="investment">Investment</SelectItem>
                     </SelectContent>
                   </Select>
