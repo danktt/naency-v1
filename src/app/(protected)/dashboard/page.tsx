@@ -2,6 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import {
+  IconArrowDownLeft,
   IconArrowDownRight,
   IconArrowUpRight,
   IconPigMoney,
@@ -90,7 +91,7 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.totalIncomes)
           : formatCurrency(0),
         subtitle: "Total recebido neste mês.",
-        icon: IconArrowUpRight,
+        icon: IconArrowDownLeft,
         iconContainerClassName:
           "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
       },
@@ -101,7 +102,7 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.totalExpenses)
           : formatCurrency(0),
         subtitle: "Todos os gastos registrados no período.",
-        icon: IconArrowDownRight,
+        icon: IconArrowUpRight,
         iconContainerClassName:
           "bg-rose-500/10 text-rose-600 dark:text-rose-400",
       },

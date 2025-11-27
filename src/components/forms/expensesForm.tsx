@@ -5,12 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
 import type { inferRouterOutputs } from "@trpc/server";
 import { format } from "date-fns";
-import { enUS, ptBR } from "date-fns/locale";
+import { ptBR } from "date-fns/locale";
 import { AnimatePresence, motion } from "framer-motion";
-import type { TFunction } from "i18next";
 import * as React from "react";
 import { useForm } from "react-hook-form";
-import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
@@ -69,15 +67,15 @@ type PaymentMethodValue = (typeof paymentMethodValues)[number];
 
 const paymentMethodOptions: Array<{
   value: PaymentMethodValue;
-  labelKey: `form.paymentMethods.${PaymentMethodValue}`;
+  label: string;
 }> = [
-  { value: "pix", labelKey: "form.paymentMethods.pix" },
-  { value: "transfer", labelKey: "form.paymentMethods.transfer" },
-  { value: "debit", labelKey: "form.paymentMethods.debit" },
-  { value: "credit", labelKey: "form.paymentMethods.credit" },
-  { value: "cash", labelKey: "form.paymentMethods.cash" },
-  { value: "boleto", labelKey: "form.paymentMethods.boleto" },
-  { value: "investment", labelKey: "form.paymentMethods.investment" },
+  { value: "pix", label: "Pix" },
+  { value: "transfer", label: "Transferência" },
+  { value: "debit", label: "Débito" },
+  { value: "credit", label: "Crédito" },
+  { value: "cash", label: "Dinheiro" },
+  { value: "boleto", label: "Boleto" },
+  { value: "investment", label: "Investimento" },
 ];
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
@@ -93,29 +91,29 @@ type ExpensesFormProps = {
   onSuccess?: () => void;
 };
 
-const createExpenseFormSchema = (t: TFunction<"expenses">) =>
+const createExpenseFormSchema = () =>
   z
     .object({
-      description: z.string().min(1, t("form.validation.description")),
-      amount: z.number().int().min(1, t("form.validation.amount")),
+      description: z.string().min(1, "Informe uma descrição."),
+      amount: z.number().int().min(1, "Informe um valor maior que zero."),
       currency: z.enum(["BRL", "USD", "EUR"]),
       date: z.date(),
       accountId: z.string().optional(),
       creditCardId: z.string().optional(),
-      categoryId: z.string().min(1, t("form.validation.category")),
+      categoryId: z.string().min(1, "Selecione uma categoria."),
       method: z.enum(paymentMethodValues),
       attachmentUrl: z
         .string()
         .trim()
         .refine(
           (value) => value.length === 0 || isValidUrl(value),
-          t("form.validation.attachment"),
+          "Informe uma URL válida.",
         ),
       mode: z.enum(["unique", "installment", "recurring"]),
       totalInstallments: z
         .number()
         .int()
-        .min(2, t("form.validation.totalInstallments"))
+        .min(2, "Informe pelo menos duas parcelas.")
         .optional(),
       recurrenceType: z
         .enum(["daily", "weekly", "monthly", "yearly"])
@@ -130,7 +128,7 @@ const createExpenseFormSchema = (t: TFunction<"expenses">) =>
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["paidAt"],
-          message: t("form.validation.paidAt"),
+          message: "Informe a data de pagamento.",
         });
       }
 
@@ -139,7 +137,7 @@ const createExpenseFormSchema = (t: TFunction<"expenses">) =>
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["creditCardId"],
-            message: t("form.validation.creditCard"),
+            message: "Selecione um cartão de crédito.",
           });
         }
       } else {
@@ -147,7 +145,7 @@ const createExpenseFormSchema = (t: TFunction<"expenses">) =>
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["accountId"],
-            message: t("form.validation.account"),
+            message: "Selecione uma conta.",
           });
         }
       }
@@ -251,7 +249,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const isEditing = derivedMode === "edit" && hasExpense;
   const effectiveExpense = isEditing ? expense : null;
 
-  const { t, i18n } = useTranslation("expenses");
   const [internalOpen, setInternalOpen] = React.useState(false);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = React.useState(false);
   const [isStartDatePopoverOpen, setIsStartDatePopoverOpen] =
@@ -264,12 +261,9 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const isControlled = open !== undefined;
   const dialogOpen = isControlled ? Boolean(open) : internalOpen;
 
-  const locale = React.useMemo(
-    () => (i18n.language?.startsWith("pt") ? ptBR : enUS),
-    [i18n.language],
-  );
+  const locale = ptBR;
 
-  const schema = React.useMemo(() => createExpenseFormSchema(t), [t]);
+  const schema = React.useMemo(() => createExpenseFormSchema(), []);
 
   const dateRange = useDateStore((state) => state.dateRange);
   const utils = trpc.useUtils();
@@ -351,7 +345,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const createExpenseMutation = trpc.transactions.create.useMutation({
     onSuccess: async () => {
       await invalidateTransactionsData();
-      toast.success(t("form.toast.success"));
+      toast.success("Despesa registrada com sucesso.");
       if (keepOpenRef.current) {
         form.reset(getDefaultValues());
         form.setFocus("description");
@@ -360,18 +354,19 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
       }
       onSuccess?.();
     },
-    onError: (error) => toast.error(error.message ?? t("form.toast.error")),
+    onError: (error) =>
+      toast.error(error.message ?? "Não foi possível registrar a despesa."),
   });
 
   const updateExpenseMutation = trpc.transactions.update.useMutation({
     onSuccess: async () => {
       await invalidateTransactionsData();
-      toast.success(t("form.toast.updateSuccess"));
+      toast.success("Despesa atualizada com sucesso.");
       closeDialog();
       onSuccess?.();
     },
     onError: (error) =>
-      toast.error(error.message ?? t("form.toast.updateError")),
+      toast.error(error.message ?? "Não foi possível atualizar a despesa."),
   });
 
   const isSubmitting = isEditing
@@ -461,9 +456,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     trigger !== undefined ? (
       trigger
     ) : isEditing ? null : (
-      <Button icon={<IconPlus className="size-4" />}>
-        {t("form.trigger")}
-      </Button>
+      <Button icon={<IconPlus className="size-4" />}>Criar despesa</Button>
     );
 
   return (
@@ -488,12 +481,12 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
               <div className="sm:px-4 px-4 pt-6 pb-4 space-y-4 shrink-0">
                 <DialogHeader className="px-0 text-left">
                   <DialogTitle>
-                    {isEditing ? t("form.editTitle") : t("form.title")}
+                    {isEditing ? "Editar despesa" : "Criar despesa"}
                   </DialogTitle>
                   <DialogDescription>
                     {isEditing
-                      ? t("form.editDescription")
-                      : t("form.description")}
+                      ? "Atualize as informações abaixo para editar esta despesa."
+                      : "Preencha as informações abaixo para registrar uma despesa."}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -504,7 +497,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <FormLabel className="text-sm font-medium">
-                        {t("form.mode.label")}
+                        Tipo de transação
                       </FormLabel>
                       <FormControl>
                         <Tabs
@@ -520,17 +513,17 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                           <Tab
                             key="unique"
                             disabled={isEditing}
-                            title={t("form.mode.unique")}
+                            title="Única"
                           />
                           <Tab
                             key="installment"
                             disabled={isEditing}
-                            title={t("form.mode.installment")}
+                            title="Parcelada"
                           />
                           <Tab
                             key="recurring"
                             disabled={isEditing}
-                            title={t("form.mode.recurring")}
+                            title="Recorrente"
                           />
                         </Tabs>
                       </FormControl>
@@ -546,7 +539,8 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                   {/* === Dates Section === */}
                   <section className="space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      {t("form.dates.help")}
+                      Defina quando esta despesa deve ser paga ou iniciar a
+                      recorrência.
                     </p>
                     <AnimatePresence initial={false} mode="wait">
                       {isUnique && (
@@ -558,9 +552,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                               const selectedDate = field.value;
                               return (
                                 <FormItem>
-                                  <FormLabel>
-                                    {t("form.dates.receivedDate")}
-                                  </FormLabel>
+                                  <FormLabel>Data de pagamento</FormLabel>
                                   <FormControl>
                                     <Popover
                                       open={isDatePopoverOpen}
@@ -581,7 +573,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                             ? format(selectedDate, "PPP", {
                                                 locale,
                                               })
-                                            : t("form.dates.selectDate")}
+                                            : "Selecione uma data"}
                                           <IconChevronDown className="ml-auto h-4 w-4" />
                                         </Button>
                                       </PopoverTrigger>
@@ -627,7 +619,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                               return (
                                 <FormItem>
                                   <FormLabel>
-                                    {t("form.dates.firstInstallment")}
+                                    Data da primeira parcela
                                   </FormLabel>
                                   <FormControl>
                                     <Popover
@@ -649,7 +641,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                             ? format(selectedDate, "PPP", {
                                                 locale,
                                               })
-                                            : t("form.dates.selectDate")}
+                                            : "Selecione uma data"}
                                           <IconChevronDown className="ml-auto h-4 w-4" />
                                         </Button>
                                       </PopoverTrigger>
@@ -683,9 +675,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                             name="totalInstallments"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>
-                                  {t("form.dates.totalInstallments")}
-                                </FormLabel>
+                                <FormLabel>Total de parcelas</FormLabel>
                                 <FormControl>
                                   <NumberInputCounter
                                     value={field.value}
@@ -713,34 +703,28 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                             name="recurrenceType"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>
-                                  {t("form.dates.recurring.frequencyLabel")}
-                                </FormLabel>
+                                <FormLabel>Frequência da recorrência</FormLabel>
                                 <Select
                                   value={field.value}
                                   onValueChange={field.onChange}
                                 >
                                   <FormControl>
                                     <SelectTrigger className="w-full">
-                                      <SelectValue
-                                        placeholder={t(
-                                          "form.dates.recurring.frequencyPlaceholder",
-                                        )}
-                                      />
+                                      <SelectValue placeholder="Selecione a frequência" />
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
                                     <SelectItem value="daily">
-                                      {t("form.dates.recurring.daily")}
+                                      Diária
                                     </SelectItem>
                                     <SelectItem value="weekly">
-                                      {t("form.dates.recurring.weekly")}
+                                      Semanal
                                     </SelectItem>
                                     <SelectItem value="monthly">
-                                      {t("form.dates.recurring.monthly")}
+                                      Mensal
                                     </SelectItem>
                                     <SelectItem value="yearly">
-                                      {t("form.dates.recurring.yearly")}
+                                      Anual
                                     </SelectItem>
                                   </SelectContent>
                                 </Select>
@@ -754,9 +738,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                               const selected = field.value;
                               return (
                                 <FormItem>
-                                  <FormLabel>
-                                    {t("form.dates.recurring.startDate")}
-                                  </FormLabel>
+                                  <FormLabel>Data de início</FormLabel>
                                   <FormControl>
                                     <Popover
                                       open={isStartDatePopoverOpen}
@@ -777,7 +759,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                             ? format(selected, "PPP", {
                                                 locale,
                                               })
-                                            : t("form.dates.selectDate")}
+                                            : "Selecione uma data"}
                                           <IconChevronDown className="ml-auto h-4 w-4" />
                                         </Button>
                                       </PopoverTrigger>
@@ -814,7 +796,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                               return (
                                 <FormItem>
                                   <FormLabel>
-                                    {t("form.dates.recurring.endDate")}
+                                    Data de término (opcional)
                                   </FormLabel>
                                   <FormControl>
                                     <Popover
@@ -836,7 +818,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                             ? format(selected, "PPP", {
                                                 locale,
                                               })
-                                            : t("form.dates.selectDate")}
+                                            : "Selecione uma data"}
                                           <IconChevronDown className="ml-auto h-4 w-4" />
                                         </Button>
                                       </PopoverTrigger>
@@ -874,14 +856,15 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                   {/* === Details Section === */}
                   <section className="space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      {t("form.details.help")}
+                      Forneça as informações principais para acompanhar e
+                      reportar esta despesa.
                     </p>
                     <div className="grid gap-4 md:grid-cols-2">
                       <FieldCurrencyAmount
                         control={form.control}
                         amountName="amount"
                         currencyName="currency"
-                        label={t("form.details.amount")}
+                        label="Valor"
                         required
                       />
                       {method === "credit" ? (
@@ -891,7 +874,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>
-                                {t("form.details.creditCard")}{" "}
+                                Cartão de crédito{" "}
                                 <span className="text-destructive">*</span>
                               </FormLabel>
                               <Select
@@ -911,12 +894,10 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                     <SelectValue
                                       placeholder={
                                         creditCardsQuery.isLoading
-                                          ? t("form.details.creditCardLoading")
+                                          ? "Carregando cartões..."
                                           : hasCreditCards
-                                            ? t(
-                                                "form.details.creditCardPlaceholder",
-                                              )
-                                            : t("form.details.creditCardEmpty")
+                                            ? "Selecione um cartão"
+                                            : "Nenhum cartão cadastrado"
                                       }
                                     />
                                   </SelectTrigger>
@@ -940,7 +921,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>
-                                {t("form.details.account")}{" "}
+                                Conta{" "}
                                 <span className="text-destructive">*</span>
                               </FormLabel>
                               <Select
@@ -960,12 +941,10 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                     <SelectValue
                                       placeholder={
                                         accountsQuery.isLoading
-                                          ? t("form.details.accountLoading")
+                                          ? "Carregando contas..."
                                           : hasAccounts
-                                            ? t(
-                                                "form.details.accountPlaceholder",
-                                              )
-                                            : t("form.details.accountEmpty")
+                                            ? "Selecione uma conta"
+                                            : "Nenhuma conta cadastrada"
                                       }
                                     />
                                   </SelectTrigger>
@@ -991,14 +970,10 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                         name="description"
                         render={({ field }) => (
                           <FormItem className="md:col-span-2">
-                            <FormLabel>
-                              {t("form.details.description")}
-                            </FormLabel>
+                            <FormLabel>Descrição</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder={t(
-                                  "form.details.descriptionPlaceholder",
-                                )}
+                                placeholder="ex.: Aluguel, contas, fornecedores..."
                                 autoComplete="off"
                                 {...field}
                               />
@@ -1012,7 +987,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                         name="method"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{t("form.details.method")}</FormLabel>
+                            <FormLabel>Forma de pagamento</FormLabel>
                             <Select
                               value={field.value}
                               onValueChange={field.onChange}
@@ -1020,11 +995,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                             >
                               <FormControl>
                                 <SelectTrigger className="w-full">
-                                  <SelectValue
-                                    placeholder={t(
-                                      "form.details.methodPlaceholder",
-                                    )}
-                                  />
+                                  <SelectValue placeholder="Selecione uma forma" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -1033,7 +1004,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                     key={option.value}
                                     value={option.value}
                                   >
-                                    {t(option.labelKey)}
+                                    {option.label}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -1047,7 +1018,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                         name="categoryId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{t("form.details.category")}</FormLabel>
+                            <FormLabel>Categoria</FormLabel>
                             <FormControl>
                               <CategoriesSelect
                                 type="expense"
@@ -1066,14 +1037,15 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                   {/* === Extras Section === */}
                   <section className="space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      {t("form.extras.help")}
+                      Adicione detalhes opcionais ou informações de apoio para
+                      esta despesa.
                     </p>
                     <FormField
                       control={form.control}
                       name="attachmentUrl"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t("form.extras.receipt")}</FormLabel>
+                          <FormLabel>Comprovante (URL)</FormLabel>
                           <FormControl>
                             <Input
                               type="url"
@@ -1106,7 +1078,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                         htmlFor={keepOpenId}
                         className="text-sm text-muted-foreground whitespace-nowrap"
                       >
-                        {t("form.keepOpen")}
+                        Manter aberto
                       </FormLabel>
                     </div>
                   )}
@@ -1118,7 +1090,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                         className="flex-1 sm:flex-none"
                         disabled={isSubmitting}
                       >
-                        {t("form.cancel")}
+                        Cancelar
                       </Button>
                     </DialogClose>
                     <Button
@@ -1127,7 +1099,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                       disabled={isSubmitting || isFormDisabled}
                       isLoading={isSubmitting}
                     >
-                      {t(isEditing ? "form.update" : "form.submit")}
+                      {isEditing ? "Salvar alterações" : "Criar"}
                     </Button>
                   </DialogFooter>
                 </div>
