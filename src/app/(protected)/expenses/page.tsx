@@ -49,12 +49,7 @@ const metricConfigs: Array<{
 ];
 
 export default function ExpensesPage() {
-  const [isMounted, setIsMounted] = React.useState(false);
   const dateRange = useDateStore((state) => state.dateRange);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const metricsQueryInput = React.useMemo(
     () => ({
@@ -66,11 +61,8 @@ export default function ExpensesPage() {
     [dateRange.from, dateRange.to],
   );
 
-  const {
-    data: metricsData,
-    isLoading: isMetricsLoading,
-    isError: isMetricsError,
-  } = trpc.transactions.metrics.useQuery(metricsQueryInput);
+  const { data: metricsData, isLoading: isMetricsLoading } =
+    trpc.transactions.metrics.useQuery(metricsQueryInput);
 
   const totalsByKey: Record<MetricKey, number> = React.useMemo(
     () => ({
@@ -85,43 +77,11 @@ export default function ExpensesPage() {
     ],
   );
 
-  const getValue = React.useCallback(
-    (key: MetricKey) => {
-      if (isMetricsLoading && !metricsData) {
-        return "Carregando...";
-      }
-
-      if (isMetricsError) {
-        return "--";
-      }
-
-      return formatCurrency(totalsByKey[key]);
-    },
-    [isMetricsError, isMetricsLoading, metricsData, totalsByKey],
-  );
-
-  const getDescription = React.useCallback(
-    (changeFormat: string, key: MetricKey) => {
-      if (isMetricsLoading && !metricsData) {
-        return "Atualizando métricas financeiras...";
-      }
-
-      if (isMetricsError) {
-        return "Não foi possível carregar os dados.";
-      }
-
-      return changeFormat.replace("{{value}}", formatCurrency(totalsByKey[key]));
-    },
-    [isMetricsError, isMetricsLoading, metricsData, totalsByKey],
-  );
-
   return (
     <div className="space-y-8">
       <section className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Despesas
-          </h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Despesas</h2>
           <p className="text-muted-foreground text-sm">
             Gerencie suas despesas.
           </p>
@@ -133,14 +93,17 @@ export default function ExpensesPage() {
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {metricConfigs.map((metric) => {
           const Icon = metric.icon;
+          const value = formatCurrency(totalsByKey[metric.key]);
+          const description = metric.changeFormat.replace("{{value}}", value);
           return (
             <GridItem
               key={metric.key}
               icon={<Icon className="size-5 " stroke={1.5} />}
               iconContainerClassName={metric.iconContainerClassName}
               title={metric.title}
-              value={getValue(metric.key)}
-              description={getDescription(metric.changeFormat, metric.key)}
+              isLoading={isMetricsLoading}
+              value={value}
+              description={description}
             />
           );
         })}

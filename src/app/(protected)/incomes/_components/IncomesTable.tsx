@@ -3,7 +3,6 @@
 import { IconRefresh } from "@tabler/icons-react";
 import type { Row } from "@tanstack/react-table";
 import * as React from "react";
-import { useTranslation } from "react-i18next";
 
 import { toast } from "sonner";
 
@@ -26,7 +25,6 @@ import { useDateStore } from "@/stores/useDateStore";
 import { createIncomeColumns, type IncomeTableRow } from "./columnsDef";
 
 export function IncomesTable() {
-  const { t } = useTranslation("incomes");
   const dateRange = useDateStore((state) => state.dateRange);
   const [editingIncome, setEditingIncome] =
     React.useState<IncomeTableRow | null>(null);
@@ -53,11 +51,7 @@ export function IncomesTable() {
 
   const deleteIncomeMutation = trpc.transactions.delete.useMutation({
     onSuccess: () => {
-      toast(
-        t("table.toast.deleteSuccess", {
-          defaultValue: "Income deleted successfully.",
-        }),
-      );
+      toast("Receita excluída com sucesso.");
       void utils.transactions.list.invalidate(queryInput);
       setIsDeleteDialogOpen(false);
       setIncomeToDelete(null);
@@ -99,35 +93,16 @@ export function IncomesTable() {
   const columns = React.useMemo(
     () =>
       createIncomeColumns({
-        t,
         onEditIncome: handleEditIncome,
         onDeleteIncome: handleDeleteIncome,
       }),
-    [handleDeleteIncome, handleEditIncome, t],
+    [handleDeleteIncome, handleEditIncome],
   );
 
   const rows = data ?? [];
-  const emptyMessage = isError ? t("table.emptyError") : t("table.empty");
-  const summaryLabel = isError
-    ? t("table.summaryError")
-    : rows.length
-      ? t("table.summary", { count: rows.length })
-      : t("table.summaryEmpty");
-
-  const toolbar = (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <span className="text-sm text-muted-foreground">{summaryLabel}</span>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => refetch()}
-        isLoading={isRefetching}
-        icon={<IconRefresh className="size-4" />}
-      >
-        {t("table.refresh")}
-      </Button>
-    </div>
-  );
+  const emptyMessage = isError
+    ? "Não foi possível carregar as receitas."
+    : "Nenhuma receita cadastrada.";
 
   return (
     <>
@@ -136,7 +111,6 @@ export function IncomesTable() {
         data={rows}
         loading={isLoading}
         emptyMessage={emptyMessage}
-        toolbarActions={toolbar}
         onRowClick={handleRowClick}
       />
       <AlertDialog
@@ -150,30 +124,22 @@ export function IncomesTable() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("table.delete.title", {
-                defaultValue: "Delete income?",
-              })}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Excluir receita?</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("table.delete.description", {
-                defaultValue:
-                  "This action cannot be undone. This will permanently delete the selected income.",
-              })}
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a
+              receita selecionada.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteIncomeMutation.isPending}>
-              {t("table.delete.cancel", { defaultValue: "Cancel" })}
+              Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={confirmDeleteIncome}
               disabled={deleteIncomeMutation.isPending}
             >
-              {deleteIncomeMutation.isPending
-                ? t("table.delete.loading", { defaultValue: "Deleting..." })
-                : t("table.delete.confirm", { defaultValue: "Delete" })}
+              {deleteIncomeMutation.isPending ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

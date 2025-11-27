@@ -134,27 +134,22 @@ export function ExpensesTable() {
     deleteExpenseMutation.mutate({ id: expenseToDelete.id, type: "expense" });
   }, [deleteExpenseMutation, expenseToDelete]);
 
-  const handleMarkAsPaid = React.useCallback(
-    (expense: ExpenseTableRow) => {
-      if (expense.isPaid) {
-        toast("Esta despesa já está marcada como paga.");
-        return;
-      }
+  const handleMarkAsPaid = React.useCallback((expense: ExpenseTableRow) => {
+    if (expense.isPaid) {
+      toast("Esta despesa já está marcada como paga.");
+      return;
+    }
 
-      if (expense.method === "credit") {
-        toast.info(
-          "Despesas de cartão de crédito são pagas através da fatura.",
-        );
-        return;
-      }
+    if (expense.method === "credit") {
+      toast.info("Despesas de cartão de crédito são pagas através da fatura.");
+      return;
+    }
 
-      setMarkAsPaidDate(expense.paidAt ? new Date(expense.paidAt) : new Date());
-      setExpenseToMarkAsPaid(expense);
-      setIsMarkAsPaidDatePopoverOpen(false);
-      setIsMarkAsPaidDialogOpen(true);
-    },
-    [],
-  );
+    setMarkAsPaidDate(expense.paidAt ? new Date(expense.paidAt) : new Date());
+    setExpenseToMarkAsPaid(expense);
+    setIsMarkAsPaidDatePopoverOpen(false);
+    setIsMarkAsPaidDialogOpen(true);
+  }, []);
 
   const confirmMarkAsPaid = React.useCallback(() => {
     if (!expenseToMarkAsPaid) return;
@@ -166,18 +161,15 @@ export function ExpensesTable() {
     });
   }, [expenseToMarkAsPaid, markAsPaidDate, markAsPaidMutation]);
 
-  const handleMarkAsPending = React.useCallback(
-    (expense: ExpenseTableRow) => {
-      if (!expense.isPaid) {
-        toast("Esta despesa já está pendente.");
-        return;
-      }
+  const handleMarkAsPending = React.useCallback((expense: ExpenseTableRow) => {
+    if (!expense.isPaid) {
+      toast("Esta despesa já está pendente.");
+      return;
+    }
 
-      setExpenseToMarkAsPending(expense);
-      setIsMarkAsPendingDialogOpen(true);
-    },
-    [],
-  );
+    setExpenseToMarkAsPending(expense);
+    setIsMarkAsPendingDialogOpen(true);
+  }, []);
 
   const confirmMarkAsPending = React.useCallback(() => {
     if (!expenseToMarkAsPending) return;
@@ -206,27 +198,9 @@ export function ExpensesTable() {
   );
 
   const rows = data ?? [];
-  const emptyMessage = isError ? "Não foi possível carregar as despesas." : "Nenhuma despesa cadastrada.";
-  const summaryLabel = isError
-    ? "Erro ao carregar despesas"
-    : rows.length
-      ? `${rows.length} ${rows.length === 1 ? "despesa registrada" : "despesas registradas"}`
-      : "Nenhuma despesa registrada";
-
-  const toolbar = (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <span className="text-sm text-muted-foreground">{summaryLabel}</span>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => refetch()}
-        isLoading={isRefetching}
-        icon={<IconRefresh className="size-4" />}
-      >
-        Atualizar
-      </Button>
-    </div>
-  );
+  const emptyMessage = isError
+    ? "Não foi possível carregar as despesas."
+    : "Nenhuma despesa cadastrada.";
 
   return (
     <>
@@ -235,7 +209,6 @@ export function ExpensesTable() {
         data={rows}
         loading={isLoading}
         emptyMessage={emptyMessage}
-        toolbarActions={toolbar}
         onRowClick={handleRowClick}
       />
       <AlertDialog
@@ -249,11 +222,10 @@ export function ExpensesTable() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Deletar despesa?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Deletar despesa?</AlertDialogTitle>
             <AlertDialogDescription>
-              Essa ação não pode ser desfeita. Isso excluirá permanentemente a despesa selecionada.
+              Essa ação não pode ser desfeita. Isso excluirá permanentemente a
+              despesa selecionada.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -265,9 +237,7 @@ export function ExpensesTable() {
               onClick={confirmDeleteExpense}
               disabled={deleteExpenseMutation.isPending}
             >
-              {deleteExpenseMutation.isPending
-                ? "Deletando..."
-                : "Deletar"}
+              {deleteExpenseMutation.isPending ? "Deletando..." : "Deletar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -285,17 +255,14 @@ export function ExpensesTable() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Marcar despesa como paga?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Marcar despesa como paga?</AlertDialogTitle>
             <AlertDialogDescription>
-              Escolha a data de pagamento para confirmar que esta despesa foi quitada.
+              Escolha a data de pagamento para confirmar que esta despesa foi
+              quitada.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
-            <p className="text-sm font-medium">
-              Data do pagamento
-            </p>
+            <p className="text-sm font-medium">Data do pagamento</p>
             <Popover
               open={isMarkAsPaidDatePopoverOpen}
               onOpenChange={setIsMarkAsPaidDatePopoverOpen}
@@ -359,11 +326,10 @@ export function ExpensesTable() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Marcar despesa como pendente?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Marcar despesa como pendente?</AlertDialogTitle>
             <AlertDialogDescription>
-              A informação de pagamento será removida e a despesa voltará para o status pendente.
+              A informação de pagamento será removida e a despesa voltará para o
+              status pendente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
