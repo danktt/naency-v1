@@ -59,7 +59,9 @@ export const Navbar = ({ isAuthenticated }: NavbarProps) => {
         <div className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1">
           <Link href="/" className="flex items-center gap-2">
             <IconTableFilled className="text-primary" size={24} />
-            <span className="font-semibold text-white">{siteConfig.name}</span>
+            <span className="font-semibold text-black dark:text-white">
+              {siteConfig.name}
+            </span>
           </Link>
         </div>
 
@@ -77,7 +79,7 @@ export const Navbar = ({ isAuthenticated }: NavbarProps) => {
       <MobileNav visible>
         <MobileNavHeader>
           <Link href="/" className="flex items-center gap-2">
-            <IconTableFilled className="text-white" size={24} />
+            <IconTableFilled className="text-black dark:text-white" size={24} />
             <span className="font-semibold text-black dark:text-white">
               {siteConfig.name}
             </span>
@@ -93,7 +95,7 @@ export const Navbar = ({ isAuthenticated }: NavbarProps) => {
               <a
                 key={idx}
                 href={item.link}
-                className="w-full rounded-md px-3 py-2 text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-800"
+                className="w-full rounded-md px-3 py-2 text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                 onClick={(e) => {
                   if (item.onClick) {
                     item.onClick(e);

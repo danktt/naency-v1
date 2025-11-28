@@ -71,7 +71,10 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="py-24 text-white relative">
+    <section
+      id="features"
+      className="py-24 text-black dark:text-white relative"
+    >
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="text-center mb-16">
           <motion.h2
@@ -79,7 +82,7 @@ export function Features() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-linear-to-r from-white to-gray-400"
+            className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-linear-to-r from-black to-gray-600 dark:from-white dark:to-gray-400"
           >
             Tudo o que você precisa
           </motion.h2>
@@ -88,7 +91,7 @@ export function Features() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-gray-400 max-w-2xl mx-auto text-lg"
+            className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg"
           >
             Ferramentas poderosas projetadas para colocar você no controle total
             da sua vida financeira.
@@ -105,16 +108,16 @@ export function Features() {
               transition={{ duration: 0.5, delay: index * 0.05 }}
               className={`${feature.className} h-full`}
             >
-              <GlowCard className="h-full rounded-3xl bg-white/5 border-white/10">
+              <GlowCard className="h-full rounded-3xl bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10">
                 <div className="relative z-10 h-full flex flex-col justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-4 text-white">
+                  <div className="w-12 h-12 rounded-2xl bg-black/10 dark:bg-white/10 flex items-center justify-center mb-4 text-black dark:text-white">
                     <feature.icon className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold mb-2 text-white">
+                    <h3 className="text-xl font-bold mb-2 text-black dark:text-white">
                       {feature.title}
                     </h3>
-                    <p className="text-gray-400 text-sm leading-relaxed">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
                       {feature.description}
                     </p>
                   </div>

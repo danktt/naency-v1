@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  IconCalendar,
-  IconChevronDown,
-  IconRefresh,
-} from "@tabler/icons-react";
+import { IconCalendar, IconChevronDown } from "@tabler/icons-react";
 import type { Row } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

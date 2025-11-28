@@ -10,11 +10,11 @@ export default async function Home() {
   const isAuthenticated = !!userId;
 
   return (
-    <main className="min-h-screen relative bg-black text-white selection:bg-primary selection:text-white overflow-hidden">
+    <main className="min-h-screen relative bg-white dark:bg-black text-black dark:text-white selection:bg-primary selection:text-white overflow-hidden">
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-purple-900/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-900/20 rounded-full blur-[120px]" />
-        <div className="absolute top-[40%] left-[20%] w-[30%] h-[30%] bg-indigo-900/10 rounded-full blur-[100px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-purple-200/40 dark:bg-purple-900/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-200/40 dark:bg-blue-900/20 rounded-full blur-[120px]" />
+        <div className="absolute top-[40%] left-[20%] w-[30%] h-[30%] bg-indigo-200/40 dark:bg-indigo-900/10 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative z-10">

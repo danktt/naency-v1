@@ -51,7 +51,10 @@ const tiers = [
 
 export function Pricing() {
   return (
-    <section id="pricing" className="py-24 text-white relative overflow-hidden">
+    <section
+      id="pricing"
+      className="py-24 text-black dark:text-white relative overflow-hidden"
+    >
       <div className="container mx-auto px-4 z-10 relative">
         <div className="text-center mb-16">
           <motion.h2
@@ -68,7 +71,7 @@ export function Pricing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-gray-400 max-w-2xl mx-auto"
+            className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
           >
             Escolha o plano que melhor se adapta às suas necessidades. Sem taxas
             escondidas.
@@ -85,8 +88,8 @@ export function Pricing() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className={`relative p-8 rounded-2xl border ${
                 tier.popular
-                  ? "bg-white/10 border-primary/50 shadow-lg shadow-primary/10"
-                  : "bg-white/5 border-white/10"
+                  ? "bg-white dark:bg-white/10 border-primary/50 shadow-lg shadow-primary/10"
+                  : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10"
               } flex flex-col`}
             >
               {tier.popular && (
@@ -99,17 +102,21 @@ export function Pricing() {
                 <div className="flex items-baseline gap-1 mb-4">
                   <span className="text-4xl font-bold">{tier.price}</span>
                   {tier.price !== "Sob Consulta" && (
-                    <span className="text-gray-400">/mês</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      /mês
+                    </span>
                   )}
                 </div>
-                <p className="text-gray-400 text-sm">{tier.description}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  {tier.description}
+                </p>
               </div>
 
               <ul className="space-y-4 mb-8 flex-1">
                 {tier.features.map((feature, i) => (
                   <li
                     key={i}
-                    className="flex items-center gap-3 text-sm text-gray-300"
+                    className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300"
                   >
                     <Check className="w-4 h-4 text-primary" />
                     {feature}
@@ -120,7 +127,7 @@ export function Pricing() {
               <Button
                 color={tier.popular ? "primary" : "default"}
                 variant={tier.popular ? "shadow" : "bordered"}
-                className={`w-full font-semibold ${!tier.popular && "text-white border-white/20 hover:bg-white/10"}`}
+                className={`w-full font-semibold ${!tier.popular && "text-black dark:text-white border-black/20 dark:border-white/20 hover:bg-black/5 dark:hover:bg-white/10"}`}
               >
                 {tier.cta}
               </Button>
