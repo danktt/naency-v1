@@ -1,267 +1,180 @@
 "use client";
 
-import { IconPencil } from "@tabler/icons-react";
-import {
-  ChevronDown,
-  ChevronRight,
-  TrendingDown,
-  TrendingUp,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { useTranslation } from "react-i18next";
+import { ChevronDown, ChevronRightIcon } from "lucide-react";
+import * as React from "react";
 
-import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
-import { Button } from "@/components/ui/button";
-import { Form } from "@/components/ui/form";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/helpers/formatCurrency";
+import { cn } from "@/lib/utils";
 
-type CategoryFormValues = {
-  plannedAmount: number;
-  currency: "BRL" | "USD";
-};
-
-interface CategoryRowProps {
+type CategoryRowProps = {
   category: {
     id: string;
     name: string;
-    icon: string;
-    color: string;
-    type: "expense" | "income";
+    icon?: string | null;
     planned: number;
     spent: number;
+    childrenCount?: number;
   };
-  onUpdatePlanned: (value: number) => Promise<void> | void;
+  isChild?: boolean;
   hasChildren?: boolean;
   isExpanded?: boolean;
   onToggle?: () => void;
-  isParent?: boolean;
+  isEditing?: boolean;
+  onRequestEdit?: () => void;
+  onCommitEdit?: (value: number) => void;
+  onCancelEdit?: () => void;
   isUpdating?: boolean;
-}
+};
 
 export function CategoryRow({
   category,
-  onUpdatePlanned,
+  isChild = false,
   hasChildren = false,
   isExpanded = false,
   onToggle,
-  isParent = false,
+  isEditing = false,
+  onRequestEdit,
+  onCommitEdit,
+  onCancelEdit,
   isUpdating = false,
 }: CategoryRowProps) {
-  const { t } = useTranslation("provisions");
-  const [isEditing, setIsEditing] = useState(false);
-  const form = useForm<CategoryFormValues>({
-    defaultValues: {
-      plannedAmount: Math.round(category.planned * 100),
-      currency: "BRL",
-    },
-  });
+  const iconLabel = category.icon ?? category.name.charAt(0).toUpperCase();
+  const plannedValue = category.planned ?? 0;
+  const spentValue = category.spent ?? 0;
+  const difference = plannedValue - spentValue;
+  const progressPercent =
+    plannedValue > 0 ? (spentValue / plannedValue) * 100 : 0;
+  const isOverBudget = spentValue > plannedValue;
+  const [inputValue, setInputValue] = React.useState(String(plannedValue ?? 0));
 
-  useEffect(() => {
-    if (isEditing) return;
-    form.reset({
-      plannedAmount: Math.round(category.planned * 100),
-      currency: form.getValues("currency") ?? "BRL",
-    });
-  }, [category.planned, form, isEditing]);
-
-  const difference = category.planned - category.spent;
-  const percentage =
-    category.planned > 0 ? (category.spent / category.planned) * 100 : 0;
-  const isOverBudget = percentage > 100;
-
-  const canEdit = !isParent;
-
-  const handleCancelEdit = () => {
-    form.reset({
-      plannedAmount: Math.round(category.planned * 100),
-      currency: form.getValues("currency") ?? "BRL",
-    });
-    setIsEditing(false);
-  };
-
-  const handleSubmit = form.handleSubmit(async (values) => {
-    try {
-      await Promise.resolve(onUpdatePlanned(values.plannedAmount / 100));
-      setIsEditing(false);
-    } catch {
-      // keep editing state so user can retry
+  React.useEffect(() => {
+    if (isEditing) {
+      setInputValue(String(plannedValue ?? 0));
     }
-  });
+  }, [isEditing, plannedValue]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
+  const commitValue = React.useCallback(() => {
+    if (!onCommitEdit) return;
+    const parsed = Number(inputValue);
+    if (Number.isNaN(parsed)) {
+      onCancelEdit?.();
+      return;
+    }
+    onCommitEdit(parsed);
+  }, [inputValue, onCommitEdit, onCancelEdit]);
 
   return (
     <div
-      className={`rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/5 ${
-        isParent && hasChildren ? "bg-muted/30" : ""
-      }`}
+      className={cn(
+        "group flex items-center gap-4 border-b border-border py-4 pr-4 transition-colors hover:bg-muted/30",
+        isChild ? "pl-12" : "pl-4",
+      )}
     >
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        {/* Category Info */}
-        <div className="flex items-center gap-3 md:min-w-[200px]">
-          {hasChildren && onToggle && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={onToggle}
-            >
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xl"
-            style={{ backgroundColor: `${category.color}20` }}
+      <div className="flex min-w-[240px] items-center gap-3">
+        {hasChildren && !isChild ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex h-6 w-6 items-center justify-center rounded hover:bg-muted"
           >
-            {category.icon}
-          </div>
-          <div>
-            <p
-              className={`font-medium text-card-foreground ${isParent && hasChildren ? "text-base font-semibold" : ""}`}
-            >
-              {category.name}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {category.type === "expense" ? "Despesa" : "Receita"}
-              {isParent && hasChildren && " (Total)"}
-            </p>
-          </div>
-        </div>
-
-        {/* Values */}
-        <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-6">
-          {/* Planned Amount */}
-          <div className="flex-1">
-            <Label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Planejado
-            </Label>
-            {isParent && hasChildren ? (
-              <div className="flex h-9 items-center rounded-md border border-border bg-muted/50 px-3">
-                <span className="text-sm font-semibold text-foreground">
-                  {formatCurrency(category.planned)}
-                </span>
-              </div>
-            ) : isEditing ? (
-              <Form {...form}>
-                <form onSubmit={handleSubmit} className="space-y-3">
-                  <FieldCurrencyAmount<CategoryFormValues>
-                    control={form.control}
-                    amountName="plannedAmount"
-                    currencyName="currency"
-                    label={t("categories.plannedLabel")}
-                    disabled={isUpdating}
-                    required
-                  />
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelEdit}
-                      disabled={isUpdating}
-                    >
-                      {t("rowActions.cancel")}
-                    </Button>
-                    <Button
-                      type="submit"
-                      size="sm"
-                      disabled={isUpdating || !form.formState.isDirty}
-                    >
-                      {isUpdating
-                        ? t("rowActions.saving")
-                        : t("rowActions.save")}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             ) : (
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 items-center rounded-md border border-border bg-muted/50 px-3">
-                  <span className="text-sm font-semibold text-foreground">
-                    {formatCurrency(category.planned)}
-                  </span>
-                </div>
-                {canEdit ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsEditing(true)}
-                    disabled={isUpdating}
-                  >
-                    <IconPencil stroke={1.5} className="me-1" />
-                    {t("rowActions.edit")}
-                  </Button>
-                ) : null}
-              </div>
+              <ChevronRightIcon className="h-4 w-4 text-muted-foreground" />
             )}
-          </div>
-
-          {/* Spent Amount */}
-          <div className="flex-1">
-            <Label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Realizado
-            </Label>
-            <div className="flex h-9 items-center rounded-md border border-border bg-muted px-3">
-              <span className="text-sm font-semibold text-foreground">
-                {formatCurrency(category.spent)}
-              </span>
-            </div>
-          </div>
-
-          {/* Difference */}
-          <div className="flex-1">
-            <Label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Diferença
-            </Label>
-            <div
-              className={`flex h-9 items-center gap-2 rounded-md px-3 ${
-                isOverBudget
-                  ? "bg-destructive/20 text-destructive"
-                  : "bg-success/20 text-accent-foreground"
-              }`}
-            >
-              {isOverBudget ? (
-                <TrendingDown className="h-4 w-4" />
-              ) : (
-                <TrendingUp className="h-4 w-4" />
-              )}
-              <span className="text-sm font-semibold">
-                {formatCurrency(Math.abs(difference))}
-              </span>
-            </div>
-          </div>
+          </button>
+        ) : (
+          <div className="w-6" />
+        )}
+        <span className="text-2xl">{iconLabel}</span>
+        <div>
+          <p className="font-medium text-foreground">{category.name}</p>
+          {hasChildren && (
+            <p className="text-xs text-muted-foreground">
+              {category.childrenCount ?? 0} subcategorias
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="mt-4">
-        <div className="mb-2 flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Progresso</span>
-          <span
-            className={`font-medium ${
-              isOverBudget ? "text-destructive" : "text-accent-foreground"
-            }`}
+      <div className="flex min-w-[160px] items-center">
+        {isEditing && !hasChildren ? (
+          <Input
+            type="number"
+            value={inputValue}
+            onChange={(event) => setInputValue(event.target.value)}
+            autoFocus
+            onBlur={commitValue}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                commitValue();
+              }
+              if (event.key === "Escape") {
+                onCancelEdit?.();
+              }
+            }}
+            className="h-8 w-32"
+            disabled={isUpdating}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => !hasChildren && onRequestEdit?.()}
+            disabled={hasChildren || isUpdating}
+            className={cn(
+              "rounded px-2 py-1 text-sm font-semibold transition-colors",
+              hasChildren
+                ? "cursor-default text-muted-foreground"
+                : "text-foreground hover:bg-muted",
+            )}
           >
-            {percentage.toFixed(0)}%
-          </span>
+            {formatCurrency(plannedValue)}
+          </button>
+        )}
+      </div>
+
+      <div className="min-w-[160px]">
+        <p
+          className={cn(
+            "text-sm font-semibold",
+            isOverBudget ? "text-destructive" : "text-foreground",
+          )}
+        >
+          {formatCurrency(spentValue)}
+        </p>
+      </div>
+
+      <div className="flex flex-1 items-center gap-3">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className={cn(
+              "h-full transition-all",
+              isOverBudget ? "bg-destructive" : "bg-success",
+            )}
+            style={{ width: `${Math.min(progressPercent, 100)}%` }}
+          />
         </div>
-        <Progress
-          value={Math.min(percentage, 100)}
-          className="h-2"
-          indicatorClassName={isOverBudget ? "bg-destructive" : "bg-success"}
-        />
+        <p
+          className={cn(
+            "min-w-[60px] text-right text-sm font-semibold",
+            isOverBudget ? "text-destructive" : "text-muted-foreground",
+          )}
+        >
+          {progressPercent.toFixed(0)}%
+        </p>
+      </div>
+
+      <div className="min-w-[140px] text-right">
+        <p
+          className={cn(
+            "text-sm font-semibold",
+            isOverBudget ? "text-destructive" : "text-success",
+          )}
+        >
+          {isOverBudget ? "-" : "+"}
+          {formatCurrency(Math.abs(difference))}
+        </p>
       </div>
     </div>
   );

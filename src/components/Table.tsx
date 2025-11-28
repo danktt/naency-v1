@@ -546,7 +546,7 @@ export function DataTable<TData>({
                   </TableRow>
                 ))}
               </TableHeader>
-              <TableBody>
+              <TableBody className="**:data-[slot=table-cell]:first:w-8">
                 {rows && rows.length > 0 ? (
                   <SortableContext
                     items={dataIds}

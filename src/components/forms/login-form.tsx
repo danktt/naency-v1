@@ -3,7 +3,8 @@
 import { useAuth, useSignIn } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useLocalStorage } from "usehooks-ts";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,19 +35,10 @@ export function LoginForm({
     null,
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [lastProvider, setLastProvider] = useState<OAuthProvider | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const storedProvider = window.localStorage.getItem("last-oauth-provider");
-
-    if (storedProvider === "google" || storedProvider === "apple") {
-      setLastProvider(storedProvider);
-    }
-  }, []);
+  const [lastProvider, setLastProvider] = useLocalStorage<OAuthProvider | null>(
+    "last-oauth-provider",
+    null,
+  );
 
   const handleProviderClick = useCallback(
     async (provider: OAuthProvider) => {
@@ -63,11 +55,10 @@ export function LoginForm({
       try {
         setErrorMessage(null);
         setPendingProvider(provider);
-        setLastProvider(provider);
 
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem("last-oauth-provider", provider);
-        }
+        // Save provider to localStorage before redirect
+        // This will be used on the next login attempt to show the badge
+        setLastProvider(provider);
 
         await signIn.authenticateWithRedirect({
           strategy: OAUTH_STRATEGY[provider],
@@ -133,8 +124,8 @@ export function LoginForm({
             disabled={isButtonDisabled}
             onClick={() => handleProviderClick("google")}
           >
-            {lastProvider === "google" && (
-              <LastProviderBadge provider="google" />
+            {lastProvider === "google" && !pendingProvider && (
+              <LastProviderBadge />
             )}
             {pendingProvider === "google" ? (
               <>
@@ -155,7 +146,9 @@ export function LoginForm({
             disabled={isButtonDisabled}
             onClick={() => handleProviderClick("apple")}
           >
-            {lastProvider === "apple" && <LastProviderBadge provider="apple" />}
+            {lastProvider === "apple" && !pendingProvider && (
+              <LastProviderBadge />
+            )}
             {pendingProvider === "apple" ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
@@ -185,7 +178,7 @@ export function LoginForm({
   );
 }
 
-const LastProviderBadge = ({ provider }: { provider: OAuthProvider }) => {
+const LastProviderBadge = () => {
   return (
     <Badge className="absolute -right-2 -top-2 px-2 uppercase leading-none">
       Last

@@ -119,6 +119,7 @@ export default function TransfersPage() {
     onSuccess: async () => {
       toast.success(translate("delete.toast.success"));
       await utils.transactions.listTransfers.invalidate();
+      await utils.bankAccounts.list.invalidate();
       setIsDeleteOpen(false);
       setTransferToDelete(null);
     },

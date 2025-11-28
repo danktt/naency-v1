@@ -1,0 +1,82 @@
+{
+  "header": {
+    "title": "Categories",
+    "subtitle": "Manage your expense and income categories.",
+    "importButtonTitle": "Import defaults"
+  },
+  "tabs": {
+    "expenses": "Expenses",
+    "incomes": "Incomes",
+    "all": "All"
+  },
+  "table": {
+    "headers": {
+      "category": "Category",
+      "type": "Type",
+      "status": "Status"
+    },
+    "empty": "No categories found. Import default categories to get started.",
+    "error": "Unable to load categories at this time.",
+    "subcategory": "subcategory",
+    "subcategories": "subcategories"
+  },
+  "dialog": {
+    "create": {
+      "title": "Create category",
+      "description": "Add a new category to organize your transactions."
+    },
+    "edit": {
+      "title": "Edit category",
+      "description": "Update category information."
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Enter category name",
+      "type": "Type",
+      "color": "Color",
+      "icon": "Icon",
+      "iconPlaceholder": "Enter icon name",
+      "parent": "Parent category",
+      "parentPlaceholder": "Select parent category (optional)",
+      "none": "None"
+    },
+    "actions": {
+      "create": "Create",
+      "update": "Update",
+      "cancel": "Cancel"
+    }
+  },
+  "importDialog": {
+    "title": "Import default categories",
+    "description": "Import predefined categories to get started quickly.",
+    "overwriteLabel": "Overwrite existing categories",
+    "overwriteWarning": "This will delete all existing categories. Enable overwrite to continue.",
+    "submit": "Import",
+    "cancel": "Cancel"
+  },
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "restore": "Restore",
+    "create": "Create category",
+    "createSubcategory": "Create subcategory",
+    "moreActions": "More actions"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "toasts": {
+    "createSuccess": "Category created successfully.",
+    "createError": "Unable to create category.",
+    "updateSuccess": "Category updated successfully.",
+    "updateError": "Unable to update category.",
+    "deleteSuccess": "Category deleted successfully.",
+    "deleteError": "Unable to delete category.",
+    "restoreSuccess": "Category restored successfully.",
+    "restoreError": "Unable to restore category.",
+    "importSuccess": "Categories imported successfully.",
+    "importError": "Unable to import categories.",
+    "importSkipped": "Categories already exist. Enable overwrite to import."
+  }
+}

@@ -1,18 +1,24 @@
+"use client";
+
 import {
   IconCalendar,
   IconCircle,
   IconCreditCard,
-  IconEdit,
-  IconEye,
+  IconDotsVertical,
   IconRepeat,
-  IconTrash,
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
-import type { TFunction } from "i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import { cn } from "@/lib/utils";
@@ -31,14 +37,21 @@ type IncomeColumnsOptions = {
   getAccountName?: (income: IncomeTableRow) => string | null;
 };
 
-type CreateIncomeColumnsParams = IncomeColumnsOptions & {
-  t: TFunction<"incomes">;
+type CreateIncomeColumnsParams = IncomeColumnsOptions;
+
+const PAYMENT_METHODS: Record<string, string> = {
+  pix: "Pix",
+  transfer: "Transferência",
+  debit: "Débito",
+  credit: "Crédito",
+  cash: "Dinheiro",
+  boleto: "Boleto",
+  investment: "Investimento",
 };
 
-export function createIncomeColumns({
-  t,
-  ...options
-}: CreateIncomeColumnsParams): ColumnDef<IncomeTableRow>[] {
+export function createIncomeColumns(
+  options: CreateIncomeColumnsParams,
+): ColumnDef<IncomeTableRow>[] {
   const {
     onViewIncome,
     onEditIncome,
@@ -52,7 +65,7 @@ export function createIncomeColumns({
   const columns: ColumnDef<IncomeTableRow>[] = [
     {
       accessorKey: "dateAndStatus",
-      header: t("table.columns.date"),
+      header: "Data",
       cell: ({ row }) => {
         const tx = row.original;
 
@@ -98,14 +111,14 @@ export function createIncomeColumns({
         return (
           <div className="flex items-center gap-2 text-muted-foreground">
             <IconCalendar className="size-4" />
-            <span>{t("table.noDate")}</span>
+            <span>Sem data</span>
           </div>
         );
       },
     },
     {
       id: "status",
-      header: t("table.columns.status"),
+      header: "Status",
       cell: ({ row }) => {
         const tx = row.original;
 
@@ -126,7 +139,6 @@ export function createIncomeColumns({
             | "paidLate"
             | "paidEarly"
             | "paid";
-          type PaymentStatusKey = `table.status.${PaymentStatus}`;
 
           const normalizeDate = (value: Date) =>
             new Date(
@@ -175,7 +187,13 @@ export function createIncomeColumns({
             paid: "fill-success text-success",
           };
 
-          const statusKey: PaymentStatusKey = `table.status.${paymentStatus}`;
+          const statusLabels: Record<PaymentStatus, string> = {
+            pending: "Pendente",
+            paidOnTime: "Recebido",
+            paidLate: "Recebido",
+            paidEarly: "Recebido",
+            paid: "Recebido",
+          };
 
           badgeClass = paymentClassMap[paymentStatus];
           badgeIcon = (
@@ -186,22 +204,19 @@ export function createIncomeColumns({
               )}
             />
           );
-          badgeLabel = t(statusKey);
+          badgeLabel = statusLabels[paymentStatus];
         } else if (isInstallment) {
           badgeClass =
             "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
           badgeIcon = (
             <IconCreditCard className="size-3 text-amber-500 shrink-0" />
           );
-          badgeLabel = t("table.type.installment", {
-            current: tx.installmentNumber,
-            total: tx.totalInstallments,
-          });
+          badgeLabel = `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
         } else if (isRecurring) {
           badgeClass =
             "border-blue-400/40 bg-blue-400/10 text-blue-500 flex items-center gap-1";
           badgeIcon = <IconRepeat className="size-3 text-blue-500 shrink-0" />;
-          badgeLabel = t("table.type.recurring");
+          badgeLabel = "Recorrente";
         }
 
         return (
@@ -216,7 +231,7 @@ export function createIncomeColumns({
     },
     {
       accessorKey: "amount",
-      header: t("table.columns.amount"),
+      header: "Valor",
       cell: ({ row }) => {
         const amount = Number(row.getValue("amount"));
         return (
@@ -228,7 +243,7 @@ export function createIncomeColumns({
     },
     {
       accessorKey: "paidAt",
-      header: t("table.columns.paidAt"),
+      header: "Data de recebimento",
       cell: ({ row }) => {
         const isPaid = row.original.isPaid;
         const paidAt = row.original.paidAt
@@ -236,7 +251,7 @@ export function createIncomeColumns({
           : null;
 
         if (!isPaid) {
-          return <Badge variant="muted">{t("table.status.notPaidYet")}</Badge>;
+          return <Badge variant="muted">Não recebido</Badge>;
         }
 
         return (
@@ -248,7 +263,7 @@ export function createIncomeColumns({
     },
     {
       accessorKey: "description",
-      header: t("table.columns.description"),
+      header: "Descrição",
       cell: ({ row }) => (
         <p
           className="max-w-[200px] truncate capitalize"
@@ -260,30 +275,38 @@ export function createIncomeColumns({
     },
     {
       accessorKey: "accountName",
-      header: t("table.columns.account"),
+      header: "Conta",
       cell: ({ row }) => {
         const account =
           getAccountName?.(row.original) ?? row.original.accountName;
-        if (!account) return t("table.noData");
+
+        if (row.original.method === "credit") {
+          return (
+            <Badge variant="outline">{PAYMENT_METHODS.credit}</Badge>
+          );
+        }
+
+        if (!account) return "-";
         return <Badge variant="muted">{account as string}</Badge>;
       },
     },
     {
       accessorKey: "categoryName",
-      header: t("table.columns.category"),
+      header: "Categoria",
       cell: ({ row }) => {
         const category =
           getCategoryMeta?.(row.original) ?? row.original.categoryName;
-        if (!category) return t("table.noData");
+        if (!category) return "-";
         return <Badge variant="muted">{category as string}</Badge>;
       },
     },
     {
       accessorKey: "method",
-      header: t("table.columns.method"),
+      header: "Forma de pagamento",
       cell: ({ row }) => {
-        const key = `form.paymentMethods.${row.original.method}` as const;
-        return <Badge variant="muted">{t(key)}</Badge>;
+        const method = row.original.method;
+        const label = method ? PAYMENT_METHODS[method] : "-";
+        return <Badge variant="muted">{label}</Badge>;
       },
     },
   ];
@@ -291,41 +314,42 @@ export function createIncomeColumns({
   if (hasActions) {
     columns.push({
       id: "actions",
-      header: t("table.columns.actions"),
+      header: "Ações",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          {onViewIncome && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => onViewIncome(row.original)}
-              title={t("table.actions.view")}
+              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+              size="icon"
             >
-              <IconEye className="size-4" />
+              <IconDotsVertical className="size-4" />
+              <span className="sr-only">Abrir menu</span>
             </Button>
-          )}
-          {onEditIncome && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEditIncome(row.original)}
-              title={t("table.actions.edit")}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              disabled={!onEditIncome}
+              onSelect={(event) => {
+                event.preventDefault();
+                onEditIncome?.(row.original);
+              }}
             >
-              <IconEdit className="size-4" />
-            </Button>
-          )}
-          {onDeleteIncome && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDeleteIncome(row.original)}
-              title={t("table.actions.delete")}
-              className="text-destructive hover:text-destructive"
+              Editar receita
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={!onDeleteIncome}
+              onSelect={(event) => {
+                event.preventDefault();
+                onDeleteIncome?.(row.original);
+              }}
             >
-              <IconTrash className="size-4" />
-            </Button>
-          )}
-        </div>
+              Excluir receita
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     });
   }

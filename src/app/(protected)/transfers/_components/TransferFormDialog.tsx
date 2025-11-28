@@ -191,10 +191,13 @@ export function TransferFormDialog({
     }
   };
 
+  const utils = trpc.useUtils();
+
   const createMutation = trpc.transactions.createTransfer.useMutation({
     onSuccess: async () => {
       toast.success(translate("form.toast.createSuccess"));
       handleOpenChange(false);
+      await utils.bankAccounts.list.invalidate();
       await onSuccess?.();
     },
     onError: (err) => {
@@ -206,6 +209,7 @@ export function TransferFormDialog({
     onSuccess: async () => {
       toast.success(translate("form.toast.updateSuccess"));
       handleOpenChange(false);
+      await utils.bankAccounts.list.invalidate();
       await onSuccess?.();
     },
     onError: (err) => {

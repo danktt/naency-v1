@@ -24,6 +24,7 @@ type NumberInputCounterProps = {
   onBlur?: React.FocusEventHandler<HTMLInputElement>;
   name?: string;
   minValue?: number;
+  maxValue?: number;
   disabled?: boolean;
   inputProps?: React.ComponentProps<typeof Input>;
 };
@@ -39,6 +40,7 @@ const NumberInputCounter = React.forwardRef<
       onBlur,
       name,
       minValue = 0,
+      maxValue,
       disabled = false,
       inputProps,
     },
@@ -49,7 +51,11 @@ const NumberInputCounter = React.forwardRef<
 
     const handleIncrement = () => {
       const current = parsedValue ?? minValue;
-      onChange(Math.max(minValue, current + 1));
+      const nextValue = current + 1;
+      if (maxValue !== undefined && nextValue > maxValue) {
+        return;
+      }
+      onChange(nextValue);
     };
 
     const handleDecrement = () => {
@@ -69,7 +75,11 @@ const NumberInputCounter = React.forwardRef<
 
       const numericValue = Number(nextValue);
       if (!Number.isNaN(numericValue)) {
-        onChange(numericValue);
+        if (maxValue !== undefined && numericValue > maxValue) {
+          onChange(maxValue);
+        } else {
+          onChange(numericValue);
+        }
       }
     };
 
@@ -99,12 +109,16 @@ const NumberInputCounter = React.forwardRef<
               inputProps?.className,
             )}
             min={minValue}
+            max={maxValue}
           />
           <button
             type="button"
             onClick={handleIncrement}
             className="-me-px flex aspect-square dark:bg-input/30 cursor-pointer h-[inherit] items-center justify-center rounded-e-md border border-input bg-background text-sm text-muted-foreground/80 transition-[color,box-shadow] hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={disabled}
+            disabled={
+              disabled ||
+              (maxValue !== undefined && (parsedValue ?? minValue) >= maxValue)
+            }
             aria-label="Increment value"
           >
             <IconPlus size={16} aria-hidden="true" />
