@@ -16,27 +16,42 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/helpers/formatCurrency";
-import { cn } from "@/lib/utils";
-import { type AccountFormValues } from "./constants";
+import { cn, getGradientFromColor } from "@/lib/utils";
 import type { CreditCard } from "./types";
-import { getGradientFromColor } from "./utils";
 
 type CreditCardCardProps = {
   card: CreditCard;
+  isSelected: boolean;
+  onSelect: () => void;
   onEdit: () => void;
   onDelete: () => void;
 };
 
-export function CreditCardCard({ card, onEdit, onDelete }: CreditCardCardProps) {
-  // We use a default color for cards or generate one
-  const gradient = getGradientFromColor("#333"); 
+export function CreditCardCard({
+  card,
+  isSelected,
+  onSelect,
+  onEdit,
+  onDelete,
+}: CreditCardCardProps) {
   const limit = Number(card.credit_limit);
   const available = Number(card.available_limit);
   const used = limit - available;
   const usagePercent = limit > 0 ? (used / limit) * 100 : 0;
+  // Generate a gradient based on a hash of the card name or brand
+  const gradient = getGradientFromColor(card.name);
 
   return (
-    <div className="group relative w-full rounded-lg border-2 border-border bg-transparent p-0 hover:border-primary/50 transition-all">
+    <button
+      type="button"
+      className={cn(
+        "group relative w-full cursor-pointer rounded-lg border-2 transition-all text-left bg-transparent p-0",
+        isSelected
+          ? "border-primary shadow-lg"
+          : "border-border hover:border-primary/50",
+      )}
+      onClick={onSelect}
+    >
       <div className="flex gap-4 p-4">
         {/* Visual Card */}
         <div
@@ -48,18 +63,16 @@ export function CreditCardCard({ card, onEdit, onDelete }: CreditCardCardProps) 
               <div className="flex size-8 items-center justify-center rounded-full bg-white/20">
                 <IconCreditCard className="size-5" />
               </div>
-              {card.brand && (
-                <div className="text-xs font-semibold uppercase opacity-80">
-                  {card.brand}
-                </div>
-              )}
+              <div className="text-xs font-semibold uppercase">
+                {card.brand || "CARD"}
+              </div>
             </div>
             <div className="space-y-2">
               <div className="text-lg font-mono font-semibold truncate">
-                •••• •••• •••• ••••
+                •••• •••• •••• {card.name.slice(0, 4).toUpperCase()}
               </div>
               <div className="space-y-1 text-xs">
-                <div className="font-medium">CARD HOLDER</div>
+                <div className="font-medium">TITULAR</div>
                 <div className="uppercase truncate">{card.name}</div>
               </div>
             </div>
@@ -71,17 +84,21 @@ export function CreditCardCard({ card, onEdit, onDelete }: CreditCardCardProps) 
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold">{card.name}</span>
+                <span className="font-semibold truncate">{card.name}</span>
                 <Badge variant="secondary" className="text-xs">
-                  Credit
+                  Crédito
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                 Closing: Day {card.closing_day ?? "-"} | Due: Day {card.due_day ?? "-"}
+                Vencimento: Dia {card.due_day ?? "-"}
               </p>
             </div>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger
+                asChild
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -91,13 +108,24 @@ export function CreditCardCard({ card, onEdit, onDelete }: CreditCardCardProps) 
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onEdit}>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                >
                   <IconPencil className="size-4" />
-                  Edit
+                  Editar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onDelete} variant="destructive">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                  variant="destructive"
+                >
                   <IconTrash className="size-4" />
-                  Delete
+                  Excluir
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -105,32 +133,33 @@ export function CreditCardCard({ card, onEdit, onDelete }: CreditCardCardProps) 
 
           <div className="space-y-3 text-sm mt-auto">
             <div className="flex justify-between items-end">
-                <div>
-                    <div className="text-xs text-muted-foreground">Available Limit</div>
-                    <div className="font-semibold text-green-600">
-                        {formatCurrency(available, card.currency as "BRL" | "USD")}
-                    </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Disponível</div>
+                <div className="font-semibold text-emerald-600">
+                  {formatCurrency(
+                    available,
+                    card.currency as "BRL" | "USD" | "EUR",
+                  )}
                 </div>
-                <div className="text-right">
-                    <div className="text-xs text-muted-foreground">Used</div>
-                    <div className="font-medium">
-                        {formatCurrency(used, card.currency as "BRL" | "USD")}
-                    </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground">Utilizado</div>
+                <div className="font-medium">
+                  {formatCurrency(used, card.currency as "BRL" | "USD" | "EUR")}
                 </div>
+              </div>
             </div>
-            
+
             <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Usage</span>
-                    <span>{Math.round(usagePercent)}%</span>
-                </div>
-                <Progress value={usagePercent} className="h-2" />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Uso do limite</span>
+                <span>{Math.round(usagePercent)}%</span>
+              </div>
+              <Progress value={usagePercent} className="h-2" />
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
-
-

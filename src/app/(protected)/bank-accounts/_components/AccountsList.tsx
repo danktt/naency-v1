@@ -3,7 +3,6 @@
 import { IconPlus, IconWallet } from "@tabler/icons-react";
 import { GlowCard } from "@/components/gloweffect";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BankAccountCard } from "./BankAccountCard";
 import type { BankAccount } from "./types";
@@ -29,8 +28,8 @@ export function AccountsList({
 }: AccountsListProps) {
   return (
     <GlowCard
-      title="Your Accounts"
-      description="Manage your bank accounts and balances."
+      title="Minhas Contas"
+      description="Gerencie seus saldos e contas bancárias."
       hasAction={
         <Button
           className="w-full gap-2"
@@ -38,7 +37,7 @@ export function AccountsList({
           variant="outline"
         >
           <IconPlus className="size-4" />
-          Add New Account
+          Nova Conta
         </Button>
       }
     >
@@ -53,7 +52,8 @@ export function AccountsList({
           <div className="py-10 text-center">
             <IconWallet className="mx-auto size-12 text-muted-foreground mb-4" />
             <p className="text-sm text-muted-foreground">
-              No bank accounts yet. Create your first account to get started.
+              Nenhuma conta cadastrada ainda. Crie sua primeira conta para
+              começar.
             </p>
             <Button
               className="mt-4 gap-2"
@@ -61,7 +61,7 @@ export function AccountsList({
               variant="outline"
             >
               <IconPlus className="size-4" />
-              Add New Account
+              Nova Conta
             </Button>
           </div>
         ) : (

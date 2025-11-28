@@ -12,9 +12,11 @@ const currencySchema = z.enum(["BRL", "USD"]);
 const createCreditCardSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome do cartão."),
   brand: z.string().trim().optional(),
-  creditLimit: z.coerce.number().min(0, "O limite deve ser maior ou igual a zero."),
-  closingDay: z.number().int().min(1).max(31).optional(),
-  dueDay: z.number().int().min(1).max(31).optional(),
+  creditLimit: z.coerce
+    .number()
+    .min(0, "O limite deve ser maior ou igual a zero."),
+  closingDay: z.number().int().min(1).max(31).nullable().optional(),
+  dueDay: z.number().int().min(1).max(31).nullable().optional(),
   currency: currencySchema.default("BRL"),
 });
 
@@ -87,11 +89,11 @@ export const creditCardsRouter = createTRPCRouter({
       // Calculate new available limit based on the difference in credit limit
       // (Simple logic: delta limit is added to available)
       // Or just reset available limit? No, that would be wrong if there are expenses.
-      // For now, assuming simple update without complex limit reconciliation logic 
+      // For now, assuming simple update without complex limit reconciliation logic
       // or just updating the limit.
       // Ideally we should fetch current usage. But since we track available_limit in DB,
       // we can adjust it by the difference.
-      
+
       const oldLimit = Number(existing.credit_limit);
       const newLimit = input.creditLimit;
       const limitDiff = newLimit - oldLimit;

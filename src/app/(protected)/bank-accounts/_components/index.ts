@@ -8,7 +8,5 @@ export { accountTypeLabels, defaultFormValues } from "./constants";
 export type { AccountFormValues, BankAccount } from "./types";
 export {
   formatAccountNumber,
-  getGradientFromColor,
   parseInitialBalance,
 } from "./utils";
-

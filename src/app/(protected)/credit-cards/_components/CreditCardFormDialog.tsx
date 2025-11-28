@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { creditCardSchema, type CreditCardFormValues } from "./types";
+import { type CreditCardFormValues, creditCardSchema } from "./types";
 
 type CreditCardFormDialogProps = {
   mode: "create" | "edit";
@@ -53,12 +53,12 @@ export function CreditCardFormDialog({
     defaultValues: initialValues,
   });
 
-  const title = mode === "create" ? "New Credit Card" : "Edit Credit Card";
+  const title = mode === "create" ? "Novo Cartão de Crédito" : "Editar Cartão";
   const description =
     mode === "create"
-      ? "Add a new credit card to manage expenses."
-      : "Update credit card details.";
-  const submitLabel = mode === "create" ? "Add Card" : "Save Changes";
+      ? "Adicione um novo cartão para gerenciar suas despesas."
+      : "Atualize os dados do cartão.";
+  const submitLabel = mode === "create" ? "Criar Cartão" : "Salvar Alterações";
 
   useEffect(() => {
     if (open) {
@@ -92,10 +92,10 @@ export function CreditCardFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Card name</FormLabel>
+                  <FormLabel>Nome do cartão</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g. Nubank Black"
+                      placeholder="ex.: Nubank Black"
                       autoComplete="off"
                       {...field}
                     />
@@ -111,10 +111,10 @@ export function CreditCardFormDialog({
                 name="brand"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Brand (Optional)</FormLabel>
+                    <FormLabel>Bandeira (Opcional)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="e.g. Mastercard"
+                        placeholder="ex.: Mastercard"
                         {...field}
                         value={field.value ?? ""}
                       />
@@ -129,16 +129,16 @@ export function CreditCardFormDialog({
                 name="currency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Currency</FormLabel>
+                    <FormLabel>Moeda</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Currency" />
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="BRL">Real (BRL)</SelectItem>
-                        <SelectItem value="USD">Dollar (USD)</SelectItem>
+                        <SelectItem value="USD">Dólar (USD)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -151,7 +151,7 @@ export function CreditCardFormDialog({
               control={form.control}
               amountName="creditLimit"
               currencyName="currency"
-              label="Credit Limit"
+              label="Limite de Crédito"
               required
             />
 
@@ -161,16 +161,16 @@ export function CreditCardFormDialog({
                 name="closingDay"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Closing Day</FormLabel>
+                    <FormLabel>Dia do Fechamento</FormLabel>
                     <FormControl>
                       <NumberInputCounter
-                         value={field.value}
-                         onChange={field.onChange}
-                         onBlur={field.onBlur}
-                         name={field.name}
-                         ref={field.ref}
-                         minValue={1}
-                         maxValue={31}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        minValue={1}
+                        maxValue={31}
                       />
                     </FormControl>
                     <FormMessage />
@@ -183,16 +183,16 @@ export function CreditCardFormDialog({
                 name="dueDay"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Due Day</FormLabel>
+                    <FormLabel>Dia do Vencimento</FormLabel>
                     <FormControl>
-                        <NumberInputCounter
-                         value={field.value}
-                         onChange={field.onChange}
-                         onBlur={field.onBlur}
-                         name={field.name}
-                         ref={field.ref}
-                         minValue={1}
-                         maxValue={31}
+                      <NumberInputCounter
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        minValue={1}
+                        maxValue={31}
                       />
                     </FormControl>
                     <FormMessage />
@@ -208,7 +208,7 @@ export function CreditCardFormDialog({
                 onClick={() => handleOpenChange(false)}
                 disabled={isLoading}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button type="submit" isLoading={isLoading}>
                 {submitLabel}
@@ -220,5 +220,3 @@ export function CreditCardFormDialog({
     </Dialog>
   );
 }
-
-

@@ -9,7 +9,9 @@ import type { CreditCard } from "./types";
 
 type CreditCardsListProps = {
   cards: CreditCard[];
+  selectedCardId: string | null;
   isLoading: boolean;
+  onSelectCard: (card: CreditCard) => void;
   onEditCard: (card: CreditCard) => void;
   onDeleteCard: (card: CreditCard) => void;
   onCreateCard: () => void;
@@ -17,15 +19,17 @@ type CreditCardsListProps = {
 
 export function CreditCardsList({
   cards,
+  selectedCardId,
   isLoading,
+  onSelectCard,
   onEditCard,
   onDeleteCard,
   onCreateCard,
 }: CreditCardsListProps) {
   return (
     <GlowCard
-      title="Credit Cards"
-      description="Manage your credit cards and limits."
+      title="Meus Cartões"
+      description="Gerencie seus limites e faturas."
       hasAction={
         <Button
           className="w-full gap-2"
@@ -33,7 +37,7 @@ export function CreditCardsList({
           variant="outline"
         >
           <IconPlus className="size-4" />
-          Add New Card
+          Novo Cartão
         </Button>
       }
     >
@@ -48,7 +52,7 @@ export function CreditCardsList({
           <div className="py-10 text-center">
             <IconCreditCard className="mx-auto size-12 text-muted-foreground mb-4" />
             <p className="text-sm text-muted-foreground">
-              No credit cards yet.
+              Nenhum cartão cadastrado ainda.
             </p>
             <Button
               className="mt-4 gap-2"
@@ -56,7 +60,7 @@ export function CreditCardsList({
               variant="outline"
             >
               <IconPlus className="size-4" />
-              Add New Card
+              Novo Cartão
             </Button>
           </div>
         ) : (
@@ -65,6 +69,8 @@ export function CreditCardsList({
               <CreditCardCard
                 key={card.id}
                 card={card}
+                isSelected={selectedCardId === card.id}
+                onSelect={() => onSelectCard(card)}
                 onEdit={() => onEditCard(card)}
                 onDelete={() => onDeleteCard(card)}
               />
@@ -75,5 +81,3 @@ export function CreditCardsList({
     </GlowCard>
   );
 }
-
-

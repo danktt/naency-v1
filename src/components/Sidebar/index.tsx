@@ -62,9 +62,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: IconBuildingBank,
       },
       {
+        title: "Cartões de crédito",
+        url: "/credit-cards",
+        icon: IconCreditCard,
+      },
+      {
         title: "Provisões",
         url: "/provisions",
-        icon: IconCreditCard,
+        icon: PieChart,
       },
       {
         title: "Categorias",

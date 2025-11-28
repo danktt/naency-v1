@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  IconBuilding,
-  IconCopy,
-  IconCreditCard,
-  IconDownload,
-  IconEye,
-  IconSettings,
-  IconWallet,
-} from "@tabler/icons-react";
+import { IconCopy, IconEye } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { GlowCard } from "@/components/gloweffect";
 import { Badge } from "@/components/ui/badge";
@@ -33,11 +25,11 @@ export function AccountDetailsPanel({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Account Details</CardTitle>
+          <CardTitle>Detalhes da Conta</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Select an account to view details
+            Selecione uma conta para ver os detalhes
           </p>
         </CardContent>
       </Card>
@@ -50,13 +42,16 @@ export function AccountDetailsPanel({
 
   const handleCopyAccountNumber = () => {
     navigator.clipboard.writeText(account.id);
-    toast.success("Account ID copied to clipboard");
+    toast.success("ID da conta copiado para a área de transferência");
   };
 
   return (
     <div className="space-y-6">
       {/* Account Details */}
-      <GlowCard title="Account Details" description="View your account details">
+      <GlowCard
+        title="Detalhes da Conta"
+        description="Veja os detalhes da sua conta"
+      >
         <div className="space-y-6">
           <div>
             <p className="text-2xl font-semibold">
@@ -65,13 +60,13 @@ export function AccountDetailsPanel({
                 account.currency as AccountFormValues["currency"],
               )}
             </p>
-            <p className="text-sm text-muted-foreground">Current Balance</p>
+            <p className="text-sm text-muted-foreground">Saldo Atual</p>
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                Account Type
+                Tipo da Conta
               </span>
               <span className="font-medium">
                 {accountTypeLabels[account.type as AccountFormValues["type"]] ??
@@ -80,13 +75,13 @@ export function AccountDetailsPanel({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                Account Name
+                Nome da Conta
               </span>
               <span className="font-medium">{account.name}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                Account Number
+                Número da Conta
               </span>
               <div className="flex items-center gap-2">
                 <span className="font-mono font-medium">{accountNumber}</span>
@@ -100,15 +95,15 @@ export function AccountDetailsPanel({
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Currency</span>
+              <span className="text-sm text-muted-foreground">Moeda</span>
               <span className="font-medium">{account.currency}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Status</span>
-              <Badge variant="success">Active</Badge>
+              <Badge variant="success">Ativa</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Created At</span>
+              <span className="text-sm text-muted-foreground">Criada em</span>
               <span className="font-medium">
                 {formatDate(account.created_at)}
               </span>
@@ -117,36 +112,12 @@ export function AccountDetailsPanel({
 
           <div className="flex gap-2 pt-2">
             <Button variant="outline" className="flex-1" onClick={onEdit}>
-              <IconEye className="size-4" />
-              Edit account
+              <IconEye className="size-4 mr-2" />
+              Editar conta
             </Button>
           </div>
         </div>
       </GlowCard>
-
-      {/* Quick Actions */}
-      {/* <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Quick Actions</CardTitle>
-            <IconSettings className="size-5 text-muted-foreground" />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Button variant="outline" className="w-full justify-start">
-            <IconWallet className="size-4" />
-            Set as Default
-          </Button>
-          <Button variant="outline" className="w-full justify-start">
-            <IconBuilding className="size-4" />
-            Update Details
-          </Button>
-          <Button variant="outline" className="w-full justify-start">
-            <IconDownload className="size-4" />
-            Download Statement
-          </Button>
-        </CardContent>
-      </Card> */}
     </div>
   );
 }

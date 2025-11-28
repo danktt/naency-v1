@@ -2,7 +2,6 @@
 
 import {
   IconCreditCard,
-  IconShield,
   IconTrendingUp,
   IconWallet,
 } from "@tabler/icons-react";
@@ -26,25 +25,25 @@ export function StatisticsCards({
     <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <GridItem
         icon={<IconWallet className="size-5" />}
-        title="Total Balance"
+        title="Saldo Total"
         value={formatCurrency(totalBalance, "BRL")}
-        description="Across all accounts"
+        description="Em todas as contas"
         iconContainerClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400"
       />
 
       <GridItem
         icon={<IconCreditCard className="size-5" />}
-        title="Active Accounts"
+        title="Contas Ativas"
         value={`${activeAccounts}/${totalAccounts}`}
-        description="All accounts active"
+        description="Todas as contas ativas"
         iconContainerClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
       />
 
       <GridItem
         icon={<IconTrendingUp className="size-5" />}
-        title="Average Balance"
+        title="Saldo Médio"
         value={formatCurrency(averageBalance, "BRL")}
-        description="Per account"
+        description="Por conta"
         iconContainerClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
       />
     </section>

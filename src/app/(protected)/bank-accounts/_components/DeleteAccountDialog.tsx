@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import type { BankAccount } from "./types";
 
 type DeleteAccountDialogProps = {
@@ -32,13 +32,11 @@ export function DeleteAccountDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete account</AlertDialogTitle>
+          <AlertDialogTitle>Excluir conta</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. Do you really want to delete the
-            account{" "}
-            <span className="font-medium">
-              {account?.name ?? "this account"}
-            </span>
+            Essa ação não pode ser desfeita. Você realmente deseja excluir a
+            conta{" "}
+            <span className="font-medium">{account?.name ?? "esta conta"}</span>
             ?
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -49,7 +47,7 @@ export function DeleteAccountDialog({
               disabled={isLoading}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              Cancelar
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
@@ -58,7 +56,7 @@ export function DeleteAccountDialog({
               onClick={onConfirm}
               isLoading={isLoading}
             >
-              Delete
+              Excluir
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -66,4 +64,3 @@ export function DeleteAccountDialog({
     </AlertDialog>
   );
 }
-

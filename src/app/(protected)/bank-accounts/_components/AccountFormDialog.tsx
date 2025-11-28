@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { accountSchema, type AccountFormValues } from "./types";
+import { type AccountFormValues, accountSchema } from "./types";
 
 type AccountFormDialogProps = {
   mode: "create" | "edit";
@@ -53,12 +53,12 @@ export function AccountFormDialog({
     defaultValues: initialValues,
   });
 
-  const title = mode === "create" ? "New Account" : "Edit Account";
+  const title = mode === "create" ? "Nova Conta" : "Editar Conta";
   const description =
     mode === "create"
-      ? "Create a new bank account for this financial group."
-      : "Update the bank account information.";
-  const submitLabel = mode === "create" ? "Create Account" : "Save Changes";
+      ? "Crie uma nova conta bancária para este grupo."
+      : "Atualize as informações da conta bancária.";
+  const submitLabel = mode === "create" ? "Criar Conta" : "Salvar Alterações";
 
   useEffect(() => {
     if (open) {
@@ -100,10 +100,10 @@ export function AccountFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Account name</FormLabel>
+                  <FormLabel>Nome da conta</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="My main account"
+                      placeholder="Minha conta principal"
                       autoComplete="off"
                       {...field}
                     />
@@ -118,16 +118,16 @@ export function AccountFormDialog({
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type</FormLabel>
+                  <FormLabel>Tipo</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Pick a type" />
+                        <SelectValue placeholder="Selecione um tipo" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="checking">Checking</SelectItem>
-                      <SelectItem value="investment">Investment</SelectItem>
+                      <SelectItem value="checking">Corrente</SelectItem>
+                      <SelectItem value="investment">Investimento</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -139,7 +139,7 @@ export function AccountFormDialog({
               control={form.control}
               amountName="initialBalance"
               currencyName="currency"
-              label="Initial Balance"
+              label="Saldo Inicial"
               required
             />
 
@@ -148,7 +148,7 @@ export function AccountFormDialog({
               name="color"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Color</FormLabel>
+                  <FormLabel>Cor</FormLabel>
                   <FormControl>
                     <div className="flex items-center gap-3">
                       <Input
@@ -176,7 +176,7 @@ export function AccountFormDialog({
                 onClick={() => handleOpenChange(false)}
                 disabled={isLoading}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button type="submit" isLoading={isLoading}>
                 {submitLabel}
@@ -188,4 +188,3 @@ export function AccountFormDialog({
     </Dialog>
   );
 }
-

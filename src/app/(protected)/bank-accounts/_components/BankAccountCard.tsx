@@ -16,12 +16,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
-import { cn } from "@/lib/utils";
+import { cn, getGradientFromColor } from "@/lib/utils";
 import { accountTypeLabels } from "./constants";
 import type { AccountFormValues, BankAccount } from "./types";
 import {
   formatAccountNumber,
-  getGradientFromColor,
   parseInitialBalance,
 } from "./utils";
 
