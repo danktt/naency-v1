@@ -4,13 +4,15 @@ import { Tab, Tabs } from "@heroui/tabs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
 import type { inferRouterOutputs } from "@trpc/server";
-import { format } from "date-fns";
+import { addMonths, format, setDate, startOfDay } from "date-fns";
+// ... existing imports ...
 import { ptBR } from "date-fns/locale";
 import { AnimatePresence, motion } from "framer-motion";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { CreditCardDetail } from "@/components/CreditCardDetail";
 import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
 import { CategoriesSelect } from "@/components/Selects/CategoriesSelect";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatCurrency } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
@@ -334,11 +337,48 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const hasAccounts = (accountsQuery.data?.length ?? 0) > 0;
   const hasCreditCards = (creditCardsQuery.data?.length ?? 0) > 0;
   const method = form.watch("method");
+  const creditCardId = form.watch("creditCardId");
+  const dateValue = form.watch("date");
+  const amount = form.watch("amount");
+
+  const selectedCard = React.useMemo(() => {
+    return creditCardsQuery.data?.find((card) => card.id === creditCardId);
+  }, [creditCardsQuery.data, creditCardId]);
+
+  const estimatedDueDate = React.useMemo(() => {
+    if (!selectedCard || !dateValue) return null;
+    const closingDay = selectedCard.closing_day;
+    const dueDay = selectedCard.due_day;
+
+    if (!closingDay || !dueDay) return null;
+
+    const purchaseDate = startOfDay(dateValue);
+
+    // Se a data da compra for antes ou igual ao dia de fechamento, a fatura é do mês atual (vencimento no próximo mês)
+    // Se for depois, a fatura é do próximo mês (vencimento em 2 meses)
+    // Nota: Isso é uma simplificação. O fechamento geralmente pega compras até o dia X.
+    // Se fechamento é 25. Compra dia 20 -> Fatura fecha dia 25 -> Vence dia 5 (prox mes).
+    // Compra dia 26 -> Fatura fecha dia 25 (do prox mes) -> Vence dia 5 (2 meses).
+
+    let dueDate = setDate(purchaseDate, dueDay);
+
+    // Se a compra for feita APÓS o fechamento, ela só entra na fatura seguinte
+    if (purchaseDate.getDate() > closingDay) {
+      dueDate = addMonths(dueDate, 2);
+    } else {
+      dueDate = addMonths(dueDate, 1);
+    }
+
+    return dueDate;
+  }, [selectedCard, dateValue]);
+
+  const showCreditCardDetail = method === "credit" && !!selectedCard;
 
   const invalidateTransactionsData = React.useCallback(async () => {
     await Promise.all([
       utils.transactions.list.invalidate({ type: "expense" }),
       utils.transactions.metrics.invalidate(),
+      utils.bankAccounts.list.invalidate(),
     ]);
   }, [utils]);
 
@@ -378,7 +418,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const isUnique = modeValue === "unique";
   const isInstallment = modeValue === "installment";
   const isRecurring = modeValue === "recurring";
-  const dateValue = form.watch("date");
 
   React.useEffect(() => {
     if (!dialogOpen || isEditing) {
@@ -467,495 +506,597 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
       <DialogContent
         className={cn(
-          "flex w-full flex-col p-0 sm:max-w-3xl",
+          "flex w-full flex-col p-0 transition-all duration-300",
           "max-h-[90vh] sm:max-h-[calc(100vh-4rem)]",
+          showCreditCardDetail ? "sm:max-w-5xl" : "sm:max-w-3xl",
         )}
       >
-        <motion.div layout className="flex flex-1 flex-col overflow-hidden">
+        <motion.div layout className="flex flex-1 overflow-hidden">
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="flex flex-1 flex-col min-h-0"
-            >
-              {/* Header */}
-              <div className="sm:px-4 px-4 pt-6 pb-4 space-y-4 shrink-0">
-                <DialogHeader className="px-0 text-left">
-                  <DialogTitle>
-                    {isEditing ? "Editar despesa" : "Criar despesa"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {isEditing
-                      ? "Atualize as informações abaixo para editar esta despesa."
-                      : "Preencha as informações abaixo para registrar uma despesa."}
-                  </DialogDescription>
-                </DialogHeader>
+            <div className="flex flex-1 min-h-0">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="flex flex-1 flex-col min-h-0"
+              >
+                {/* Header */}
+                <div className="sm:px-4 px-4 pt-6 pb-4 space-y-4 shrink-0">
+                  <DialogHeader className="px-0 text-left">
+                    <DialogTitle>
+                      {isEditing ? "Editar despesa" : "Criar despesa"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {isEditing
+                        ? "Atualize as informações abaixo para editar esta despesa."
+                        : "Preencha as informações abaixo para registrar uma despesa."}
+                    </DialogDescription>
+                  </DialogHeader>
 
-                {/* Mode Tabs */}
-                <FormField
-                  control={form.control}
-                  name="mode"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm font-medium">
-                        Tipo de transação
-                      </FormLabel>
-                      <FormControl>
-                        <Tabs
-                          selectedKey={field.value}
-                          onSelectionChange={(value) => {
-                            if (isEditing) return;
-                            field.onChange(
-                              value as CreateExpenseFormValues["mode"],
-                            );
-                          }}
-                          fullWidth
-                        >
-                          <Tab
-                            key="unique"
-                            disabled={isEditing}
-                            title="Única"
-                          />
-                          <Tab
-                            key="installment"
-                            disabled={isEditing}
-                            title="Parcelada"
-                          />
-                          <Tab
-                            key="recurring"
-                            disabled={isEditing}
-                            title="Recorrente"
-                          />
-                        </Tabs>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Scrollable Content */}
-              <ScrollArea className="flex-1 sm:px-4 px-4 overflow-y-auto">
-                <div className="space-y-6 px-1 pb-1">
-                  {/* === Dates Section === */}
-                  <section className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Defina quando esta despesa deve ser paga ou iniciar a
-                      recorrência.
-                    </p>
-                    <AnimatePresence initial={false} mode="wait">
-                      {isUnique && (
-                        <motion.div key="unique" {...motionProps}>
-                          <FormField
-                            control={form.control}
-                            name="date"
-                            render={({ field }) => {
-                              const selectedDate = field.value;
-                              return (
-                                <FormItem>
-                                  <FormLabel>Data de pagamento</FormLabel>
-                                  <FormControl>
-                                    <Popover
-                                      open={isDatePopoverOpen}
-                                      onOpenChange={setIsDatePopoverOpen}
-                                    >
-                                      <PopoverTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !selectedDate &&
-                                              "text-muted-foreground",
-                                          )}
-                                          disabled={isSubmitting}
-                                        >
-                                          <IconCalendar className="mr-2 h-4 w-4" />
-                                          {selectedDate
-                                            ? format(selectedDate, "PPP", {
-                                                locale,
-                                              })
-                                            : "Selecione uma data"}
-                                          <IconChevronDown className="ml-auto h-4 w-4" />
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent
-                                        className="w-auto p-0"
-                                        align="start"
-                                      >
-                                        <Calendar
-                                          mode="single"
-                                          selected={selectedDate}
-                                          onSelect={(next) => {
-                                            if (next) {
-                                              field.onChange(next);
-                                              setIsDatePopoverOpen(false);
-                                            }
-                                          }}
-                                          defaultMonth={
-                                            selectedDate ?? dateRange.to
-                                          }
-                                          locale={locale}
-                                        />
-                                      </PopoverContent>
-                                    </Popover>
-                                  </FormControl>
-                                </FormItem>
+                  {/* Mode Tabs */}
+                  <FormField
+                    control={form.control}
+                    name="mode"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-sm font-medium">
+                          Tipo de transação
+                        </FormLabel>
+                        <FormControl>
+                          <Tabs
+                            selectedKey={field.value}
+                            onSelectionChange={(value) => {
+                              if (isEditing) return;
+                              field.onChange(
+                                value as CreateExpenseFormValues["mode"],
                               );
                             }}
-                          />
-                        </motion.div>
-                      )}
+                            fullWidth
+                          >
+                            <Tab
+                              key="unique"
+                              disabled={isEditing}
+                              title="Única"
+                            />
+                            <Tab
+                              key="installment"
+                              disabled={isEditing}
+                              title="Parcelada"
+                            />
+                            <Tab
+                              key="recurring"
+                              disabled={isEditing}
+                              title="Recorrente"
+                            />
+                          </Tabs>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                      {isInstallment && (
-                        <motion.div
-                          key="installment"
-                          {...motionProps}
-                          className="grid gap-4 sm:grid-cols-2"
-                        >
-                          <FormField
-                            control={form.control}
-                            name="date"
-                            render={({ field }) => {
-                              const selectedDate = field.value;
-                              return (
+                {/* Scrollable Content */}
+                <ScrollArea className="flex-1 sm:px-4 px-4 overflow-y-auto">
+                  <div className="space-y-6 px-1 pb-1">
+                    {/* === Dates Section === */}
+                    <section className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        Defina quando esta despesa deve ser paga ou iniciar a
+                        recorrência.
+                      </p>
+                      <AnimatePresence initial={false} mode="wait">
+                        {isUnique && (
+                          <motion.div key="unique" {...motionProps}>
+                            <FormField
+                              control={form.control}
+                              name="date"
+                              render={({ field }) => {
+                                const selectedDate = field.value;
+                                return (
+                                  <FormItem>
+                                    <FormLabel>Data de pagamento</FormLabel>
+                                    <FormControl>
+                                      <Popover
+                                        open={isDatePopoverOpen}
+                                        onOpenChange={setIsDatePopoverOpen}
+                                      >
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            className={cn(
+                                              "w-full justify-start text-left font-normal",
+                                              !selectedDate &&
+                                                "text-muted-foreground",
+                                            )}
+                                            disabled={isSubmitting}
+                                          >
+                                            <IconCalendar className="mr-2 h-4 w-4" />
+                                            {selectedDate
+                                              ? format(selectedDate, "PPP", {
+                                                  locale,
+                                                })
+                                              : "Selecione uma data"}
+                                            <IconChevronDown className="ml-auto h-4 w-4" />
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                          className="w-auto p-0"
+                                          align="start"
+                                        >
+                                          <Calendar
+                                            mode="single"
+                                            selected={selectedDate}
+                                            onSelect={(next) => {
+                                              if (next) {
+                                                field.onChange(next);
+                                                setIsDatePopoverOpen(false);
+                                              }
+                                            }}
+                                            defaultMonth={
+                                              selectedDate ?? dateRange.to
+                                            }
+                                            locale={locale}
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                    </FormControl>
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                          </motion.div>
+                        )}
+
+                        {isInstallment && (
+                          <motion.div
+                            key="installment"
+                            {...motionProps}
+                            className="grid gap-4 sm:grid-cols-2"
+                          >
+                            <FormField
+                              control={form.control}
+                              name="date"
+                              render={({ field }) => {
+                                const selectedDate = field.value;
+                                return (
+                                  <FormItem>
+                                    <FormLabel>
+                                      Data da primeira parcela
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Popover
+                                        open={isDatePopoverOpen}
+                                        onOpenChange={setIsDatePopoverOpen}
+                                      >
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            className={cn(
+                                              "w-full justify-start text-left font-normal",
+                                              !selectedDate &&
+                                                "text-muted-foreground",
+                                            )}
+                                            disabled={isSubmitting}
+                                          >
+                                            <IconCalendar className="mr-2 h-4 w-4" />
+                                            {selectedDate
+                                              ? format(selectedDate, "PPP", {
+                                                  locale,
+                                                })
+                                              : "Selecione uma data"}
+                                            <IconChevronDown className="ml-auto h-4 w-4" />
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                          className="w-auto p-0"
+                                          align="start"
+                                        >
+                                          <Calendar
+                                            mode="single"
+                                            selected={selectedDate}
+                                            onSelect={(next) => {
+                                              if (next) {
+                                                field.onChange(next);
+                                                setIsDatePopoverOpen(false);
+                                              }
+                                            }}
+                                            defaultMonth={
+                                              selectedDate ?? dateRange.to
+                                            }
+                                            locale={locale}
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                    </FormControl>
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="totalInstallments"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Total de parcelas</FormLabel>
+                                  <FormControl>
+                                    <NumberInputCounter
+                                      value={field.value}
+                                      onChange={field.onChange}
+                                      onBlur={field.onBlur}
+                                      name={field.name}
+                                      ref={field.ref}
+                                      minValue={2}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </motion.div>
+                        )}
+
+                        {isRecurring && (
+                          <motion.div
+                            key="recurring"
+                            {...motionProps}
+                            className="grid gap-4 sm:grid-cols-2 md:grid-cols-3"
+                          >
+                            <FormField
+                              control={form.control}
+                              name="recurrenceType"
+                              render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>
-                                    Data da primeira parcela
+                                    Frequência da recorrência
                                   </FormLabel>
-                                  <FormControl>
-                                    <Popover
-                                      open={isDatePopoverOpen}
-                                      onOpenChange={setIsDatePopoverOpen}
-                                    >
-                                      <PopoverTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !selectedDate &&
-                                              "text-muted-foreground",
-                                          )}
-                                          disabled={isSubmitting}
-                                        >
-                                          <IconCalendar className="mr-2 h-4 w-4" />
-                                          {selectedDate
-                                            ? format(selectedDate, "PPP", {
-                                                locale,
-                                              })
-                                            : "Selecione uma data"}
-                                          <IconChevronDown className="ml-auto h-4 w-4" />
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent
-                                        className="w-auto p-0"
-                                        align="start"
-                                      >
-                                        <Calendar
-                                          mode="single"
-                                          selected={selectedDate}
-                                          onSelect={(next) => {
-                                            if (next) {
-                                              field.onChange(next);
-                                              setIsDatePopoverOpen(false);
-                                            }
-                                          }}
-                                          defaultMonth={
-                                            selectedDate ?? dateRange.to
-                                          }
-                                          locale={locale}
-                                        />
-                                      </PopoverContent>
-                                    </Popover>
-                                  </FormControl>
-                                </FormItem>
-                              );
-                            }}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="totalInstallments"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Total de parcelas</FormLabel>
-                                <FormControl>
-                                  <NumberInputCounter
+                                  <Select
                                     value={field.value}
-                                    onChange={field.onChange}
-                                    onBlur={field.onBlur}
-                                    name={field.name}
-                                    ref={field.ref}
-                                    minValue={2}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </motion.div>
-                      )}
+                                    onValueChange={field.onChange}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Selecione a frequência" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="daily">
+                                        Diária
+                                      </SelectItem>
+                                      <SelectItem value="weekly">
+                                        Semanal
+                                      </SelectItem>
+                                      <SelectItem value="monthly">
+                                        Mensal
+                                      </SelectItem>
+                                      <SelectItem value="yearly">
+                                        Anual
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="startDate"
+                              render={({ field }) => {
+                                const selected = field.value;
+                                return (
+                                  <FormItem>
+                                    <FormLabel>Data de início</FormLabel>
+                                    <FormControl>
+                                      <Popover
+                                        open={isStartDatePopoverOpen}
+                                        onOpenChange={setIsStartDatePopoverOpen}
+                                      >
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            className={cn(
+                                              "w-full justify-start text-left font-normal",
+                                              !selected &&
+                                                "text-muted-foreground",
+                                            )}
+                                            disabled={isSubmitting}
+                                          >
+                                            <IconCalendar className="mr-2 h-4 w-4" />
+                                            {selected
+                                              ? format(selected, "PPP", {
+                                                  locale,
+                                                })
+                                              : "Selecione uma data"}
+                                            <IconChevronDown className="ml-auto h-4 w-4" />
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                          className="w-auto p-0"
+                                          align="start"
+                                        >
+                                          <Calendar
+                                            mode="single"
+                                            selected={selected}
+                                            onSelect={(next) => {
+                                              if (next) {
+                                                field.onChange(next);
+                                                setIsStartDatePopoverOpen(
+                                                  false,
+                                                );
+                                              }
+                                            }}
+                                            defaultMonth={
+                                              selected ?? dateRange.to
+                                            }
+                                            locale={locale}
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                    </FormControl>
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="endDate"
+                              render={({ field }) => {
+                                const selected = field.value;
+                                return (
+                                  <FormItem>
+                                    <FormLabel>
+                                      Data de término (opcional)
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Popover
+                                        open={isEndDatePopoverOpen}
+                                        onOpenChange={setIsEndDatePopoverOpen}
+                                      >
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            className={cn(
+                                              "w-full justify-start text-left font-normal",
+                                              !selected &&
+                                                "text-muted-foreground",
+                                            )}
+                                            disabled={isSubmitting}
+                                          >
+                                            <IconCalendar className="mr-2 h-4 w-4" />
+                                            {selected
+                                              ? format(selected, "PPP", {
+                                                  locale,
+                                                })
+                                              : "Selecione uma data"}
+                                            <IconChevronDown className="ml-auto h-4 w-4" />
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                          className="w-auto p-0"
+                                          align="start"
+                                        >
+                                          <Calendar
+                                            mode="single"
+                                            selected={selected}
+                                            onSelect={(next) => {
+                                              field.onChange(next ?? null);
+                                              setIsEndDatePopoverOpen(false);
+                                            }}
+                                            defaultMonth={
+                                              selected ??
+                                              form.getValues("startDate") ??
+                                              dateRange.to
+                                            }
+                                            locale={locale}
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </section>
 
-                      {isRecurring && (
-                        <motion.div
-                          key="recurring"
-                          {...motionProps}
-                          className="grid gap-4 sm:grid-cols-2 md:grid-cols-3"
-                        >
+                    {/* === Details Section === */}
+                    <section className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        Forneça as informações principais para acompanhar e
+                        reportar esta despesa.
+                      </p>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <FieldCurrencyAmount
+                          control={form.control}
+                          amountName="amount"
+                          currencyName="currency"
+                          label="Valor"
+                          required
+                        />
+                        {method === "credit" ? (
                           <FormField
                             control={form.control}
-                            name="recurrenceType"
+                            name="creditCardId"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Frequência da recorrência</FormLabel>
+                                <FormLabel>
+                                  Cartão de crédito{" "}
+                                  <span className="text-destructive">*</span>
+                                </FormLabel>
                                 <Select
-                                  value={field.value}
                                   onValueChange={field.onChange}
+                                  onOpenChange={(openState) =>
+                                    !openState && field.onBlur()
+                                  }
+                                  value={field.value}
+                                  disabled={
+                                    creditCardsQuery.isLoading ||
+                                    !hasCreditCards ||
+                                    isSubmitting
+                                  }
                                 >
                                   <FormControl>
                                     <SelectTrigger className="w-full">
-                                      <SelectValue placeholder="Selecione a frequência" />
+                                      <SelectValue
+                                        placeholder={
+                                          creditCardsQuery.isLoading
+                                            ? "Carregando cartões..."
+                                            : hasCreditCards
+                                              ? "Selecione um cartão"
+                                              : "Nenhum cartão cadastrado"
+                                        }
+                                      />
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="daily">
-                                      Diária
-                                    </SelectItem>
-                                    <SelectItem value="weekly">
-                                      Semanal
-                                    </SelectItem>
-                                    <SelectItem value="monthly">
-                                      Mensal
-                                    </SelectItem>
-                                    <SelectItem value="yearly">
-                                      Anual
-                                    </SelectItem>
+                                    {creditCardsQuery.data?.map((card) => (
+                                      <SelectItem key={card.id} value={card.id}>
+                                        {card.name}
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
+                                <FormMessage />
+                                {selectedCard && (
+                                  <div className="mt-2 text-xs text-muted-foreground space-y-1 rounded-md bg-muted/50 p-2 md:hidden">
+                                    <div className="flex justify-between">
+                                      <span>Limite disponível:</span>
+                                      <span
+                                        className={cn(
+                                          Number(selectedCard.available_limit) <
+                                            0
+                                            ? "text-destructive"
+                                            : "text-emerald-600",
+                                        )}
+                                      >
+                                        {formatCurrency(
+                                          Number(selectedCard.available_limit),
+                                          selectedCard.currency as
+                                            | "BRL"
+                                            | "USD"
+                                            | "EUR",
+                                        )}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Limite total:</span>
+                                      <span>
+                                        {formatCurrency(
+                                          Number(selectedCard.credit_limit),
+                                          selectedCard.currency as
+                                            | "BRL"
+                                            | "USD"
+                                            | "EUR",
+                                        )}
+                                      </span>
+                                    </div>
+                                    {estimatedDueDate && (
+                                      <div className="flex justify-between pt-1 border-t border-border/50">
+                                        <span>Previsão de débito:</span>
+                                        <span className="font-medium text-primary">
+                                          {format(
+                                            estimatedDueDate,
+                                            "dd/MM/yyyy",
+                                            { locale },
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </FormItem>
                             )}
                           />
+                        ) : (
                           <FormField
                             control={form.control}
-                            name="startDate"
-                            render={({ field }) => {
-                              const selected = field.value;
-                              return (
-                                <FormItem>
-                                  <FormLabel>Data de início</FormLabel>
+                            name="accountId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Conta{" "}
+                                  <span className="text-destructive">*</span>
+                                </FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  onOpenChange={(openState) =>
+                                    !openState && field.onBlur()
+                                  }
+                                  value={field.value}
+                                  disabled={
+                                    accountsQuery.isLoading ||
+                                    !hasAccounts ||
+                                    isSubmitting
+                                  }
+                                >
                                   <FormControl>
-                                    <Popover
-                                      open={isStartDatePopoverOpen}
-                                      onOpenChange={setIsStartDatePopoverOpen}
-                                    >
-                                      <PopoverTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !selected &&
-                                              "text-muted-foreground",
-                                          )}
-                                          disabled={isSubmitting}
-                                        >
-                                          <IconCalendar className="mr-2 h-4 w-4" />
-                                          {selected
-                                            ? format(selected, "PPP", {
-                                                locale,
-                                              })
-                                            : "Selecione uma data"}
-                                          <IconChevronDown className="ml-auto h-4 w-4" />
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent
-                                        className="w-auto p-0"
-                                        align="start"
-                                      >
-                                        <Calendar
-                                          mode="single"
-                                          selected={selected}
-                                          onSelect={(next) => {
-                                            if (next) {
-                                              field.onChange(next);
-                                              setIsStartDatePopoverOpen(false);
-                                            }
-                                          }}
-                                          defaultMonth={
-                                            selected ?? dateRange.to
-                                          }
-                                          locale={locale}
-                                        />
-                                      </PopoverContent>
-                                    </Popover>
+                                    <SelectTrigger className="w-full">
+                                      <SelectValue
+                                        placeholder={
+                                          accountsQuery.isLoading
+                                            ? "Carregando contas..."
+                                            : hasAccounts
+                                              ? "Selecione uma conta"
+                                              : "Nenhuma conta cadastrada"
+                                        }
+                                      />
+                                    </SelectTrigger>
                                   </FormControl>
-                                </FormItem>
-                              );
-                            }}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="endDate"
-                            render={({ field }) => {
-                              const selected = field.value;
-                              return (
-                                <FormItem>
-                                  <FormLabel>
-                                    Data de término (opcional)
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Popover
-                                      open={isEndDatePopoverOpen}
-                                      onOpenChange={setIsEndDatePopoverOpen}
-                                    >
-                                      <PopoverTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !selected &&
-                                              "text-muted-foreground",
-                                          )}
-                                          disabled={isSubmitting}
-                                        >
-                                          <IconCalendar className="mr-2 h-4 w-4" />
-                                          {selected
-                                            ? format(selected, "PPP", {
-                                                locale,
-                                              })
-                                            : "Selecione uma data"}
-                                          <IconChevronDown className="ml-auto h-4 w-4" />
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent
-                                        className="w-auto p-0"
-                                        align="start"
+                                  <SelectContent>
+                                    {accountsQuery.data?.map((account) => (
+                                      <SelectItem
+                                        key={account.id}
+                                        value={account.id}
                                       >
-                                        <Calendar
-                                          mode="single"
-                                          selected={selected}
-                                          onSelect={(next) => {
-                                            field.onChange(next ?? null);
-                                            setIsEndDatePopoverOpen(false);
-                                          }}
-                                          defaultMonth={
-                                            selected ??
-                                            form.getValues("startDate") ??
-                                            dateRange.to
-                                          }
-                                          locale={locale}
-                                        />
-                                      </PopoverContent>
-                                    </Popover>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              );
-                            }}
+                                        {account.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </section>
-
-                  {/* === Details Section === */}
-                  <section className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Forneça as informações principais para acompanhar e
-                      reportar esta despesa.
-                    </p>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FieldCurrencyAmount
-                        control={form.control}
-                        amountName="amount"
-                        currencyName="currency"
-                        label="Valor"
-                        required
-                      />
-                      {method === "credit" ? (
+                        )}
                         <FormField
                           control={form.control}
-                          name="creditCardId"
+                          name="description"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                Cartão de crédito{" "}
-                                <span className="text-destructive">*</span>
-                              </FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                onOpenChange={(openState) =>
-                                  !openState && field.onBlur()
-                                }
-                                value={field.value}
-                                disabled={
-                                  creditCardsQuery.isLoading ||
-                                  !hasCreditCards ||
-                                  isSubmitting
-                                }
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="w-full">
-                                    <SelectValue
-                                      placeholder={
-                                        creditCardsQuery.isLoading
-                                          ? "Carregando cartões..."
-                                          : hasCreditCards
-                                            ? "Selecione um cartão"
-                                            : "Nenhum cartão cadastrado"
-                                      }
-                                    />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {creditCardsQuery.data?.map((card) => (
-                                    <SelectItem key={card.id} value={card.id}>
-                                      {card.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Descrição</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="ex.: Aluguel, contas, fornecedores..."
+                                  autoComplete="off"
+                                  {...field}
+                                />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                      ) : (
                         <FormField
                           control={form.control}
-                          name="accountId"
+                          name="method"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>
-                                Conta{" "}
-                                <span className="text-destructive">*</span>
-                              </FormLabel>
+                              <FormLabel>Forma de pagamento</FormLabel>
                               <Select
-                                onValueChange={field.onChange}
-                                onOpenChange={(openState) =>
-                                  !openState && field.onBlur()
-                                }
                                 value={field.value}
-                                disabled={
-                                  accountsQuery.isLoading ||
-                                  !hasAccounts ||
-                                  isSubmitting
-                                }
+                                onValueChange={field.onChange}
+                                disabled={isSubmitting}
                               >
                                 <FormControl>
                                   <SelectTrigger className="w-full">
-                                    <SelectValue
-                                      placeholder={
-                                        accountsQuery.isLoading
-                                          ? "Carregando contas..."
-                                          : hasAccounts
-                                            ? "Selecione uma conta"
-                                            : "Nenhuma conta cadastrada"
-                                      }
-                                    />
+                                    <SelectValue placeholder="Selecione uma forma" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {accountsQuery.data?.map((account) => (
+                                  {paymentMethodOptions.map((option) => (
                                     <SelectItem
-                                      key={account.id}
-                                      value={account.id}
+                                      key={option.value}
+                                      value={option.value}
                                     >
-                                      {account.name}
+                                      {option.label}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -964,147 +1105,127 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                             </FormItem>
                           )}
                         />
-                      )}
+                        <FormField
+                          control={form.control}
+                          name="categoryId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Categoria</FormLabel>
+                              <FormControl>
+                                <CategoriesSelect
+                                  type="expense"
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </section>
+
+                    {/* === Extras Section === */}
+                    <section className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        Adicione detalhes opcionais ou informações de apoio para
+                        esta despesa.
+                      </p>
                       <FormField
                         control={form.control}
-                        name="description"
+                        name="attachmentUrl"
                         render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>Descrição</FormLabel>
+                          <FormItem>
+                            <FormLabel>Comprovante (URL)</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="ex.: Aluguel, contas, fornecedores..."
-                                autoComplete="off"
+                                type="url"
+                                placeholder="https://example.com/receipt"
                                 {...field}
+                                value={field.value ?? ""}
+                                disabled={isFormDisabled || isSubmitting}
                               />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="method"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Forma de pagamento</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              disabled={isSubmitting}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Selecione uma forma" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {paymentMethodOptions.map((option) => (
-                                  <SelectItem
-                                    key={option.value}
-                                    value={option.value}
-                                  >
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="categoryId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Categoria</FormLabel>
-                            <FormControl>
-                              <CategoriesSelect
-                                type="expense"
-                                value={field.value}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </section>
+                    </section>
+                  </div>
+                </ScrollArea>
 
-                  {/* === Extras Section === */}
-                  <section className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Adicione detalhes opcionais ou informações de apoio para
-                      esta despesa.
-                    </p>
-                    <FormField
-                      control={form.control}
-                      name="attachmentUrl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Comprovante (URL)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="url"
-                              placeholder="https://example.com/receipt"
-                              {...field}
-                              value={field.value ?? ""}
-                              disabled={isFormDisabled || isSubmitting}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </section>
-                </div>
-              </ScrollArea>
-
-              {/* === Footer === */}
-              <div className="sm:px-4 px-4 py-4 rounded-b-lg">
-                <div className="flex sm:flex-row flex-col gap-4">
-                  {!isEditing && (
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id={keepOpenId}
-                        checked={keepOpen}
-                        onCheckedChange={(value) => setKeepOpen(Boolean(value))}
-                        disabled={isSubmitting}
-                      />
-                      <FormLabel
-                        htmlFor={keepOpenId}
-                        className="text-sm text-muted-foreground whitespace-nowrap"
-                      >
-                        Manter aberto
-                      </FormLabel>
-                    </div>
-                  )}
-                  <DialogFooter className="flex w-full flex-col-reverse gap-2 px-0 sm:flex-row sm:items-center sm:justify-end">
-                    <DialogClose asChild>
+                {/* === Footer === */}
+                <div className="sm:px-4 px-4 py-4 rounded-b-lg">
+                  <div className="flex sm:flex-row flex-col gap-4">
+                    {!isEditing && (
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={keepOpenId}
+                          checked={keepOpen}
+                          onCheckedChange={(value) =>
+                            setKeepOpen(Boolean(value))
+                          }
+                          disabled={isSubmitting}
+                        />
+                        <FormLabel
+                          htmlFor={keepOpenId}
+                          className="text-sm text-muted-foreground whitespace-nowrap"
+                        >
+                          Manter aberto
+                        </FormLabel>
+                      </div>
+                    )}
+                    <DialogFooter className="flex w-full flex-col-reverse gap-2 px-0 sm:flex-row sm:items-center sm:justify-end">
+                      <DialogClose asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1 sm:flex-none"
+                          disabled={isSubmitting}
+                        >
+                          Cancelar
+                        </Button>
+                      </DialogClose>
                       <Button
-                        type="button"
-                        variant="outline"
+                        type="submit"
                         className="flex-1 sm:flex-none"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isFormDisabled}
+                        isLoading={isSubmitting}
                       >
-                        Cancelar
+                        {isEditing ? "Salvar alterações" : "Criar"}
                       </Button>
-                    </DialogClose>
-                    <Button
-                      type="submit"
-                      className="flex-1 sm:flex-none"
-                      disabled={isSubmitting || isFormDisabled}
-                      isLoading={isSubmitting}
-                    >
-                      {isEditing ? "Salvar alterações" : "Criar"}
-                    </Button>
-                  </DialogFooter>
+                    </DialogFooter>
+                  </div>
                 </div>
-              </div>
-            </form>
+              </form>
+              <AnimatePresence>
+                {showCreditCardDetail && selectedCard && (
+                  <motion.div
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 320, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    className="hidden md:block border-l bg-muted/10 overflow-hidden"
+                  >
+                    <div className="w-[320px] h-full overflow-y-auto">
+                      <CreditCardDetail
+                        name={selectedCard.name}
+                        brand={selectedCard.brand}
+                        creditLimit={Number(selectedCard.credit_limit)}
+                        availableLimit={Number(selectedCard.available_limit)}
+                        currency={
+                          selectedCard.currency as "BRL" | "USD" | "EUR"
+                        }
+                        closingDay={selectedCard.closing_day}
+                        dueDay={selectedCard.due_day}
+                        transactionAmount={amount ? amount / 100 : 0}
+                        className="h-full"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </Form>
         </motion.div>
       </DialogContent>

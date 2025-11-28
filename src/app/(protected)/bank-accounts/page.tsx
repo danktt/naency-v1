@@ -142,7 +142,11 @@ export default function BankAccountsPage() {
     }
 
     const totalBalance = accounts.reduce((sum, account) => {
-      return sum + parseInitialBalance(account.initial_balance);
+      return (
+        sum +
+        (account.current_balance ??
+          parseInitialBalance(account.initial_balance))
+      );
     }, 0);
 
     const activeAccounts = accounts.length;

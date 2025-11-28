@@ -5,6 +5,7 @@ import {
   eq,
   gte,
   inArray,
+  isNotNull,
   isNull,
   lt,
   lte,
@@ -703,13 +704,15 @@ export const transactionsRouter = createTRPCRouter({
         [monthIncomeAggregate],
         [monthExpenseAggregate],
         [pendingPaymentsRow],
-        [previousIncomeAggregate],
-        [previousExpenseAggregate],
+        // Unused legacy aggregates
+        [],
+        [],
         monthlyTrendResult,
         expenseDistributionRows,
         [paymentStatusIncomeRow],
         [paymentStatusExpenseRow],
         [initialBalanceAggregate],
+        [cashFlowResult],
       ] = await Promise.all([
         ctx.db
           .select({
@@ -726,7 +729,7 @@ export const transactionsRouter = createTRPCRouter({
             and(
               ...monthConditions,
               eq(transactions.type, "expense"),
-              isNull(transactions.credit_bill_id),
+              isNotNull(transactions.account_id),
             ),
           ),
         ctx.db
@@ -734,7 +737,13 @@ export const transactionsRouter = createTRPCRouter({
             count: sql<number>`count(*)`,
           })
           .from(transactions)
-          .where(and(...monthConditions, eq(transactions.is_paid, false))),
+          .where(
+            and(
+              ...monthConditions,
+              eq(transactions.is_paid, false),
+              isNotNull(transactions.account_id),
+            ),
+          ),
         ctx.db
           .select({
             total: sum(transactions.amount),
@@ -757,7 +766,7 @@ export const transactionsRouter = createTRPCRouter({
               eq(transactions.group_id, groupId),
               eq(transactions.type, "expense"),
               lt(transactions.date, monthStart),
-              isNull(transactions.credit_bill_id),
+              isNotNull(transactions.account_id),
             ),
           ),
         ctx.db.execute(
@@ -769,7 +778,7 @@ export const transactionsRouter = createTRPCRouter({
             SELECT
               TO_CHAR(DATE_TRUNC('month', t.date), 'YYYY-MM') AS month,
               SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END) AS incomes,
-              SUM(CASE WHEN t.type = 'expense' AND t.credit_bill_id IS NULL THEN t.amount ELSE 0 END) AS expenses
+              SUM(CASE WHEN t.type = 'expense' AND t.account_id IS NOT NULL THEN t.amount ELSE 0 END) AS expenses
             FROM transactions t
             WHERE
               t.group_id = ${groupId}
@@ -799,7 +808,7 @@ export const transactionsRouter = createTRPCRouter({
             and(
               ...monthConditions,
               eq(transactions.type, "expense"),
-              isNull(transactions.credit_bill_id),
+              isNotNull(transactions.account_id),
             ),
           )
           .groupBy(
@@ -825,24 +834,58 @@ export const transactionsRouter = createTRPCRouter({
             overdue: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = false AND ${transactions.date} < ${now} THEN 1 ELSE 0 END)`,
           })
           .from(transactions)
-          .where(and(...monthConditions, eq(transactions.type, "expense"))),
+          .where(
+            and(
+              ...monthConditions,
+              eq(transactions.type, "expense"),
+              isNotNull(transactions.account_id),
+            ),
+          ),
         ctx.db
           .select({
             total: sum(bank_accounts.initial_balance),
           })
           .from(bank_accounts)
           .where(eq(bank_accounts.group_id, groupId)),
+        // Calculate actual cash balance (Bank Accounts)
+        ctx.db
+          .select({
+            totalIncomes: sql<number>`SUM(CASE WHEN ${transactions.type} = 'income' THEN ${transactions.amount} ELSE 0 END)`,
+            totalExpenses: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END)`,
+            totalTransfersIn: sql<number>`SUM(CASE WHEN ${transactions.type} = 'transfer' AND ${transactions.to_account_id} IS NOT NULL THEN ${transactions.amount} ELSE 0 END)`, // This might double count if not careful, but simplified:
+            // Actually, for global balance, transfers within the group cancel out IF both accounts are in the group.
+            // But we can just sum all credits and debits to accounts.
+            netFlow: sql<number>`
+              SUM(
+                CASE 
+                  WHEN ${transactions.type} = 'income' AND ${transactions.account_id} IS NOT NULL THEN ${transactions.amount}
+                  WHEN ${transactions.type} = 'expense' AND ${transactions.account_id} IS NOT NULL THEN -${transactions.amount}
+                  ELSE 0
+                END
+              )
+            `,
+          })
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.group_id, groupId),
+              eq(transactions.is_paid, true),
+              lte(transactions.date, now), // Balance up to NOW? Or up to reference date? Usually Balance is "Current".
+              // If referenceDate is future, we might want projected. If referenceDate is now, it's current.
+              // Let's use referenceDate to be consistent with the view.
+            ),
+          ),
       ]);
 
       const monthIncomes = toNumber(monthIncomeAggregate?.total);
       const monthExpenses = toNumber(monthExpenseAggregate?.total);
       const monthBalance = monthIncomes - monthExpenses;
 
-      const previousIncomes = toNumber(previousIncomeAggregate?.total);
-      const previousExpenses = toNumber(previousExpenseAggregate?.total);
       const initialBalance = toNumber(initialBalanceAggregate?.total);
-      const accumulatedBalance =
-        initialBalance + previousIncomes - previousExpenses + monthBalance;
+      const totalNetFlow = toNumber(cashFlowResult?.netFlow);
+
+      // Accumulated Balance = Initial Bank Balance + Net Cash Flow (paid incomes - paid expenses)
+      const accumulatedBalance = initialBalance + totalNetFlow;
 
       const pendingPaymentsCount = toNumber(pendingPaymentsRow?.count);
 

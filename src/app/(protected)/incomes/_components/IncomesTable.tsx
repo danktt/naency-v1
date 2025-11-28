@@ -53,6 +53,7 @@ export function IncomesTable() {
     onSuccess: () => {
       toast("Receita excluída com sucesso.");
       void utils.transactions.list.invalidate(queryInput);
+      void utils.bankAccounts.list.invalidate();
       setIsDeleteDialogOpen(false);
       setIncomeToDelete(null);
     },

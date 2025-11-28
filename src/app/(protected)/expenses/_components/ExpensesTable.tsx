@@ -70,6 +70,7 @@ export function ExpensesTable() {
     onSuccess: () => {
       toast("Despesa deletada com sucesso.");
       void utils.transactions.list.invalidate(queryInput);
+      void utils.bankAccounts.list.invalidate();
       setIsDeleteDialogOpen(false);
       setExpenseToDelete(null);
     },
@@ -81,6 +82,7 @@ export function ExpensesTable() {
     onSuccess: () => {
       toast("Despesa marcada como paga.");
       void utils.transactions.list.invalidate(queryInput);
+      void utils.bankAccounts.list.invalidate();
       setIsMarkAsPaidDialogOpen(false);
       setExpenseToMarkAsPaid(null);
     },
@@ -93,6 +95,7 @@ export function ExpensesTable() {
       onSuccess: () => {
         toast("Despesa marcada como pendente.");
         void utils.transactions.list.invalidate(queryInput);
+        void utils.bankAccounts.list.invalidate();
         setIsMarkAsPendingDialogOpen(false);
         setExpenseToMarkAsPending(null);
       },

@@ -57,7 +57,6 @@ const paymentMethodValues = [
   "pix",
   "transfer",
   "debit",
-  "credit",
   "cash",
   "boleto",
   "investment",
@@ -72,7 +71,6 @@ const paymentMethodOptions: Array<{
   { value: "pix", label: "Pix" },
   { value: "transfer", label: "Transferência" },
   { value: "debit", label: "Débito" },
-  { value: "credit", label: "Crédito" },
   { value: "cash", label: "Dinheiro" },
   { value: "boleto", label: "Boleto" },
   { value: "investment", label: "Investimento" },
@@ -312,6 +310,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
     await Promise.all([
       utils.transactions.list.invalidate({ type: "income" }),
       utils.transactions.metrics.invalidate(),
+      utils.bankAccounts.list.invalidate(),
     ]);
   }, [utils]);
 

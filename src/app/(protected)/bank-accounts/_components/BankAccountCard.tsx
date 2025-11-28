@@ -17,8 +17,8 @@ import {
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import { cn } from "@/lib/utils";
-import { type AccountFormValues, accountTypeLabels } from "./constants";
-import type { BankAccount } from "./types";
+import { accountTypeLabels } from "./constants";
+import type { AccountFormValues, BankAccount } from "./types";
 import {
   formatAccountNumber,
   getGradientFromColor,
@@ -40,7 +40,8 @@ export function BankAccountCard({
   onEdit,
   onDelete,
 }: BankAccountCardProps) {
-  const balance = parseInitialBalance(account.initial_balance);
+  const balance =
+    account.current_balance ?? parseInitialBalance(account.initial_balance);
   const gradient = getGradientFromColor(account.color ?? "#6366F1");
   const accountNumber = formatAccountNumber(account.id);
 

@@ -44,7 +44,8 @@ export function AccountDetailsPanel({
     );
   }
 
-  const balance = parseInitialBalance(account.initial_balance);
+  const balance =
+    account.current_balance ?? parseInitialBalance(account.initial_balance);
   const accountNumber = formatAccountNumber(account.id);
 
   const handleCopyAccountNumber = () => {
