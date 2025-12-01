@@ -49,20 +49,13 @@ const metricConfigs: Array<{
 ];
 
 export default function ExpensesPage() {
-  const dateRange = useDateStore((state) => state.dateRange);
-
-  const metricsQueryInput = React.useMemo(
-    () => ({
-      dateRange: {
-        from: dateRange.from,
-        to: dateRange.to,
-      },
-    }),
-    [dateRange.from, dateRange.to],
-  );
+  const { from, to } = useDateStore((state) => state.dateRange);
 
   const { data: metricsData, isLoading: isMetricsLoading } =
-    trpc.transactions.metrics.useQuery(metricsQueryInput);
+    trpc.transactions.metrics.useQuery({
+      dateRange: { from, to },
+      excludeCreditCard: true,
+    });
 
   const totalsByKey: Record<MetricKey, number> = React.useMemo(
     () => ({
@@ -87,7 +80,7 @@ export default function ExpensesPage() {
           </p>
         </div>
         <div>
-          <ExpensesForm />
+          <ExpensesForm excludeCreditCard />
         </div>
       </section>
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

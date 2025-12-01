@@ -24,14 +24,8 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
               <div className="flex items-center  px-4 justify-between w-full">
                 <div className="flex items-center gap-2">
                   <SidebarTrigger className="-ml-1" />
-                  <Separator
-                    orientation="vertical"
-                    className="mr-2 data-[orientation=vertical]:h-4"
-                  />
-                  <BreadcrumbComponent />
                 </div>
                 <div className="ml-auto flex items-center gap-2">
-                  <LanguageSwitcher />
                   <DatePicker />
                   <ToggleTheme />
                 </div>

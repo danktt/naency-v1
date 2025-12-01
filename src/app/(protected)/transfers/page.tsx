@@ -71,7 +71,7 @@ export default function TransfersPage() {
 
   const monthFormatter = React.useMemo(
     () =>
-      new Intl.DateTimeFormat(effectiveLanguage ?? "en-US", {
+      new Intl.DateTimeFormat(effectiveLanguage ?? "pt-BR", {
         month: "long",
       }),
     [effectiveLanguage],

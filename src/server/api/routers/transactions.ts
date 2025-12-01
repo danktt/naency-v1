@@ -6,9 +6,9 @@ import {
   gte,
   inArray,
   isNotNull,
-  isNull,
   lt,
   lte,
+  ne,
   or,
   type SQL,
   sql,
@@ -117,12 +117,14 @@ const listTransactionsSchema = z
     type: transactionTypeSchema.default("income"),
     limit: z.number().int().min(1).max(100).optional(),
     dateRange: dateRangeSchema.optional(),
+    excludeCreditCard: z.boolean().optional(),
   })
   .optional();
 
 const metricsInputSchema = z
   .object({
     dateRange: dateRangeSchema.optional(),
+    excludeCreditCard: z.boolean().optional(),
   })
   .optional();
 
@@ -318,7 +320,9 @@ export const transactionsRouter = createTRPCRouter({
         whereConditions.push(gte(transactions.date, dateRange.from));
         whereConditions.push(lte(transactions.date, dateRange.to));
       }
-
+      if (type === "expense") {
+        whereConditions.push(ne(transactions.method, "credit"));
+      }
       const fromAccount = alias(bank_accounts, "from_account");
       const toAccount = alias(bank_accounts, "to_account");
 
@@ -416,6 +420,7 @@ export const transactionsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
       const dateRange = input?.dateRange;
+      const excludeCreditCard = input?.excludeCreditCard;
 
       const buildConditions = (type: "income" | "expense") => {
         const conditions = [
@@ -426,6 +431,10 @@ export const transactionsRouter = createTRPCRouter({
         if (dateRange) {
           conditions.push(gte(transactions.date, dateRange.from));
           conditions.push(lte(transactions.date, dateRange.to));
+        }
+
+        if (excludeCreditCard) {
+          conditions.push(ne(transactions.method, "credit"));
         }
 
         return and(...conditions);

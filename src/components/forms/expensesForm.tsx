@@ -5,13 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
 import type { inferRouterOutputs } from "@trpc/server";
 import { addMonths, format, setDate, startOfDay } from "date-fns";
-// ... existing imports ...
 import { ptBR } from "date-fns/locale";
 import { AnimatePresence, motion } from "framer-motion";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+// ... existing imports ...
 import { CreditCardDetail } from "@/components/CreditCardDetail";
 import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
 import { CategoriesSelect } from "@/components/Selects/CategoriesSelect";
@@ -92,6 +92,7 @@ type ExpensesFormProps = {
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
   onSuccess?: () => void;
+  excludeCreditCard?: boolean;
 };
 
 const createExpenseFormSchema = () =>
@@ -244,7 +245,15 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     onOpenChange,
     trigger,
     onSuccess,
+    excludeCreditCard,
   } = props;
+
+  const filteredPaymentMethods = React.useMemo(() => {
+    if (excludeCreditCard) {
+      return paymentMethodOptions.filter((m) => m.value !== "credit");
+    }
+    return paymentMethodOptions;
+  }, [excludeCreditCard]);
 
   const hasExpense = Boolean(expense);
   const derivedMode: ExpenseFormMode =
@@ -537,9 +546,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                     name="mode"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel className="text-sm font-medium">
-                          Tipo de transação
-                        </FormLabel>
                         <FormControl>
                           <Tabs
                             selectedKey={field.value}
@@ -579,10 +585,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                   <div className="space-y-6 px-1 pb-1">
                     {/* === Dates Section === */}
                     <section className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        Defina quando esta despesa deve ser paga ou iniciar a
-                        recorrência.
-                      </p>
                       <AnimatePresence initial={false} mode="wait">
                         {isUnique && (
                           <motion.div key="unique" {...motionProps}>
@@ -799,7 +801,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                           >
                                             <IconCalendar className="mr-2 h-4 w-4" />
                                             {selected
-                                              ? format(selected, "PPP", {
+                                              ? format(selected, "PP", {
                                                   locale,
                                                 })
                                               : "Selecione uma data"}
@@ -860,7 +862,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                           >
                                             <IconCalendar className="mr-2 h-4 w-4" />
                                             {selected
-                                              ? format(selected, "PPP", {
+                                              ? format(selected, "PP", {
                                                   locale,
                                                 })
                                               : "Selecione uma data"}
@@ -900,10 +902,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
                     {/* === Details Section === */}
                     <section className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        Forneça as informações principais para acompanhar e
-                        reportar esta despesa.
-                      </p>
                       <div className="grid gap-4 md:grid-cols-2">
                         <FieldCurrencyAmount
                           control={form.control}
@@ -972,8 +970,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                           Number(selectedCard.available_limit),
                                           selectedCard.currency as
                                             | "BRL"
-                                            | "USD"
-                                            | "EUR",
+                                            | "USD",
                                         )}
                                       </span>
                                     </div>
@@ -984,8 +981,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                           Number(selectedCard.credit_limit),
                                           selectedCard.currency as
                                             | "BRL"
-                                            | "USD"
-                                            | "EUR",
+                                            | "USD",
                                         )}
                                       </span>
                                     </div>
@@ -1091,7 +1087,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {paymentMethodOptions.map((option) => (
+                                  {filteredPaymentMethods.map((option) => (
                                     <SelectItem
                                       key={option.value}
                                       value={option.value}
@@ -1128,10 +1124,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
                     {/* === Extras Section === */}
                     <section className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        Adicione detalhes opcionais ou informações de apoio para
-                        esta despesa.
-                      </p>
                       <FormField
                         control={form.control}
                         name="attachmentUrl"

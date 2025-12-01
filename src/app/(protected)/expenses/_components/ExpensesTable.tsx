@@ -60,6 +60,7 @@ export function ExpensesTable() {
         from: dateRange.from,
         to: dateRange.to,
       },
+      excludeCreditCard: true,
     }),
     [dateRange],
   );
