@@ -1,18 +1,5 @@
 "use client";
 
-import { Tab, Tabs } from "@heroui/tabs";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
-import type { inferRouterOutputs } from "@trpc/server";
-import { addMonths, format, setDate, startOfDay } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { AnimatePresence, motion } from "framer-motion";
-import * as React from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-// ... existing imports ...
-import { CreditCardDetail } from "@/components/CreditCardDetail";
 import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
 import { CategoriesSelect } from "@/components/Selects/CategoriesSelect";
 import { Button } from "@/components/ui/button";
@@ -48,11 +35,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { useDateStore } from "@/stores/useDateStore";
+import { Tab, Tabs } from "@heroui/tabs";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
+import type { inferRouterOutputs } from "@trpc/server";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { AnimatePresence, motion } from "framer-motion";
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { Checkbox } from "../ui/checkbox";
 import { ScrollArea } from "../ui/scroll-area";
 
@@ -60,7 +57,6 @@ const paymentMethodValues = [
   "pix",
   "transfer",
   "debit",
-  "credit",
   "cash",
   "boleto",
   "investment",
@@ -75,7 +71,6 @@ const paymentMethodOptions: Array<{
   { value: "pix", label: "Pix" },
   { value: "transfer", label: "Transferência" },
   { value: "debit", label: "Débito" },
-  { value: "credit", label: "Crédito" },
   { value: "cash", label: "Dinheiro" },
   { value: "boleto", label: "Boleto" },
   { value: "investment", label: "Investimento" },
@@ -92,7 +87,7 @@ type ExpensesFormProps = {
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
   onSuccess?: () => void;
-  excludeCreditCard?: boolean;
+  excludeCreditCard?: boolean; // Kept for compatibility but effectively always true now
 };
 
 const createExpenseFormSchema = () =>
@@ -103,7 +98,6 @@ const createExpenseFormSchema = () =>
       currency: z.enum(["BRL", "USD", "EUR"]),
       date: z.date(),
       accountId: z.string().optional(),
-      creditCardId: z.string().optional(),
       categoryId: z.string().min(1, "Selecione uma categoria."),
       method: z.enum(paymentMethodValues),
       attachmentUrl: z
@@ -112,7 +106,8 @@ const createExpenseFormSchema = () =>
         .refine(
           (value) => value.length === 0 || isValidUrl(value),
           "Informe uma URL válida.",
-        ),
+        )
+        .optional(),
       mode: z.enum(["unique", "installment", "recurring"]),
       totalInstallments: z
         .number()
@@ -136,22 +131,12 @@ const createExpenseFormSchema = () =>
         });
       }
 
-      if (data.method === "credit") {
-        if (!data.creditCardId) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["creditCardId"],
-            message: "Selecione um cartão de crédito.",
-          });
-        }
-      } else {
-        if (!data.accountId) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["accountId"],
-            message: "Selecione uma conta.",
-          });
-        }
+      if (!data.accountId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["accountId"],
+          message: "Selecione uma conta.",
+        });
       }
     });
 
@@ -173,7 +158,6 @@ const getDefaultValues = (
     currency: "BRL",
     date,
     accountId: "",
-    creditCardId: "",
     categoryId: "",
     method: "pix",
     attachmentUrl: "",
@@ -226,9 +210,8 @@ function mapExpenseToDefaultValues(
     amount: Number.isNaN(amountInCents) ? 0 : amountInCents,
     date: expense.date ? new Date(expense.date) : new Date(),
     accountId: expense.accountId ?? "",
-    creditCardId: expense.creditCardId ?? "",
     categoryId: expense.categoryId ?? "",
-    method: expense.method,
+    method: expense.method as PaymentMethodValue,
     attachmentUrl: expense.attachmentUrl ?? "",
     mode,
     totalInstallments: expense.totalInstallments ?? 2,
@@ -245,15 +228,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     onOpenChange,
     trigger,
     onSuccess,
-    excludeCreditCard,
   } = props;
-
-  const filteredPaymentMethods = React.useMemo(() => {
-    if (excludeCreditCard) {
-      return paymentMethodOptions.filter((m) => m.value !== "credit");
-    }
-    return paymentMethodOptions;
-  }, [excludeCreditCard]);
 
   const hasExpense = Boolean(expense);
   const derivedMode: ExpenseFormMode =
@@ -339,49 +314,8 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     enabled: dialogOpen,
   });
 
-  const creditCardsQuery = trpc.creditCards.list.useQuery(undefined, {
-    enabled: dialogOpen,
-  });
-
   const hasAccounts = (accountsQuery.data?.length ?? 0) > 0;
-  const hasCreditCards = (creditCardsQuery.data?.length ?? 0) > 0;
-  const method = form.watch("method");
-  const creditCardId = form.watch("creditCardId");
   const dateValue = form.watch("date");
-  const amount = form.watch("amount");
-
-  const selectedCard = React.useMemo(() => {
-    return creditCardsQuery.data?.find((card) => card.id === creditCardId);
-  }, [creditCardsQuery.data, creditCardId]);
-
-  const estimatedDueDate = React.useMemo(() => {
-    if (!selectedCard || !dateValue) return null;
-    const closingDay = selectedCard.closing_day;
-    const dueDay = selectedCard.due_day;
-
-    if (!closingDay || !dueDay) return null;
-
-    const purchaseDate = startOfDay(dateValue);
-
-    // Se a data da compra for antes ou igual ao dia de fechamento, a fatura é do mês atual (vencimento no próximo mês)
-    // Se for depois, a fatura é do próximo mês (vencimento em 2 meses)
-    // Nota: Isso é uma simplificação. O fechamento geralmente pega compras até o dia X.
-    // Se fechamento é 25. Compra dia 20 -> Fatura fecha dia 25 -> Vence dia 5 (prox mes).
-    // Compra dia 26 -> Fatura fecha dia 25 (do prox mes) -> Vence dia 5 (2 meses).
-
-    let dueDate = setDate(purchaseDate, dueDay);
-
-    // Se a compra for feita APÓS o fechamento, ela só entra na fatura seguinte
-    if (purchaseDate.getDate() > closingDay) {
-      dueDate = addMonths(dueDate, 2);
-    } else {
-      dueDate = addMonths(dueDate, 1);
-    }
-
-    return dueDate;
-  }, [selectedCard, dateValue]);
-
-  const showCreditCardDetail = method === "credit" && !!selectedCard;
 
   const invalidateTransactionsData = React.useCallback(async () => {
     await Promise.all([
@@ -421,7 +355,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const isSubmitting = isEditing
     ? updateExpenseMutation.isPending
     : createExpenseMutation.isPending;
-  const isFormDisabled = method === "credit" ? !hasCreditCards : !hasAccounts;
+  const isFormDisabled = !hasAccounts;
 
   const modeValue = form.watch("mode");
   const isUnique = modeValue === "unique";
@@ -458,14 +392,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
       const payload = {
         type: "expense" as const,
-        accountId:
-          values.method === "credit"
-            ? undefined
-            : values.accountId || undefined,
-        creditCardId:
-          values.method === "credit"
-            ? values.creditCardId || undefined
-            : undefined,
+        accountId: values.accountId || undefined,
         categoryId: values.categoryId || undefined,
         amount: amountInCents / 100,
         description: values.description,
@@ -515,9 +442,8 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
       <DialogContent
         className={cn(
-          "flex w-full flex-col p-0 transition-all duration-300",
+          "flex w-full flex-col p-0 transition-all duration-300 sm:max-w-3xl",
           "max-h-[90vh] sm:max-h-[calc(100vh-4rem)]",
-          showCreditCardDetail ? "sm:max-w-5xl" : "sm:max-w-3xl",
         )}
       >
         <motion.div layout className="flex flex-1 overflow-hidden">
@@ -902,7 +828,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
                     {/* === Details Section === */}
                     <section className="space-y-2">
-                      <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-4 md:grid-cols-2 items-start">
                         <FieldCurrencyAmount
                           control={form.control}
                           amountName="amount"
@@ -910,149 +836,55 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                           label="Valor"
                           required
                         />
-                        {method === "credit" ? (
-                          <FormField
-                            control={form.control}
-                            name="creditCardId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  Cartão de crédito{" "}
-                                  <span className="text-destructive">*</span>
-                                </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  onOpenChange={(openState) =>
-                                    !openState && field.onBlur()
-                                  }
-                                  value={field.value}
-                                  disabled={
-                                    creditCardsQuery.isLoading ||
-                                    !hasCreditCards ||
-                                    isSubmitting
-                                  }
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="w-full">
-                                      <SelectValue
-                                        placeholder={
-                                          creditCardsQuery.isLoading
-                                            ? "Carregando cartões..."
-                                            : hasCreditCards
-                                              ? "Selecione um cartão"
-                                              : "Nenhum cartão cadastrado"
-                                        }
-                                      />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {creditCardsQuery.data?.map((card) => (
-                                      <SelectItem key={card.id} value={card.id}>
-                                        {card.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                {selectedCard && (
-                                  <div className="mt-2 text-xs text-muted-foreground space-y-1 rounded-md bg-muted/50 p-2 md:hidden">
-                                    <div className="flex justify-between">
-                                      <span>Limite disponível:</span>
-                                      <span
-                                        className={cn(
-                                          Number(selectedCard.available_limit) <
-                                            0
-                                            ? "text-destructive"
-                                            : "text-emerald-600",
-                                        )}
-                                      >
-                                        {formatCurrency(
-                                          Number(selectedCard.available_limit),
-                                          selectedCard.currency as
-                                            | "BRL"
-                                            | "USD",
-                                        )}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Limite total:</span>
-                                      <span>
-                                        {formatCurrency(
-                                          Number(selectedCard.credit_limit),
-                                          selectedCard.currency as
-                                            | "BRL"
-                                            | "USD",
-                                        )}
-                                      </span>
-                                    </div>
-                                    {estimatedDueDate && (
-                                      <div className="flex justify-between pt-1 border-t border-border/50">
-                                        <span>Previsão de débito:</span>
-                                        <span className="font-medium text-primary">
-                                          {format(
-                                            estimatedDueDate,
-                                            "dd/MM/yyyy",
-                                            { locale },
-                                          )}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </FormItem>
-                            )}
-                          />
-                        ) : (
-                          <FormField
-                            control={form.control}
-                            name="accountId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  Conta{" "}
-                                  <span className="text-destructive">*</span>
-                                </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  onOpenChange={(openState) =>
-                                    !openState && field.onBlur()
-                                  }
-                                  value={field.value}
-                                  disabled={
-                                    accountsQuery.isLoading ||
-                                    !hasAccounts ||
-                                    isSubmitting
-                                  }
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="w-full">
-                                      <SelectValue
-                                        placeholder={
-                                          accountsQuery.isLoading
-                                            ? "Carregando contas..."
-                                            : hasAccounts
-                                              ? "Selecione uma conta"
-                                              : "Nenhuma conta cadastrada"
-                                        }
-                                      />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {accountsQuery.data?.map((account) => (
-                                      <SelectItem
-                                        key={account.id}
-                                        value={account.id}
-                                      >
-                                        {account.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
+                        <FormField
+                          control={form.control}
+                          name="accountId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Conta bancária{" "}
+                                <span className="text-destructive">*</span>
+                              </FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                onOpenChange={(openState) =>
+                                  !openState && field.onBlur()
+                                }
+                                value={field.value}
+                                disabled={
+                                  accountsQuery.isLoading ||
+                                  !hasAccounts ||
+                                  isSubmitting
+                                }
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue
+                                      placeholder={
+                                        accountsQuery.isLoading
+                                          ? "Carregando contas..."
+                                          : hasAccounts
+                                            ? "Selecione uma conta bancária"
+                                            : "Nenhuma conta bancária cadastrada"
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {accountsQuery.data?.map((account) => (
+                                    <SelectItem
+                                      key={account.id}
+                                      value={account.id}
+                                    >
+                                      {account.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <FormField
                           control={form.control}
                           name="description"
@@ -1087,7 +919,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {filteredPaymentMethods.map((option) => (
+                                  {paymentMethodOptions.map((option) => (
                                     <SelectItem
                                       key={option.value}
                                       value={option.value}
@@ -1191,32 +1023,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                   </div>
                 </div>
               </form>
-              <AnimatePresence>
-                {showCreditCardDetail && selectedCard && (
-                  <motion.div
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 320, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    className="hidden md:block border-l bg-muted/10 overflow-hidden"
-                  >
-                    <div className="w-[320px] h-full overflow-y-auto">
-                      <CreditCardDetail
-                        name={selectedCard.name}
-                        brand={selectedCard.brand}
-                        creditLimit={Number(selectedCard.credit_limit)}
-                        availableLimit={Number(selectedCard.available_limit)}
-                        currency={
-                          selectedCard.currency as "BRL" | "USD" | "EUR"
-                        }
-                        closingDay={selectedCard.closing_day}
-                        dueDay={selectedCard.due_day}
-                        transactionAmount={amount ? amount / 100 : 0}
-                        className="h-full"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
           </Form>
         </motion.div>

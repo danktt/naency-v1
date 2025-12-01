@@ -1,6 +1,4 @@
 "use client";
-
-import * as React from "react";
 import {
   Select,
   SelectContent,
@@ -8,10 +6,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import * as React from "react";
 
-const CATEGORY_EMPTY_MESSAGE = "No categories registered";
+const CATEGORY_EMPTY_MESSAGE = "Nenhuma categoria cadastrada";
 
 type CategorySource = {
   id: string;
@@ -113,7 +113,7 @@ export function CategoriesSelect({
     { type, includeInactive },
     { staleTime: 1_000 * 60 * 5 },
   );
-
+  console.log(data);
   const options = React.useMemo(() => buildCategoryOptions(data ?? []), [data]);
 
   const handleValueChange = React.useCallback(
@@ -129,21 +129,25 @@ export function CategoriesSelect({
     }
 
     if (isLoading) {
-      return "Loading categories...";
+      return "Carregando categorias...";
     }
 
     if (isError) {
-      return "Unable to load categories";
+      return "Não foi possível carregar as categorias";
     }
 
     if (!options.length) {
       return CATEGORY_EMPTY_MESSAGE;
     }
 
-    return "Select a category";
+    return "Selecione uma categoria";
   }, [placeholder, isLoading, isError, options.length]);
 
   const isSelectDisabled = disabled || isLoading;
+
+  if (isLoading) {
+    return <Skeleton className={cn("h-9 w-full", className)} />;
+  }
 
   return (
     <Select
@@ -159,20 +163,21 @@ export function CategoriesSelect({
         <SelectValue placeholder={selectPlaceholder} />
       </SelectTrigger>
       <SelectContent>
-        {isLoading ? (
-          <SelectItem value="__loading" disabled>
-            Loading categories...
-          </SelectItem>
-        ) : isError ? (
+        {isError ? (
           <SelectItem value="__error" disabled>
             Error loading categories
           </SelectItem>
         ) : options.length ? (
-          options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))
+          options.map(
+            (option) => (
+              console.log(option),
+              (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              )
+            ),
+          )
         ) : (
           <SelectItem value="__empty" disabled>
             {CATEGORY_EMPTY_MESSAGE}
