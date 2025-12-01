@@ -1,19 +1,25 @@
+"use client";
+
 import {
   IconCalendar,
   IconCircle,
   IconCreditCard,
-  IconEdit,
-  IconEye,
+  IconDotsVertical,
   IconRepeat,
-  IconTrash,
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
-import type { TFunction } from "i18next";
 import type * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import { cn } from "@/lib/utils";
@@ -28,32 +34,49 @@ type ExpenseColumnsOptions = {
   onViewExpense?: (expense: ExpenseTableRow) => void;
   onEditExpense?: (expense: ExpenseTableRow) => void;
   onDeleteExpense?: (expense: ExpenseTableRow) => void;
+  onMarkAsPaid?: (expense: ExpenseTableRow) => void;
+  onMarkAsPending?: (expense: ExpenseTableRow) => void;
   getCategoryMeta?: (expense: ExpenseTableRow) => CategoryMeta | null;
   getAccountName?: (expense: ExpenseTableRow) => string | null;
 };
 
-type CreateExpenseColumnsParams = ExpenseColumnsOptions & {
-  t: TFunction<"expenses">;
+type CreateExpenseColumnsParams = ExpenseColumnsOptions;
+
+const PAYMENT_METHODS: Record<string, string> = {
+  pix: "Pix",
+  transfer: "Transferência",
+  debit: "Débito",
+  credit: "Crédito",
+  cash: "Dinheiro",
+  boleto: "Boleto",
+  investment: "Investimento",
 };
 
-export function createExpenseColumns({
-  t,
-  ...options
-}: CreateExpenseColumnsParams): ColumnDef<ExpenseTableRow>[] {
+export function createExpenseColumns(
+  options: CreateExpenseColumnsParams,
+): ColumnDef<ExpenseTableRow>[] {
   const {
     onViewExpense,
     onEditExpense,
     onDeleteExpense,
+    onMarkAsPaid,
+    onMarkAsPending,
     getCategoryMeta,
     getAccountName,
   } = options;
 
-  const hasActions = Boolean(onViewExpense || onEditExpense || onDeleteExpense);
+  const hasActions = Boolean(
+    onViewExpense ||
+      onEditExpense ||
+      onDeleteExpense ||
+      onMarkAsPaid ||
+      onMarkAsPending,
+  );
 
   const columns: ColumnDef<ExpenseTableRow>[] = [
     {
       accessorKey: "dateAndStatus",
-      header: t("table.columns.date"),
+      header: "Data",
       cell: ({ row }) => {
         const tx = row.original;
 
@@ -96,14 +119,14 @@ export function createExpenseColumns({
         return (
           <div className="flex items-center gap-2 text-muted-foreground">
             <IconCalendar className="size-4" />
-            <span>{t("table.noDate")}</span>
+            <span>Sem data</span>
           </div>
         );
       },
     },
     {
       id: "status",
-      header: t("table.columns.status"),
+      header: "Status",
       cell: ({ row }) => {
         const tx = row.original;
 
@@ -124,7 +147,6 @@ export function createExpenseColumns({
             | "paidLate"
             | "paidEarly"
             | "paid";
-          type PaymentStatusKey = `table.status.${PaymentStatus}`;
 
           const normalizeDate = (value: Date) =>
             new Date(
@@ -155,25 +177,31 @@ export function createExpenseColumns({
 
           const paymentClassMap: Record<PaymentStatus, string> = {
             pending:
-              "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1",
-            paidOnTime:
               "border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1",
+            paidOnTime:
+              "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
             paidLate:
-              "border-orange-400/40 bg-orange-400/10 text-orange-500 flex items-center gap-1",
+              "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
             paidEarly:
-              "border-sky-400/40 bg-sky-400/10 text-sky-500 flex items-center gap-1",
-            paid: "border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1",
+              "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
+            paid: "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
           };
 
           const paymentIconClassMap: Record<PaymentStatus, string> = {
-            pending: "fill-amber-500 text-amber-500",
-            paidOnTime: "fill-destructive text-destructive",
-            paidLate: "fill-orange-500 text-orange-500",
-            paidEarly: "fill-sky-500 text-sky-500",
+            pending: "fill-destructive text-destructive",
+            paidOnTime: "fill-gray-500 text-gray-500",
+            paidLate: "fill-gray-500 text-gray-500",
+            paidEarly: "fill-gray-500 text-gray-500",
             paid: "fill-destructive text-destructive",
           };
 
-          const statusKey: PaymentStatusKey = `table.status.${paymentStatus}`;
+          const statusLabels: Record<PaymentStatus, string> = {
+            pending: "Pendente",
+            paidOnTime: "Pago",
+            paidLate: "Pago atrasado",
+            paidEarly: "Pago antecipadamente",
+            paid: "Pago",
+          };
 
           badgeClass = paymentClassMap[paymentStatus];
           badgeIcon = (
@@ -184,22 +212,19 @@ export function createExpenseColumns({
               )}
             />
           );
-          badgeLabel = t(statusKey);
+          badgeLabel = statusLabels[paymentStatus];
         } else if (isInstallment) {
           badgeClass =
             "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
           badgeIcon = (
             <IconCreditCard className="size-3 text-amber-500 shrink-0" />
           );
-          badgeLabel = t("table.type.installment", {
-            current: tx.installmentNumber,
-            total: tx.totalInstallments,
-          });
+          badgeLabel = `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
         } else if (isRecurring) {
           badgeClass =
             "border-blue-400/40 bg-blue-400/10 text-blue-500 flex items-center gap-1";
           badgeIcon = <IconRepeat className="size-3 text-blue-500 shrink-0" />;
-          badgeLabel = t("table.type.recurring");
+          badgeLabel = "Recorrente";
         }
 
         return (
@@ -214,7 +239,7 @@ export function createExpenseColumns({
     },
     {
       accessorKey: "amount",
-      header: t("table.columns.amount"),
+      header: "Valor",
       cell: ({ row }) => {
         const amount = Number(row.getValue("amount"));
         return (
@@ -227,7 +252,7 @@ export function createExpenseColumns({
 
     {
       accessorKey: "paidAt",
-      header: t("table.columns.paidAt"),
+      header: "Pago em",
       cell: ({ row }) => {
         const isPaid = row.original.isPaid;
         const paidAt = row.original.paidAt
@@ -235,20 +260,12 @@ export function createExpenseColumns({
           : null;
 
         if (!isPaid) {
-          return (
-            <Badge
-              variant="secondary"
-              className="border-amber-400/40 bg-amber-400/10 text-amber-500"
-            >
-              {t("table.status.notPaidYet")}
-            </Badge>
-          );
+          return <Badge variant="muted">Ainda não pago</Badge>;
         }
 
         return (
           <div className="flex items-center gap-2 text-muted-foreground">
-            <i className="fa-regular fa-calendar-check text-destructive" />
-            <span className="text-sm font-medium text-destructive">
+            <span className="text-sm font-medium text-muted-foreground">
               {paidAt ? formatDate(paidAt) : "-"}
             </span>
           </div>
@@ -257,7 +274,7 @@ export function createExpenseColumns({
     },
     {
       accessorKey: "description",
-      header: t("table.columns.description"),
+      header: "Descrição",
       cell: ({ row }) => (
         <p
           className="max-w-[200px] truncate capitalize"
@@ -269,30 +286,38 @@ export function createExpenseColumns({
     },
     {
       accessorKey: "accountName",
-      header: t("table.columns.account"),
+      header: "Conta",
       cell: ({ row }) => {
         const account =
           getAccountName?.(row.original) ?? row.original.accountName;
-        if (!account) return t("table.noData");
-        return <Badge variant="secondary">{account as string}</Badge>;
+
+        if (row.original.method === "credit") {
+          return (
+            <Badge variant="outline">{PAYMENT_METHODS.credit}</Badge>
+          );
+        }
+
+        if (!account) return "-";
+        return <Badge variant="muted">{account as string}</Badge>;
       },
     },
     {
       accessorKey: "categoryName",
-      header: t("table.columns.category"),
+      header: "Categoria",
       cell: ({ row }) => {
         const category =
           getCategoryMeta?.(row.original) ?? row.original.categoryName;
-        if (!category) return t("table.noData");
-        return <Badge variant="secondary">{category as string}</Badge>;
+        if (!category) return "-";
+        return <Badge variant="muted">{category as string}</Badge>;
       },
     },
     {
       accessorKey: "method",
-      header: t("table.columns.method"),
+      header: "Forma de pagamento",
       cell: ({ row }) => {
-        const key = `form.paymentMethods.${row.original.method}` as const;
-        return <Badge variant="secondary">{t(key)}</Badge>;
+        const method = row.original.method;
+        const label = method ? PAYMENT_METHODS[method] : "-";
+        return <Badge variant="muted">{label}</Badge>;
       },
     },
   ];
@@ -300,41 +325,63 @@ export function createExpenseColumns({
   if (hasActions) {
     columns.push({
       id: "actions",
-      header: t("table.columns.actions"),
+      header: "Ações",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          {onViewExpense && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => onViewExpense(row.original)}
-              title={t("table.actions.view")}
+              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+              size="icon"
             >
-              <IconEye className="size-4" />
+              <IconDotsVertical />
+              <span className="sr-only">Abrir menu</span>
             </Button>
-          )}
-          {onEditExpense && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEditExpense(row.original)}
-              title={t("table.actions.edit")}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              disabled={!onEditExpense}
+              onSelect={(event) => {
+                event.preventDefault();
+                onEditExpense?.(row.original);
+              }}
             >
-              <IconEdit className="size-4" />
-            </Button>
-          )}
-          {onDeleteExpense && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDeleteExpense(row.original)}
-              title={t("table.actions.delete")}
-              className="text-destructive hover:text-destructive"
+              Editar despesa
+            </DropdownMenuItem>
+            {!row.original.isPaid ? (
+              <DropdownMenuItem
+                disabled={!onMarkAsPaid}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  onMarkAsPaid?.(row.original);
+                }}
+              >
+                Marcar como pago
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                disabled={!onMarkAsPending}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  onMarkAsPending?.(row.original);
+                }}
+              >
+                Marcar como pendente
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={!onDeleteExpense}
+              onSelect={(event) => {
+                event.preventDefault();
+                onDeleteExpense?.(row.original);
+              }}
             >
-              <IconTrash className="size-4" />
-            </Button>
-          )}
-        </div>
+              Deletar despesa
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     });
   }

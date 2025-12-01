@@ -4,11 +4,13 @@ import i18n, { type Resource } from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 
+import enCategories from "../../../public/locales/en/categories.json";
 import enDashboard from "../../../public/locales/en/dashboard.json";
 import enExpenses from "../../../public/locales/en/expenses.json";
 import enIncomes from "../../../public/locales/en/incomes.json";
 import enProvisions from "../../../public/locales/en/provisions.json";
 import enTransfers from "../../../public/locales/en/transfers.json";
+import ptCategories from "../../../public/locales/pt/categories.json";
 import ptDashboard from "../../../public/locales/pt/dashboard.json";
 import ptExpenses from "../../../public/locales/pt/expenses.json";
 import ptIncomes from "../../../public/locales/pt/incomes.json";
@@ -22,6 +24,7 @@ const namespaces = [
   "expenses",
   "transfers",
   "provisions",
+  "categories",
 ];
 
 const resources: Resource = {
@@ -31,6 +34,7 @@ const resources: Resource = {
     expenses: enExpenses,
     provisions: enProvisions,
     transfers: enTransfers,
+    categories: enCategories,
   },
   pt: {
     [defaultNS]: ptDashboard,
@@ -38,6 +42,7 @@ const resources: Resource = {
     expenses: ptExpenses,
     provisions: ptProvisions,
     transfers: ptTransfers,
+    categories: ptCategories,
   },
 };
 

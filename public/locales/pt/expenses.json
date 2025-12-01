@@ -45,7 +45,7 @@
     },
     "status": {
       "pending": "Pendente",
-      "paidOnTime": "Pago no prazo",
+      "paidOnTime": "Pago",
       "paidLate": "Pago atrasado",
       "paidEarly": "Pago antecipadamente",
       "paid": "Pago",

@@ -1,9 +1,14 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
-import { bank_accounts } from "../../db/schema";
+import {
+  bank_accounts,
+  categories,
+  financial_groups,
+  transactions,
+} from "../../db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { requireUserAndGroup } from "../utils/getUserAndGroup";
 
@@ -40,11 +45,67 @@ export const accountsRouter = createTRPCRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
     const { groupId } = await requireUserAndGroup(ctx.db, ctx.userId);
 
-    const accounts = await ctx.db.query.bank_accounts.findMany({
-      where: eq(bank_accounts.group_id, groupId),
+    const accounts = await ctx.db
+      .select({
+        id: bank_accounts.id,
+        group_id: bank_accounts.group_id,
+        name: bank_accounts.name,
+        type: bank_accounts.type,
+        initial_balance: bank_accounts.initial_balance,
+        currency: bank_accounts.currency,
+        color: bank_accounts.color,
+        external_institution_id: bank_accounts.external_institution_id,
+        created_at: bank_accounts.created_at,
+        // Calculated fields
+        total_incomes: sql<number>`COALESCE((
+          SELECT SUM(${transactions.amount})
+          FROM ${transactions}
+          WHERE "transactions"."account_id" = "bank_accounts"."id"
+            AND ${transactions.type} = 'income'
+            AND ${transactions.is_paid} = ${true}
+        ), 0::numeric)`,
+        total_expenses: sql<number>`COALESCE((
+          SELECT SUM(${transactions.amount})
+          FROM ${transactions}
+          WHERE "transactions"."account_id" = "bank_accounts"."id"
+            AND ${transactions.type} = 'expense'
+            AND ${transactions.is_paid} = ${true}
+        ), 0::numeric)`,
+        total_transfers_in: sql<number>`COALESCE((
+          SELECT SUM(${transactions.amount})
+          FROM ${transactions}
+          WHERE "transactions"."to_account_id" = "bank_accounts"."id"
+            AND ${transactions.type} = 'transfer'
+            AND ${transactions.is_paid} = ${true}
+        ), 0::numeric)`,
+        total_transfers_out: sql<number>`COALESCE((
+          SELECT SUM(${transactions.amount})
+          FROM ${transactions}
+          WHERE "transactions"."from_account_id" = "bank_accounts"."id"
+            AND ${transactions.type} = 'transfer'
+            AND ${transactions.is_paid} = ${true}
+        ), 0::numeric)`,
+      })
+      .from(bank_accounts)
+      .where(eq(bank_accounts.group_id, groupId));
+
+    const accountsWithBalance = accounts.map((acc) => {
+      const initial = Number(acc.initial_balance);
+      const incomes = Number(acc.total_incomes);
+      const expenses = Number(acc.total_expenses);
+      const transfersIn = Number(acc.total_transfers_in);
+      const transfersOut = Number(acc.total_transfers_out);
+
+      const currentBalance =
+        initial + incomes - expenses + transfersIn - transfersOut;
+
+      return {
+        ...acc,
+        current_balance: currentBalance,
+      };
     });
 
-    return accounts.sort((a, b) =>
+    return accountsWithBalance.sort((a, b) =>
       a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }),
     );
   }),
@@ -54,7 +115,7 @@ export const accountsRouter = createTRPCRouter({
       const { db } = ctx;
       const { groupId } = await requireUserAndGroup(db, ctx.userId);
 
-      // 🔹 Impede duplicação de contas com o mesmo nome dentro do grupo
+      // Impede duplicação de contas
       const existing = await db.query.bank_accounts.findFirst({
         where: and(
           eq(bank_accounts.group_id, groupId),
@@ -89,6 +150,73 @@ export const accountsRouter = createTRPCRouter({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro inesperado ao criar conta.",
         });
+      }
+
+      // --- NOVA LÓGICA: importar presets UMA ÚNICA VEZ por grupo ---
+      // Checa a flag no grupo
+      const group = await db.query.financial_groups.findFirst({
+        where: eq(financial_groups.id, groupId),
+        columns: { presets_imported: true },
+      });
+
+      const shouldImportPresets = !group?.presets_imported;
+
+      if (shouldImportPresets) {
+        // busca presets do DB
+        const presets = await db.query.category_presets.findMany();
+
+        // função que cria árvore: similar ao insertCategoryTree
+        const insertCategoryTree = async (
+          preset: {
+            id: string;
+            parent_id: string | null;
+            name: string;
+            type: "expense" | "income";
+            color: string;
+            icon: string;
+          },
+          parentId: string | null = null,
+        ): Promise<number> => {
+          const categoryId = uuidv4();
+          await db.insert(categories).values({
+            id: categoryId,
+            group_id: groupId,
+            parent_id: parentId,
+            name: preset.name,
+            type: preset.type,
+            color: preset.color ?? "#cccccc",
+            icon: preset.icon ?? "",
+            is_active: true,
+          });
+
+          let created = 1;
+
+          // find children presets
+          const children = presets.filter((p) => p.parent_id === preset.id);
+          for (const child of children) {
+            created += await insertCategoryTree(child, categoryId);
+          }
+
+          return created;
+        };
+
+        // inserir apenas pais root (parent_id === null)
+        try {
+          for (const rootPreset of presets.filter(
+            (p) => p.parent_id === null,
+          )) {
+            await insertCategoryTree(rootPreset, null);
+          }
+
+          // marcar grupo como importado (para nunca mais importar automaticamente)
+          await db
+            .update(financial_groups)
+            .set({ presets_imported: true })
+            .where(eq(financial_groups.id, groupId));
+        } catch (err) {
+          // não queremos que falha na import impeça a criação da conta
+          console.error("Erro ao importar presets:", err);
+        }
       }
 
       return account;
