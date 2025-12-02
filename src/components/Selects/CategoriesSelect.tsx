@@ -2,7 +2,9 @@
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -19,11 +21,19 @@ type CategorySource = {
   name: string;
 };
 
-const buildCategoryOptions = (
-  data: CategorySource[],
-): Array<{ value: string; label: string }> => {
+type CategoryGroup = {
+  parent: CategorySource;
+  children: CategorySource[];
+};
+
+type CategoryOptions = {
+  standalone: Array<{ value: string; label: string }>;
+  groups: Array<CategoryGroup>;
+};
+
+const buildCategoryOptions = (data: CategorySource[]): CategoryOptions => {
   if (!data?.length) {
-    return [];
+    return { standalone: [], groups: [] };
   }
 
   const byId = new Map<string, CategorySource>();
@@ -41,49 +51,65 @@ const buildCategoryOptions = (
     childrenMap.set(category.parent_id, siblings);
   }
 
-  const options: Array<{ value: string; label: string }> = [];
+  const standalone: Array<{ value: string; label: string }> = [];
+  const groups: Array<CategoryGroup> = [];
   const processedChildren = new Set<string>();
 
+  // Processar categorias pai
   for (const category of data) {
     if (category.parent_id) {
       continue;
     }
 
-    options.push({ value: category.id, label: category.name });
-
     const children = childrenMap.get(category.id);
 
-    if (!children?.length) {
-      continue;
-    }
-
-    children
-      .sort((a, b) =>
+    if (children?.length) {
+      // Se tem filhos, criar um grupo
+      const sortedChildren = [...children].sort((a, b) =>
         a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }),
-      )
-      .forEach((child) => {
-        processedChildren.add(child.id);
-        options.push({
-          value: child.id,
-          label: `${category.name} • ${child.name}`,
-        });
+      );
+      groups.push({
+        parent: category,
+        children: sortedChildren,
       });
+      sortedChildren.forEach((child) => {
+        processedChildren.add(child.id);
+      });
+    } else {
+      // Se não tem filhos, adicionar como standalone
+      standalone.push({ value: category.id, label: category.name });
+    }
   }
 
+  // Processar categorias filhas órfãs (pai não encontrado ou não processado)
   for (const category of data) {
     if (!category.parent_id || processedChildren.has(category.id)) {
       continue;
     }
 
     const parent = byId.get(category.parent_id);
-    const parentName = parent?.name ?? "Category";
-    options.push({
-      value: category.id,
-      label: `${parentName} • ${category.name}`,
-    });
+    if (parent) {
+      // Se o pai existe mas não foi processado, criar grupo para ele
+      const existingGroup = groups.find((g) => g.parent.id === parent.id);
+      if (existingGroup) {
+        existingGroup.children.push(category);
+      } else {
+        groups.push({
+          parent,
+          children: [category],
+        });
+      }
+      processedChildren.add(category.id);
+    } else {
+      // Pai não encontrado, adicionar como standalone
+      standalone.push({
+        value: category.id,
+        label: category.name,
+      });
+    }
   }
 
-  return options;
+  return { standalone, groups };
 };
 
 export type CategoriesSelectProps = {
@@ -113,8 +139,11 @@ export function CategoriesSelect({
     { type, includeInactive },
     { staleTime: 1_000 * 60 * 5 },
   );
-  console.log(data);
-  const options = React.useMemo(() => buildCategoryOptions(data ?? []), [data]);
+
+  const categoryOptions = React.useMemo(
+    () => buildCategoryOptions(data ?? []),
+    [data],
+  );
 
   const handleValueChange = React.useCallback(
     (nextValue: string) => {
@@ -136,12 +165,14 @@ export function CategoriesSelect({
       return "Não foi possível carregar as categorias";
     }
 
-    if (!options.length) {
+    const totalOptions =
+      categoryOptions.standalone.length + categoryOptions.groups.length;
+    if (totalOptions === 0) {
       return CATEGORY_EMPTY_MESSAGE;
     }
 
     return "Selecione uma categoria";
-  }, [placeholder, isLoading, isError, options.length]);
+  }, [placeholder, isLoading, isError, categoryOptions]);
 
   const isSelectDisabled = disabled || isLoading;
 
@@ -167,17 +198,29 @@ export function CategoriesSelect({
           <SelectItem value="__error" disabled>
             Error loading categories
           </SelectItem>
-        ) : options.length ? (
-          options.map(
-            (option) => (
-              console.log(option),
-              (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              )
-            ),
-          )
+        ) : categoryOptions.standalone.length > 0 ||
+          categoryOptions.groups.length > 0 ? (
+          <>
+            {/* Categorias standalone (sem filhos) */}
+            {categoryOptions.standalone.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+
+            {/* Grupos de categorias (pai + filhos) */}
+            {categoryOptions.groups.map((group) => (
+              <SelectGroup key={group.parent.id}>
+                <SelectLabel>{group.parent.name}</SelectLabel>
+                {/* Opções para as categorias filhas */}
+                {group.children.map((child) => (
+                  <SelectItem key={child.id} value={child.id}>
+                    {child.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </>
         ) : (
           <SelectItem value="__empty" disabled>
             {CATEGORY_EMPTY_MESSAGE}
