@@ -1,17 +1,15 @@
 "use client";
 
-import { Tab, Tabs } from "@heroui/tabs";
-import { IconPlus } from "@tabler/icons-react";
-import * as React from "react";
-import { toast } from "sonner";
 import { GlowCard } from "@/components/gloweffect";
 import { Button } from "@/components/ui/button";
 import type { CategoryNode } from "@/hooks/categories/useCategoryTree";
 import { useCategoryTree } from "@/hooks/categories/useCategoryTree";
 import { trpc } from "@/lib/trpc/client";
+import { Tab, Tabs } from "@heroui/tabs";
+import * as React from "react";
+import { toast } from "sonner";
 import { CategoryDialog } from "./_components/CategoryDialog";
 import { CategoryTreeTable } from "./_components/CategoryTreeTable";
-import { ImportDefaultsDialog } from "./_components/ImportDefaultsDialog";
 
 export default function CategoriesPage() {
   const [selectedType, setSelectedType] = React.useState<
@@ -90,21 +88,18 @@ export default function CategoriesPage() {
     <div className="space-y-4">
       <section className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Categorias
-          </h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Categorias</h2>
           <p className="text-muted-foreground text-sm">
             Gerencie suas categorias de despesas e receitas.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => setImportDialogOpen(true)}>
-            Importar padrões
-          </Button>
-          <Button onClick={handleCreate}>
-            <IconPlus stroke={1.5} className="size-4" />
-            Criar categoria
-          </Button>
+          <CategoryDialog
+            open={categoryDialogOpen}
+            onOpenChange={setCategoryDialogOpen}
+            category={selectedCategory}
+            onSuccess={handleDialogSuccess}
+          />
         </div>
       </section>
 
@@ -163,7 +158,8 @@ export default function CategoriesPage() {
           ) : isEmptyState ? (
             <div className="py-12 text-center">
               <p className="text-muted-foreground mb-4">
-                Nenhuma categoria encontrada. Importe categorias padrão para começar.
+                Nenhuma categoria encontrada. Importe categorias padrão para
+                começar.
               </p>
               <Button onClick={() => setImportDialogOpen(true)}>
                 Importar padrões
@@ -189,19 +185,11 @@ export default function CategoriesPage() {
         </GlowCard>
       </section>
 
-      <CategoryDialog
-        open={categoryDialogOpen}
-        onOpenChange={setCategoryDialogOpen}
-        category={selectedCategory}
-        parentId={parentId}
-        onSuccess={handleDialogSuccess}
-      />
-
-      <ImportDefaultsDialog
+      {/* <ImportDefaultsDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         onSuccess={handleDialogSuccess}
-      />
+      /> */}
     </div>
   );
 }

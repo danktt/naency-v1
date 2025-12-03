@@ -8,6 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -22,7 +23,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CategoryNode } from "@/hooks/categories/useCategoryTree";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconArrowDownLeft, IconArrowUpRight } from "@tabler/icons-react";
+import {
+  IconArrowDownLeft,
+  IconArrowUpRight,
+  IconPlus,
+} from "@tabler/icons-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -175,6 +180,12 @@ export function CategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button>
+          <IconPlus stroke={1.5} className="size-4" />
+          Nova categoria
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
@@ -182,88 +193,87 @@ export function CategoryDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="grid sm:grid-cols-2 gap-4 items-start"
-          >
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem className="col-span-2">
-                  <FormControl>
-                    <Tabs
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      isEdit={isEdit}
-                    >
-                      <TabsList className="w-full">
-                        {typeTabs.map((tab) => {
-                          const IconComponent = tab.icon;
-                          return (
-                            <TabsTrigger
-                              key={tab.id}
-                              value={tab.id}
-                              className="flex-1"
-                              disabled={isEdit}
-                            >
-                              <IconComponent
-                                aria-hidden="true"
-                                className={`mr-1.5 h-4 w-4 opacity-60 ${tab.id === "income" ? "text-icon-income" : "text-icon-expense"}`}
-                              />
-                              {tab.label}
-                            </TabsTrigger>
-                          );
-                        })}
-                      </TabsList>
-                    </Tabs>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className=" flex gap-4 col-span-2 items-start">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid sm:grid-cols-2 gap-4 items-start">
               <FormField
                 control={form.control}
-                name="name"
+                name="type"
                 render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>
-                      Nome
-                      <span className="text-destructive">*</span>
-                    </FormLabel>
+                  <FormItem className="col-span-2">
                     <FormControl>
-                      <Input
-                        placeholder="Digite o nome da categoria"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="icon"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Ícone
-                      <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <IconSelector
+                      <Tabs
                         value={field.value}
-                        onChange={field.onChange}
-                      />
+                        onValueChange={field.onChange}
+                        isEdit={isEdit}
+                      >
+                        <TabsList className="w-full">
+                          {typeTabs.map((tab) => {
+                            const IconComponent = tab.icon;
+                            return (
+                              <TabsTrigger
+                                key={tab.id}
+                                value={tab.id}
+                                className="flex-1"
+                                disabled={isEdit}
+                              >
+                                <IconComponent
+                                  aria-hidden="true"
+                                  className={`mr-1.5 h-4 w-4 opacity-60 ${tab.id === "income" ? "text-icon-income" : "text-icon-expense"}`}
+                                />
+                                {tab.label}
+                              </TabsTrigger>
+                            );
+                          })}
+                        </TabsList>
+                      </Tabs>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              <div className=" flex gap-4 col-span-2 items-start">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="w-full">
+                      <FormLabel>
+                        Nome
+                        <span className="text-destructive">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Digite o nome da categoria"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="icon"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Ícone
+                        <span className="text-destructive">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <IconSelector
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
-            <DialogFooter className="col-span-2">
+            <DialogFooter className="flex w-full flex-col-reverse gap-2 px-0 sm:flex-row sm:items-center sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
