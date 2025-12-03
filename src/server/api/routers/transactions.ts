@@ -437,6 +437,8 @@ export const transactionsRouter = createTRPCRouter({
           conditions.push(ne(transactions.method, "credit"));
         }
 
+        conditions.push(eq(transactions.is_paid, true));
+
         return and(...conditions);
       };
 

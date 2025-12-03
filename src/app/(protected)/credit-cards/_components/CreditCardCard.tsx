@@ -1,11 +1,5 @@
 "use client";
 
-import {
-  IconCreditCard,
-  IconDots,
-  IconPencil,
-  IconTrash,
-} from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +11,12 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { cn, getGradientFromColor } from "@/lib/utils";
+import {
+  IconCreditCard,
+  IconDots,
+  IconPencil,
+  IconTrash,
+} from "@tabler/icons-react";
 import type { CreditCard } from "./types";
 
 type CreditCardCardProps = {
@@ -42,8 +42,10 @@ export function CreditCardCard({
   const gradient = getGradientFromColor(card.name);
 
   return (
-    <button
-      type="button"
+    // biome-ignore lint/a11y/useSemanticElements: Cannot use button here due to nested button in DropdownMenuTrigger
+    <div
+      role="button"
+      tabIndex={0}
       className={cn(
         "group relative w-full cursor-pointer rounded-lg border-2 transition-all text-left bg-transparent p-0",
         isSelected
@@ -51,6 +53,12 @@ export function CreditCardCard({
           : "border-border hover:border-primary/50",
       )}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
       <div className="flex gap-4 p-4">
         {/* Visual Card */}
@@ -136,16 +144,13 @@ export function CreditCardCard({
               <div>
                 <div className="text-xs text-muted-foreground">Disponível</div>
                 <div className="font-semibold text-emerald-600">
-                  {formatCurrency(
-                    available,
-                    card.currency as "BRL" | "USD" | "EUR",
-                  )}
+                  {formatCurrency(available, card.currency as "BRL" | "USD")}
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-xs text-muted-foreground">Utilizado</div>
                 <div className="font-medium">
-                  {formatCurrency(used, card.currency as "BRL" | "USD" | "EUR")}
+                  {formatCurrency(used, card.currency as "BRL" | "USD")}
                 </div>
               </div>
             </div>
@@ -160,6 +165,6 @@ export function CreditCardCard({
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
