@@ -2,25 +2,28 @@
 
 import { GlowCard } from "@/components/gloweffect";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CategoryNode } from "@/hooks/categories/useCategoryTree";
 import { useCategoryTree } from "@/hooks/categories/useCategoryTree";
 import { trpc } from "@/lib/trpc/client";
-import { Tab, Tabs } from "@heroui/tabs";
+import {
+  IconArrowDownLeft,
+  IconArrowUpRight,
+  IconPlus,
+} from "@tabler/icons-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { CategoryDialog } from "./_components/CategoryDialog";
 import { CategoryTreeTable } from "./_components/CategoryTreeTable";
 
 export default function CategoriesPage() {
-  const [selectedType, setSelectedType] = React.useState<
-    "expense" | "income" | "all"
-  >("all");
+  const [selectedType, setSelectedType] = React.useState<"expense" | "income">(
+    "income",
+  );
   const [includeInactive, setIncludeInactive] = React.useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = React.useState(false);
   const [selectedCategory, setSelectedCategory] =
     React.useState<CategoryNode | null>(null);
-  const [parentId, setParentId] = React.useState<string | null>(null);
-  const [importDialogOpen, setImportDialogOpen] = React.useState(false);
   const [processingId, setProcessingId] = React.useState<string | null>(null);
 
   const {
@@ -28,7 +31,7 @@ export default function CategoriesPage() {
     isLoading: isCategoriesLoading,
     isError: isCategoriesError,
   } = trpc.categories.list.useQuery({
-    type: selectedType === "all" ? undefined : selectedType,
+    type: selectedType,
     includeInactive,
   });
 
@@ -52,17 +55,23 @@ export default function CategoriesPage() {
     },
   });
 
-  const handleCreate = () => {
-    setSelectedCategory(null);
-    setParentId(null);
+  const handleEdit = (category: CategoryNode) => {
+    setSelectedCategory(category);
     setCategoryDialogOpen(true);
   };
 
-  const handleEdit = (category: CategoryNode) => {
-    setSelectedCategory(category);
-    setParentId(null);
-    setCategoryDialogOpen(true);
-  };
+  const typeTabs = [
+    {
+      id: "income",
+      label: "Receita",
+      icon: IconArrowDownLeft,
+    },
+    {
+      id: "expense",
+      label: "Despesa",
+      icon: IconArrowUpRight,
+    },
+  ] as const;
 
   const handleDelete = (category: CategoryNode) => {
     setProcessingId(category.id);
@@ -78,7 +87,6 @@ export default function CategoriesPage() {
   const handleDialogSuccess = () => {
     setCategoryDialogOpen(false);
     setSelectedCategory(null);
-    setParentId(null);
   };
 
   const isEmptyState =
@@ -94,27 +102,35 @@ export default function CategoriesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <CategoryDialog
-            open={categoryDialogOpen}
-            onOpenChange={setCategoryDialogOpen}
-            category={selectedCategory}
-            onSuccess={handleDialogSuccess}
-          />
+          <Button onClick={() => setCategoryDialogOpen(true)}>
+            <IconPlus stroke={1.5} className="size-4" />
+            Nova categoria
+          </Button>
         </div>
       </section>
 
       <section>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Tabs
-            aria-label="Category type"
-            selectedKey={selectedType}
-            onSelectionChange={(key) =>
-              setSelectedType(key as "expense" | "income" | "all")
+            value={selectedType}
+            onValueChange={(value) =>
+              setSelectedType(value as "expense" | "income")
             }
           >
-            <Tab key="all" title="Todas" />
-            <Tab key="expense" title="Despesas" />
-            <Tab key="income" title="Receitas" />
+            <TabsList>
+              {typeTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <TabsTrigger key={tab.id} value={tab.id} className="flex-1">
+                    <IconComponent
+                      aria-hidden="true"
+                      className={`mr-1.5 h-4 w-4 opacity-60 ${tab.id === "income" ? "text-icon-income" : "text-icon-expense"}`}
+                    />
+                    {tab.label}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
           </Tabs>
 
           <div className="flex items-center gap-2">
@@ -161,9 +177,7 @@ export default function CategoriesPage() {
                 Nenhuma categoria encontrada. Importe categorias padrão para
                 começar.
               </p>
-              <Button onClick={() => setImportDialogOpen(true)}>
-                Importar padrões
-              </Button>
+              <Button disabled>Importar padrões</Button>
             </div>
           ) : (
             <CategoryTreeTable
@@ -185,11 +199,12 @@ export default function CategoriesPage() {
         </GlowCard>
       </section>
 
-      {/* <ImportDefaultsDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
+      <CategoryDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        category={selectedCategory}
         onSuccess={handleDialogSuccess}
-      /> */}
+      />
     </div>
   );
 }

@@ -29,13 +29,13 @@ type CategoryRow = {
 
 type UseCategoryTreeParams = {
   categories: CategoryRow[];
-  selectedType?: "expense" | "income" | "all";
+  selectedType: "expense" | "income";
   includeInactive?: boolean;
 };
 
 export function useCategoryTree({
   categories,
-  selectedType = "all",
+  selectedType,
   includeInactive = false,
 }: UseCategoryTreeParams) {
   const [expandedCategories, setExpandedCategories] = React.useState<
@@ -69,10 +69,7 @@ export function useCategoryTree({
     }
 
     // Filter by type and active status
-    let filtered = categories;
-    if (selectedType !== "all") {
-      filtered = filtered.filter((cat) => cat.type === selectedType);
-    }
+    let filtered = categories.filter((cat) => cat.type === selectedType);
     if (!includeInactive) {
       filtered = filtered.filter((cat) => cat.is_active);
     }

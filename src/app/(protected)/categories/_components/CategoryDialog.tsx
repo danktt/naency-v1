@@ -8,7 +8,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -23,11 +22,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CategoryNode } from "@/hooks/categories/useCategoryTree";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  IconArrowDownLeft,
-  IconArrowUpRight,
-  IconPlus,
-} from "@tabler/icons-react";
+import { IconArrowDownLeft, IconArrowUpRight } from "@tabler/icons-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -180,12 +175,6 @@ export function CategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button>
-          <IconPlus stroke={1.5} className="size-4" />
-          Nova categoria
-        </Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
