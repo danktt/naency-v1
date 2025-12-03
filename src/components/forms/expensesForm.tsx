@@ -316,6 +316,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
   const hasAccounts = (accountsQuery.data?.length ?? 0) > 0;
   const dateValue = form.watch("date");
+  const isPaidValue = form.watch("isPaid");
 
   const invalidateTransactionsData = React.useCallback(async () => {
     await Promise.all([
@@ -362,19 +363,70 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const isInstallment = modeValue === "installment";
   const isRecurring = modeValue === "recurring";
 
+  // Auto-adjust isPaid based on date (future dates = not paid, today/past = paid)
+  React.useEffect(() => {
+    if (!dialogOpen || isEditing || modeValue !== "unique") {
+      return;
+    }
+
+    if (!dateValue) {
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(dateValue);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    const isFutureDate = selectedDate > today;
+
+    if (isFutureDate) {
+      form.setValue("isPaid", false, { shouldDirty: false });
+      form.setValue("paidAt", undefined, { shouldDirty: false });
+    } else {
+      form.setValue("isPaid", true, { shouldDirty: false });
+      form.setValue("paidAt", dateValue, { shouldDirty: false });
+    }
+  }, [dateValue, dialogOpen, form, isEditing, modeValue]);
+
+  // Manage paidAt based on isPaid checkbox
+  React.useEffect(() => {
+    if (!dialogOpen) {
+      return;
+    }
+
+    if (!isPaidValue) {
+      form.setValue("paidAt", undefined, { shouldDirty: false });
+      return;
+    }
+
+    const currentMode = form.getValues("mode");
+    if (!isEditing && currentMode === "unique") {
+      form.setValue("paidAt", form.getValues("date"), {
+        shouldDirty: false,
+      });
+      return;
+    }
+
+    const paidAt = form.getValues("paidAt");
+    if (!paidAt) {
+      form.setValue("paidAt", form.getValues("date"), {
+        shouldDirty: false,
+      });
+    }
+  }, [dialogOpen, dateValue, form, isEditing, isPaidValue]);
+
+  // Set default isPaid for non-unique modes
   React.useEffect(() => {
     if (!dialogOpen || isEditing) {
       return;
     }
 
-    if (modeValue === "unique") {
-      form.setValue("isPaid", true, { shouldDirty: false });
-      form.setValue("paidAt", dateValue, { shouldDirty: false });
-    } else {
+    if (modeValue !== "unique") {
       form.setValue("isPaid", false, { shouldDirty: false });
       form.setValue("paidAt", undefined, { shouldDirty: false });
     }
-  }, [dateValue, dialogOpen, form, isEditing, modeValue]);
+  }, [dialogOpen, form, isEditing, modeValue]);
 
   const onSubmit = React.useCallback(
     (values: CreateExpenseFormValues) => {
@@ -382,13 +434,8 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
       const attachmentUrl = values.attachmentUrl?.trim().length
         ? values.attachmentUrl.trim()
         : undefined;
-      const shouldAutoMarkPaid = !isEditing && values.mode === "unique";
-      const isPaid = shouldAutoMarkPaid ? true : values.isPaid;
-      const paidAt = shouldAutoMarkPaid
-        ? values.date
-        : values.isPaid
-          ? (values.paidAt ?? values.date)
-          : undefined;
+      const isPaid = values.isPaid;
+      const paidAt = values.isPaid ? (values.paidAt ?? values.date) : undefined;
 
       const payload = {
         type: "expense" as const,
@@ -514,63 +561,91 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                       <AnimatePresence initial={false} mode="wait">
                         {isUnique && (
                           <motion.div key="unique" {...motionProps}>
-                            <FormField
-                              control={form.control}
-                              name="date"
-                              render={({ field }) => {
-                                const selectedDate = field.value;
-                                return (
-                                  <FormItem>
-                                    <FormLabel>Data de pagamento</FormLabel>
-                                    <FormControl>
-                                      <Popover
-                                        open={isDatePopoverOpen}
-                                        onOpenChange={setIsDatePopoverOpen}
-                                      >
-                                        <PopoverTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            className={cn(
-                                              "w-full justify-start text-left font-normal",
-                                              !selectedDate &&
-                                                "text-muted-foreground",
-                                            )}
-                                            disabled={isSubmitting}
-                                          >
-                                            <IconCalendar className="mr-2 h-4 w-4" />
-                                            {selectedDate
-                                              ? format(selectedDate, "PPP", {
-                                                  locale,
-                                                })
-                                              : "Selecione uma data"}
-                                            <IconChevronDown className="ml-auto h-4 w-4" />
-                                          </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent
-                                          className="w-auto p-0"
-                                          align="start"
+                            <div className="flex gap-4 w-full items-end">
+                              <FormField
+                                control={form.control}
+                                name="date"
+                                render={({ field }) => {
+                                  const selectedDate = field.value;
+                                  return (
+                                    <FormItem className="flex flex-col w-full">
+                                      <FormLabel>Data de pagamento</FormLabel>
+                                      <FormControl>
+                                        <Popover
+                                          open={isDatePopoverOpen}
+                                          onOpenChange={setIsDatePopoverOpen}
                                         >
-                                          <Calendar
-                                            mode="single"
-                                            selected={selectedDate}
-                                            onSelect={(next) => {
-                                              if (next) {
-                                                field.onChange(next);
-                                                setIsDatePopoverOpen(false);
+                                          <PopoverTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              className={cn(
+                                                "w-full justify-start text-left font-normal",
+                                                !selectedDate &&
+                                                  "text-muted-foreground",
+                                              )}
+                                              disabled={isSubmitting}
+                                            >
+                                              <IconCalendar className="mr-2 h-4 w-4" />
+                                              {selectedDate
+                                                ? format(selectedDate, "PPP", {
+                                                    locale,
+                                                  })
+                                                : "Selecione uma data"}
+                                              <IconChevronDown className="ml-auto h-4 w-4" />
+                                            </Button>
+                                          </PopoverTrigger>
+                                          <PopoverContent
+                                            className="w-auto p-0"
+                                            align="start"
+                                          >
+                                            <Calendar
+                                              mode="single"
+                                              selected={selectedDate}
+                                              onSelect={(next) => {
+                                                if (next) {
+                                                  field.onChange(next);
+                                                  setIsDatePopoverOpen(false);
+                                                }
+                                              }}
+                                              defaultMonth={
+                                                selectedDate ?? dateRange.to
                                               }
-                                            }}
-                                            defaultMonth={
-                                              selectedDate ?? dateRange.to
-                                            }
-                                            locale={locale}
-                                          />
-                                        </PopoverContent>
-                                      </Popover>
+                                              locale={locale}
+                                            />
+                                          </PopoverContent>
+                                        </Popover>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+
+                              {/* Checkbox aligned with Date */}
+                              <FormField
+                                control={form.control}
+                                name="isPaid"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-row items-end gap-2 pb-2.5 h-full max-w-40 ">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={(checked) =>
+                                          field.onChange(Boolean(checked))
+                                        }
+                                        disabled={isSubmitting}
+                                      />
                                     </FormControl>
+                                    <FormLabel
+                                      className=" font-medium cursor-pointer mb-0"
+                                      style={{ marginTop: 0 }}
+                                    >
+                                      Pago
+                                    </FormLabel>
                                   </FormItem>
-                                );
-                              }}
-                            />
+                                )}
+                              />
+                            </div>
                           </motion.div>
                         )}
 
@@ -838,6 +913,47 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                         />
                         <FormField
                           control={form.control}
+                          name="categoryId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Categoria{" "}
+                                <span className="text-destructive">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <CategoriesSelect
+                                  type="expense"
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>
+                                Descrição
+                                <span className="text-destructive">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="ex.: Aluguel, contas, fornecedores..."
+                                  autoComplete="off"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
                           name="accountId"
                           render={({ field }) => (
                             <FormItem>
@@ -885,23 +1001,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={form.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem className="md:col-span-2">
-                              <FormLabel>Descrição</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="ex.: Aluguel, contas, fornecedores..."
-                                  autoComplete="off"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+
                         <FormField
                           control={form.control}
                           name="method"
@@ -929,24 +1029,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                   ))}
                                 </SelectContent>
                               </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="categoryId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Categoria</FormLabel>
-                              <FormControl>
-                                <CategoriesSelect
-                                  type="expense"
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  onBlur={field.onBlur}
-                                />
-                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
