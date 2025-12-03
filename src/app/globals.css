@@ -48,6 +48,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-icon-income: var(--icon-income);
+  --color-icon-expense: var(--icon-expense);
 }
 
 :root {
@@ -88,6 +90,8 @@
   --sidebar-ring: oklch(0.854 0.129 174.692);
   --icon-primary: oklch(0.8034 0.129 174.69);
   --icon-subtle: oklch(0.552 0.016 285.938);
+  --icon-income: oklch(0.6 0.13 163);
+  --icon-expense: oklch(0.59 0.22 18);
 }
 
 .dark {
@@ -127,6 +131,8 @@
   --sidebar-ring: oklch(0.8034 0.129 174.69);
   --icon-primary: oklch(0.8034 0.129 174.69);
   --icon-subtle: oklch(0.705 0.015 286.067);
+  --icon-income: oklch(0.77 0.15 163);
+  --icon-expense: oklch(0.72 0.17 13);
 }
 
 @layer base {

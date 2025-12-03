@@ -1,21 +1,5 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import {
-  IconBuildingBank,
-  IconCategory,
-  IconCreditCard,
-  IconCurrencyDollar,
-  IconLayoutDashboard,
-  IconTableFilled,
-  IconTransfer,
-  IconWallet,
-} from "@tabler/icons-react";
-import { Bot, Frame, LifeBuoy, PieChart, Send } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type * as React from "react";
-import { useMemo } from "react";
 import { NavMain } from "@/components/Sidenav/nav-main";
 import { NavProjects } from "@/components/Sidenav/nav-projects";
 import { NavSecondary } from "@/components/Sidenav/nav-secondary";
@@ -29,6 +13,22 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useUser } from "@clerk/nextjs";
+import {
+  IconArrowDownLeft,
+  IconArrowUpRight,
+  IconBuildingBank,
+  IconCategory,
+  IconCreditCard,
+  IconLayoutDashboard,
+  IconTableFilled,
+  IconTransfer,
+} from "@tabler/icons-react";
+import { Bot, Frame, LifeBuoy, PieChart, Send } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type * as React from "react";
+import { useMemo } from "react";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
@@ -44,12 +44,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         title: "Receitas",
         url: "/incomes",
-        icon: IconCurrencyDollar,
+        icon: IconArrowDownLeft,
       },
       {
         title: "Despesas",
         url: "/expenses",
-        icon: IconWallet,
+        icon: IconArrowUpRight,
       },
       {
         title: "Transferências",

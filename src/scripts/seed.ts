@@ -1,7 +1,7 @@
-import "dotenv/config";
-import { v4 as uuidv4 } from "uuid";
 import { db } from "@/server/db/client";
 import { category_presets } from "@/server/db/schema";
+import "dotenv/config";
+import { v4 as uuidv4 } from "uuid";
 
 // Presets organizados
 const defaultPresets = [
@@ -74,8 +74,10 @@ const defaultPresets = [
     color: "#4CAF50",
     type: "income",
     children: [
-      { name: "Salário/Pró-Labore", icon: "wallet" },
-      { name: "Renda Extra/Freelas", icon: "briefcase" },
+      { name: "Salário", icon: "wallet" },
+      { name: "Pró-Labore", icon: "wallet" },
+      { name: "Renda Extra", icon: "briefcase" },
+      { name: "Freelas", icon: "briefcase" },
       { name: "Investimentos", icon: "chart-line" },
       { name: "Venda de Bens", icon: "handshake" },
       { name: "Cashback", icon: "rotate-left" },

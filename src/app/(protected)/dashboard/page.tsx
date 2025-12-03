@@ -7,8 +7,8 @@ import { useUser } from "@clerk/nextjs";
 import {
   IconArrowDownLeft,
   IconArrowUpRight,
+  IconChartBar,
   IconPigMoney,
-  IconWallet,
 } from "@tabler/icons-react";
 import { CheckCircle2, CircleDollarSign, Clock } from "lucide-react";
 import * as React from "react";
@@ -112,7 +112,7 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.monthBalance)
           : formatCurrency(0),
         subtitle: "Receitas menos despesas do mês corrente.",
-        icon: IconWallet,
+        icon: IconChartBar,
         valueClassName:
           snapshot && snapshot.monthBalance < 0
             ? "text-rose-500"

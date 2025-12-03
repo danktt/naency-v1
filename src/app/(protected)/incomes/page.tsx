@@ -1,9 +1,10 @@
 "use client";
 
 import {
+  IconArrowDownLeft,
+  IconArrowUpRight,
   IconChartBar,
-  IconCurrencyDollar,
-  IconWallet,
+  type IconCurrencyDollar,
 } from "@tabler/icons-react";
 import * as React from "react";
 
@@ -28,7 +29,7 @@ const metricConfigs: Array<{
     key: "totalIncomes",
     title: "Receitas totais",
     changeFormat: "{{value}} recebidos no período selecionado",
-    icon: IconCurrencyDollar,
+    icon: IconArrowDownLeft,
     iconContainerClassName:
       "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   },
@@ -36,7 +37,7 @@ const metricConfigs: Array<{
     key: "totalExpenses",
     title: "Despesas totais",
     changeFormat: "{{value}} gastos no período selecionado",
-    icon: IconWallet,
+    icon: IconArrowUpRight,
     iconContainerClassName: "bg-red-500/10 text-red-600 dark:text-red-400",
   },
   {
