@@ -1,7 +1,8 @@
 "use client";
 
-import * as React from "react";
+import { GlowCard } from "@/components/gloweffect";
 import type { CategoryNode } from "@/hooks/categories/useCategoryTree";
+import * as React from "react";
 import { CategoryRow } from "./CategoryRow";
 
 type CategoryTreeTableProps = {
@@ -82,7 +83,7 @@ export function CategoryTreeTable({
   );
 
   return (
-    <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
+    <GlowCard>
       <div className="flex items-center gap-4 border-b border-border bg-muted/30 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         <div className="min-w-[300px] flex-1">{headers.category}</div>
         <div className="min-w-[120px]">{headers.type}</div>
@@ -98,6 +99,6 @@ export function CategoryTreeTable({
           </div>
         )}
       </div>
-    </div>
+    </GlowCard>
   );
 }

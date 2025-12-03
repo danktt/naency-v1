@@ -1,14 +1,15 @@
 "use client";
 
-import { GlowCard } from "@/components/gloweffect";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Toggle } from "@/components/ui/toggle";
 import type { CategoryNode } from "@/hooks/categories/useCategoryTree";
 import { useCategoryTree } from "@/hooks/categories/useCategoryTree";
 import { trpc } from "@/lib/trpc/client";
 import {
   IconArrowDownLeft,
   IconArrowUpRight,
+  IconLabelOff,
   IconPlus,
 } from "@tabler/icons-react";
 import * as React from "react";
@@ -63,12 +64,12 @@ export default function CategoriesPage() {
   const typeTabs = [
     {
       id: "income",
-      label: "Receita",
+      label: "Receitas",
       icon: IconArrowDownLeft,
     },
     {
       id: "expense",
-      label: "Despesa",
+      label: "Despesas",
       icon: IconArrowUpRight,
     },
   ] as const;
@@ -134,69 +135,58 @@ export default function CategoriesPage() {
           </Tabs>
 
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="includeInactive"
-              checked={includeInactive}
-              onChange={(e) => setIncludeInactive(e.target.checked)}
-              className="h-4 w-4 rounded border-border"
-            />
-            <label
-              htmlFor="includeInactive"
-              className="text-sm text-muted-foreground cursor-pointer"
+            <Toggle
+              aria-label="Toggle bookmark"
+              size="sm"
+              variant="outline"
+              className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-primary data-[state=on]:*:[svg]:stroke-primary"
             >
-              Inativa
-            </label>
+              <IconLabelOff />
+              Inativas
+            </Toggle>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-7">
-        <GlowCard
-          className="lg:col-span-7"
-          title="Categorias"
-          description="Gerencie suas categorias de despesas e receitas."
-          contentClassName="gap-6"
-        >
-          {isCategoriesLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={`categories-skeleton-${index}`}
-                  className="h-24 animate-pulse rounded-lg bg-muted/60"
-                />
-              ))}
-            </div>
-          ) : isCategoriesError ? (
-            <div className="py-12 text-center text-muted-foreground">
-              Não foi possível carregar as categorias no momento.
-            </div>
-          ) : isEmptyState ? (
-            <div className="py-12 text-center">
-              <p className="text-muted-foreground mb-4">
-                Nenhuma categoria encontrada. Importe categorias padrão para
-                começar.
-              </p>
-              <Button disabled>Importar padrões</Button>
-            </div>
-          ) : (
-            <CategoryTreeTable
-              categories={categoryTree}
-              headers={{
-                category: "Categoria",
-                type: "Tipo",
-                status: "Status",
-              }}
-              emptyMessage="Nenhuma categoria encontrada. Importe categorias padrão para começar."
-              expandedCategories={expandedCategories}
-              onToggleCategory={toggleCategory}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onRestore={handleRestore}
-              processingId={processingId}
-            />
-          )}
-        </GlowCard>
+      <section>
+        {isCategoriesLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`categories-skeleton-${index}`}
+                className="h-24 animate-pulse rounded-lg bg-muted/60"
+              />
+            ))}
+          </div>
+        ) : isCategoriesError ? (
+          <div className="py-12 text-center text-muted-foreground">
+            Não foi possível carregar as categorias no momento.
+          </div>
+        ) : isEmptyState ? (
+          <div className="py-12 text-center">
+            <p className="text-muted-foreground mb-4">
+              Nenhuma categoria encontrada. Importe categorias padrão para
+              começar.
+            </p>
+            <Button disabled>Importar padrões</Button>
+          </div>
+        ) : (
+          <CategoryTreeTable
+            categories={categoryTree}
+            headers={{
+              category: "Categoria",
+              type: "Tipo",
+              status: "Status",
+            }}
+            emptyMessage="Nenhuma categoria encontrada. Importe categorias padrão para começar."
+            expandedCategories={expandedCategories}
+            onToggleCategory={toggleCategory}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onRestore={handleRestore}
+            processingId={processingId}
+          />
+        )}
       </section>
 
       <CategoryDialog
