@@ -1,12 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as React from "react";
-import { useForm } from "react-hook-form";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import { z } from "zod";
-
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -31,9 +25,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { trpc } from "@/lib/trpc/client";
 import type { CategoryNode } from "@/hooks/categories/useCategoryTree";
+import { trpc } from "@/lib/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 type CategoryDialogProps = {
   open: boolean;
@@ -45,10 +43,10 @@ type CategoryDialogProps = {
 
 const createCategorySchema = () =>
   z.object({
-    name: z.string().min(1, "Name is required"),
+    name: z.string().min(1, "O nome é obrigatório"),
     type: z.enum(["expense", "income"]),
-    color: z.string().min(1, "Color is required").default("#cccccc"),
-    icon: z.string().default(""),
+    color: z.string().min(1, "A cor é obrigatória"),
+    icon: z.string(),
     parent_id: z.string().uuid().nullable().optional(),
   });
 
@@ -59,29 +57,7 @@ export function CategoryDialog({
   parentId,
   onSuccess,
 }: CategoryDialogProps) {
-  const { t, i18n } = useTranslation("categories");
   const utils = trpc.useUtils();
-  const isMounted = React.useState(false)[0];
-  const [isMountedState, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const fallbackT = React.useCallback(
-    (key: string) => {
-      const fallbackLng =
-        (Array.isArray(i18n.options?.fallbackLng) &&
-          i18n.options.fallbackLng[0]) ||
-        (typeof i18n.options?.fallbackLng === "string"
-          ? i18n.options.fallbackLng
-          : "en");
-      return i18n.getFixedT(fallbackLng, "categories")(key);
-    },
-    [i18n],
-  );
-
-  const translate = isMountedState ? t : fallbackT;
 
   const { data: allCategories } = trpc.categories.list.useQuery(
     {
@@ -126,13 +102,13 @@ export function CategoryDialog({
   const createMutation = trpc.categories.create.useMutation({
     onSuccess: async () => {
       await utils.categories.list.invalidate();
-      toast.success(translate("toasts.createSuccess"));
+      toast.success("Categoria criada com sucesso.");
       onOpenChange(false);
       form.reset();
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(translate("toasts.createError"));
+      toast.error("Não foi possível criar a categoria.");
       console.error(error);
     },
   });
@@ -140,13 +116,13 @@ export function CategoryDialog({
   const updateMutation = trpc.categories.update.useMutation({
     onSuccess: async () => {
       await utils.categories.list.invalidate();
-      toast.success(translate("toasts.updateSuccess"));
+      toast.success("Categoria atualizada com sucesso.");
       onOpenChange(false);
       form.reset();
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(translate("toasts.updateError"));
+      toast.error("Não foi possível atualizar a categoria.");
       console.error(error);
     },
   });
@@ -196,15 +172,11 @@ export function CategoryDialog({
   }, [allCategories, category, values.type]);
 
   const isEdit = !!category;
-  const dialogTitle = isEdit
-    ? translate("dialog.edit.title")
-    : translate("dialog.create.title");
+  const dialogTitle = isEdit ? "Editar categoria" : "Criar categoria";
   const dialogDescription = isEdit
-    ? translate("dialog.edit.description")
-    : translate("dialog.create.description");
-  const submitLabel = isEdit
-    ? translate("dialog.actions.update")
-    : translate("dialog.actions.create");
+    ? "Atualize as informações da categoria."
+    : "Adicione uma nova categoria para organizar suas transações.";
+  const submitLabel = isEdit ? "Atualizar" : "Criar";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -221,10 +193,10 @@ export function CategoryDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{translate("dialog.fields.name")}</FormLabel>
+                  <FormLabel>Nome</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder={translate("dialog.fields.namePlaceholder")}
+                      placeholder="Digite o nome da categoria"
                       {...field}
                     />
                   </FormControl>
@@ -238,7 +210,7 @@ export function CategoryDialog({
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{translate("dialog.fields.type")}</FormLabel>
+                  <FormLabel>Tipo</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
@@ -250,12 +222,8 @@ export function CategoryDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="expense">
-                        {translate("tabs.expenses")}
-                      </SelectItem>
-                      <SelectItem value="income">
-                        {translate("tabs.incomes")}
-                      </SelectItem>
+                      <SelectItem value="expense">Despesas</SelectItem>
+                      <SelectItem value="income">Receitas</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -269,7 +237,7 @@ export function CategoryDialog({
                 name="color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{translate("dialog.fields.color")}</FormLabel>
+                    <FormLabel>Cor</FormLabel>
                     <FormControl>
                       <div className="flex gap-2">
                         <Input
@@ -294,12 +262,9 @@ export function CategoryDialog({
                 name="icon"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{translate("dialog.fields.icon")}</FormLabel>
+                    <FormLabel>Ícone</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder={translate("dialog.fields.iconPlaceholder")}
-                        {...field}
-                      />
+                      <Input placeholder="Digite o nome do ícone" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -312,7 +277,7 @@ export function CategoryDialog({
               name="parent_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{translate("dialog.fields.parent")}</FormLabel>
+                  <FormLabel>Categoria pai</FormLabel>
                   <Select
                     onValueChange={(value) =>
                       field.onChange(value === "none" ? null : value)
@@ -321,15 +286,11 @@ export function CategoryDialog({
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue
-                          placeholder={translate("dialog.fields.parentPlaceholder")}
-                        />
+                        <SelectValue placeholder="Selecione a categoria pai (opcional)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="none">
-                        {translate("dialog.fields.none")}
-                      </SelectItem>
+                      <SelectItem value="none">Nenhuma</SelectItem>
                       {parentOptions.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
                           {cat.name}
@@ -349,7 +310,7 @@ export function CategoryDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
               >
-                {translate("dialog.actions.cancel")}
+                Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {submitLabel}

@@ -3,7 +3,6 @@
 import { Tab, Tabs } from "@heroui/tabs";
 import { IconPlus } from "@tabler/icons-react";
 import * as React from "react";
-import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { GlowCard } from "@/components/gloweffect";
 import { Button } from "@/components/ui/button";
@@ -15,9 +14,6 @@ import { CategoryTreeTable } from "./_components/CategoryTreeTable";
 import { ImportDefaultsDialog } from "./_components/ImportDefaultsDialog";
 
 export default function CategoriesPage() {
-  const { t, i18n } = useTranslation("categories");
-  const [isMounted, setIsMounted] = React.useState(false);
-
   const [selectedType, setSelectedType] = React.useState<
     "expense" | "income" | "all"
   >("all");
@@ -28,23 +24,6 @@ export default function CategoriesPage() {
   const [parentId, setParentId] = React.useState<string | null>(null);
   const [importDialogOpen, setImportDialogOpen] = React.useState(false);
   const [processingId, setProcessingId] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const fallbackLng =
-    (Array.isArray(i18n.options?.fallbackLng) && i18n.options.fallbackLng[0]) ||
-    (typeof i18n.options?.fallbackLng === "string"
-      ? i18n.options.fallbackLng
-      : "en");
-
-  const fallbackT = React.useMemo(
-    () => i18n.getFixedT(fallbackLng, "categories"),
-    [i18n, fallbackLng],
-  );
-
-  const translate = isMounted ? t : fallbackT;
 
   const {
     data: categories,
@@ -66,11 +45,11 @@ export default function CategoriesPage() {
   const deleteMutation = trpc.categories.delete.useMutation({
     onSuccess: async () => {
       await utils.categories.list.invalidate();
-      toast.success(translate("toasts.deleteSuccess"));
+      toast.success("Categoria excluída com sucesso.");
       setProcessingId(null);
     },
     onError: () => {
-      toast.error(translate("toasts.deleteError"));
+      toast.error("Não foi possível excluir a categoria.");
       setProcessingId(null);
     },
   });
@@ -112,19 +91,19 @@ export default function CategoriesPage() {
       <section className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-semibold tracking-tight">
-            {translate("header.title")}
+            Categorias
           </h2>
           <p className="text-muted-foreground text-sm">
-            {translate("header.subtitle")}
+            Gerencie suas categorias de despesas e receitas.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => setImportDialogOpen(true)}>
-            {translate("header.importButtonTitle")}
+            Importar padrões
           </Button>
           <Button onClick={handleCreate}>
             <IconPlus stroke={1.5} className="size-4" />
-            {translate("actions.create")}
+            Criar categoria
           </Button>
         </div>
       </section>
@@ -138,9 +117,9 @@ export default function CategoriesPage() {
               setSelectedType(key as "expense" | "income" | "all")
             }
           >
-            <Tab key="all" title={translate("tabs.all")} />
-            <Tab key="expense" title={translate("tabs.expenses")} />
-            <Tab key="income" title={translate("tabs.incomes")} />
+            <Tab key="all" title="Todas" />
+            <Tab key="expense" title="Despesas" />
+            <Tab key="income" title="Receitas" />
           </Tabs>
 
           <div className="flex items-center gap-2">
@@ -155,7 +134,7 @@ export default function CategoriesPage() {
               htmlFor="includeInactive"
               className="text-sm text-muted-foreground cursor-pointer"
             >
-              {translate("status.inactive")}
+              Inativa
             </label>
           </div>
         </div>
@@ -164,8 +143,8 @@ export default function CategoriesPage() {
       <section className="grid gap-6 lg:grid-cols-7">
         <GlowCard
           className="lg:col-span-7"
-          title={translate("header.title")}
-          description={translate("header.subtitle")}
+          title="Categorias"
+          description="Gerencie suas categorias de despesas e receitas."
           contentClassName="gap-6"
         >
           {isCategoriesLoading ? (
@@ -179,26 +158,26 @@ export default function CategoriesPage() {
             </div>
           ) : isCategoriesError ? (
             <div className="py-12 text-center text-muted-foreground">
-              {translate("table.error")}
+              Não foi possível carregar as categorias no momento.
             </div>
           ) : isEmptyState ? (
             <div className="py-12 text-center">
               <p className="text-muted-foreground mb-4">
-                {translate("table.empty")}
+                Nenhuma categoria encontrada. Importe categorias padrão para começar.
               </p>
               <Button onClick={() => setImportDialogOpen(true)}>
-                {translate("header.importButtonTitle")}
+                Importar padrões
               </Button>
             </div>
           ) : (
             <CategoryTreeTable
               categories={categoryTree}
               headers={{
-                category: translate("table.headers.category"),
-                type: translate("table.headers.type"),
-                status: translate("table.headers.status"),
+                category: "Categoria",
+                type: "Tipo",
+                status: "Status",
               }}
-              emptyMessage={translate("table.empty")}
+              emptyMessage="Nenhuma categoria encontrada. Importe categorias padrão para começar."
               expandedCategories={expandedCategories}
               onToggleCategory={toggleCategory}
               onEdit={handleEdit}

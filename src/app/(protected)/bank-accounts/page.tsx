@@ -1,10 +1,10 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc/client";
 import { IconPlus } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { trpc } from "@/lib/trpc/client";
 import { AccountDetailsPanel } from "./_components/AccountDetailsPanel";
 import { AccountFormDialog } from "./_components/AccountFormDialog";
 import { AccountsList } from "./_components/AccountsList";

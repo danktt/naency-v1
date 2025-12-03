@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "react-i18next";
 import type { CategoryNode } from "@/hooks/categories/useCategoryTree";
 import { CategoryRow } from "./CategoryRow";
 
@@ -34,8 +33,6 @@ export function CategoryTreeTable({
   onCreateSubcategory,
   processingId,
 }: CategoryTreeTableProps) {
-  const { t } = useTranslation("categories");
-
   const renderNodes = React.useCallback(
     (nodes: CategoryNode[], depth = 0): React.ReactNode =>
       nodes.map((node) => {

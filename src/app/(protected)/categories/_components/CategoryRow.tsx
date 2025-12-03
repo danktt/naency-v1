@@ -8,7 +8,6 @@ import {
   Trash2,
 } from "lucide-react";
 import * as React from "react";
-import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -50,8 +49,6 @@ export function CategoryRow({
   onRestore,
   isProcessing = false,
 }: CategoryRowProps) {
-  const { t } = useTranslation("categories");
-
   return (
     <div
       className={cn(
@@ -87,9 +84,7 @@ export function CategoryRow({
           {hasChildren && (
             <p className="text-xs text-muted-foreground">
               {category.childrenCount ?? 0}{" "}
-              {category.childrenCount === 1
-                ? t("table.subcategory")
-                : t("table.subcategories")}
+              {category.childrenCount === 1 ? "subcategoria" : "subcategorias"}
             </p>
           )}
         </div>
@@ -100,7 +95,7 @@ export function CategoryRow({
           variant={category.type === "expense" ? "destructive" : "default"}
           className="capitalize"
         >
-          {t(`tabs.${category.type === "expense" ? "expenses" : "incomes"}`)}
+          {category.type === "expense" ? "Despesas" : "Receitas"}
         </Badge>
       </div>
 
@@ -109,7 +104,7 @@ export function CategoryRow({
           variant={category.is_active ? "default" : "secondary"}
           className="capitalize"
         >
-          {category.is_active ? t("status.active") : t("status.inactive")}
+          {category.is_active ? "Ativa" : "Inativa"}
         </Badge>
       </div>
 
@@ -122,14 +117,14 @@ export function CategoryRow({
               disabled={isProcessing}
             >
               <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-              <span className="sr-only">{t("actions.moreActions")}</span>
+              <span className="sr-only">Mais ações</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {onEdit && (
               <DropdownMenuItem onClick={onEdit} disabled={isProcessing}>
                 <Edit className="h-4 w-4" />
-                <span>{t("actions.edit")}</span>
+                <span>Editar</span>
               </DropdownMenuItem>
             )}
             {(onDelete || onRestore) && (
@@ -142,9 +137,7 @@ export function CategoryRow({
                 >
                   <Trash2 className="h-4 w-4" />
                   <span>
-                    {category.is_active
-                      ? t("actions.delete")
-                      : t("actions.restore")}
+                    {category.is_active ? "Excluir" : "Restaurar"}
                   </span>
                 </DropdownMenuItem>
               </>

@@ -1,5 +1,7 @@
 "use client";
 
+import { GlowCard, GridItem } from "@/components/gloweffect";
+import { Button } from "@/components/ui/button";
 import { Tab, Tabs } from "@heroui/tabs";
 import {
   Icon12Hours,
@@ -10,9 +12,6 @@ import {
   IconWallet,
 } from "@tabler/icons-react";
 import React from "react";
-import { useTranslation } from "react-i18next";
-import { GlowCard, GridItem } from "@/components/gloweffect";
-import { Button } from "@/components/ui/button";
 
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDateRange } from "@/helpers/formatDate";
@@ -83,9 +82,6 @@ const formatPercentage = (value: number) =>
   }).format(value)}%`;
 
 export default function ProvisionsPage() {
-  const { t, i18n } = useTranslation("provisions");
-  const [isMounted, setIsMounted] = React.useState(false);
-
   const [selectedPeriod, setSelectedPeriod] = React.useState(() => {
     const today = new Date();
     return { month: today.getMonth(), year: today.getFullYear() };
@@ -93,22 +89,6 @@ export default function ProvisionsPage() {
   const [selectedType, setSelectedType] = React.useState<"expense" | "income">(
     "expense",
   );
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const fallbackLng =
-    (Array.isArray(i18n.options?.fallbackLng) && i18n.options.fallbackLng[0]) ||
-    (typeof i18n.options?.fallbackLng === "string"
-      ? i18n.options.fallbackLng
-      : "en");
-
-  const fallbackT = React.useMemo(
-    () => i18n.getFixedT(fallbackLng, "provisions"),
-    [i18n, fallbackLng],
-  );
-
-  const translate = isMounted ? t : fallbackT;
 
   const periodInput = React.useMemo(
     () => ({
@@ -164,9 +144,8 @@ export default function ProvisionsPage() {
   );
 
   const getLocale = React.useCallback(() => {
-    const lang = (isMounted ? i18n.language : fallbackLng) ?? "en";
-    return lang.startsWith("pt") ? "pt-BR" : "en-US";
-  }, [i18n.language, fallbackLng, isMounted]);
+    return "pt-BR";
+  }, []);
 
   const monthOptions = React.useMemo(() => {
     const locale = getLocale();
@@ -192,18 +171,27 @@ export default function ProvisionsPage() {
   const getDescription = React.useCallback(
     (config: MetricConfig) => {
       if (isMetricsLoading && !metricsData) {
-        return translate("metrics.loadingDescription");
+        return "Atualizando métricas de provisões...";
       }
       if (isMetricsError) {
-        return translate("metrics.errorDescription");
+        return "Não foi possível carregar os dados.";
       }
       const formattedValue =
         config.format === "percentage"
           ? formatPercentage(totalsByKey[config.key])
           : formatCurrency(totalsByKey[config.key]);
-      return translate(config.changeKey, { value: formattedValue });
+
+      const descriptions: Record<string, string> = {
+        "metrics.plannedTotal.change": `${formattedValue} planejados para o mês selecionado`,
+        "metrics.realizedTotal.change": `${formattedValue} já utilizados neste mês`,
+        "metrics.remainingTotal.change": `${formattedValue} ainda disponíveis para este mês`,
+        "metrics.coverage.change": `Cobertura de ${formattedValue} sobre o total planejado`,
+        "metrics.overBudgetTotal.change": `${formattedValue} além do valor planejado`,
+      };
+
+      return descriptions[config.changeKey] || "";
     },
-    [isMetricsError, isMetricsLoading, metricsData, totalsByKey, translate],
+    [isMetricsError, isMetricsLoading, metricsData, totalsByKey],
   );
 
   const {
@@ -219,7 +207,6 @@ export default function ProvisionsPage() {
     rows: gridData?.rows ?? [],
     selectedType,
     periodInput,
-    translate,
   });
 
   const selectedPeriodLabel = React.useMemo(() => {
@@ -270,10 +257,10 @@ export default function ProvisionsPage() {
       <section className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-semibold tracking-tight">
-            {translate("header.title")}
+            Provisionamento
           </h2>
           <p className="text-muted-foreground text-sm">
-            {translate("header.subtitle")}
+            Acompanhe o dinheiro reservado para despesas futuras.
           </p>
         </div>
         <CopyFromPreviousButton
@@ -296,7 +283,17 @@ export default function ProvisionsPage() {
                   stroke={1.5}
                 />
               }
-              title={translate(metric.titleKey)}
+              title={
+                metric.key === "plannedTotal"
+                  ? "Total planejado"
+                  : metric.key === "realizedTotal"
+                    ? "Total realizado"
+                    : metric.key === "remainingTotal"
+                      ? "Saldo disponível"
+                      : metric.key === "coverage"
+                        ? "Cobertura"
+                        : "Acima do planejado"
+              }
               value={getFormattedValue(metric)}
               description={getDescription(metric)}
               isLoading={isMetricsLoading}
@@ -313,8 +310,8 @@ export default function ProvisionsPage() {
               setSelectedType(key as "expense" | "income")
             }
           >
-            <Tab key="expense" title={translate("metrics.tabs.expenses")} />
-            <Tab key="income" title={translate("metrics.tabs.incomes")} />
+            <Tab key="expense" title="Despesas" />
+            <Tab key="income" title="Receitas" />
           </Tabs>
 
           <div className="flex items-center gap-2">
@@ -350,8 +347,8 @@ export default function ProvisionsPage() {
       <section className="grid gap-6 lg:grid-cols-7">
         <GlowCard
           className="lg:col-span-7"
-          title={translate("charts.monthly.title")}
-          description={translate("charts.monthly.description")}
+          title="Distribuição das provisões"
+          description="Compare valores planejados e realizados por categoria."
           contentClassName="gap-6"
         >
           {isGridLoading ? (
@@ -365,37 +362,25 @@ export default function ProvisionsPage() {
             </div>
           ) : isGridError ? (
             <div className="py-12 text-center text-muted-foreground">
-              {translate("charts.monthly.error")}
+              Não foi possível carregar as categorias agora.
             </div>
           ) : isEmptyState ? (
             <div className="py-12 text-center">
               <p className="text-muted-foreground">
-                {translate("charts.monthly.empty")}
+                Nenhuma categoria encontrada para este filtro.
               </p>
             </div>
           ) : (
             <CategoryTreeTable
               categories={filteredTree}
               headers={{
-                category: translate("charts.table.headers.category", {
-                  defaultValue: "Categoria",
-                }),
-                planned: translate("charts.table.headers.planned", {
-                  defaultValue: "Planejado",
-                }),
-                realized: translate("charts.table.headers.realized", {
-                  defaultValue: "Realizado",
-                }),
-                progress: translate("charts.table.headers.progress", {
-                  defaultValue: "Progresso",
-                }),
-                difference: translate("charts.table.headers.difference", {
-                  defaultValue: "Diferença",
-                }),
+                category: "Categoria",
+                planned: "Planejado",
+                realized: "Realizado",
+                progress: "Progresso",
+                difference: "Diferença",
               }}
-              emptyMessage={translate("charts.monthly.noCategories", {
-                defaultValue: "Nenhuma categoria encontrada",
-              })}
+              emptyMessage="Nenhuma categoria encontrada"
               expandedCategories={expandedCategories}
               onToggleCategory={toggleCategory}
               editingId={editingId}
