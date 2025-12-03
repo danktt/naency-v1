@@ -455,7 +455,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
           "max-h-[90vh] sm:max-h-[calc(100vh-4rem)]",
         )}
       >
-        <motion.div layout className="flex flex-1 flex-col overflow-hidden">
+        <motion.div layout className="flex flex-1 flex-col">
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}

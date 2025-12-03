@@ -290,7 +290,7 @@ export function CreditCardExpenseForm(props: CreditCardExpenseFormProps = {}) {
           showCreditCardDetail ? "sm:max-w-5xl" : "sm:max-w-3xl",
         )}
       >
-        <motion.div layout className="flex flex-1 overflow-hidden">
+        <motion.div layout className="flex flex-1 overflow-visible">
           <Form {...form}>
             <div className="flex flex-1 min-h-0">
               <form
