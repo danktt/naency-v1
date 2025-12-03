@@ -241,6 +241,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const [isStartDatePopoverOpen, setIsStartDatePopoverOpen] =
     React.useState(false);
   const [isEndDatePopoverOpen, setIsEndDatePopoverOpen] = React.useState(false);
+  const [isPaidAtPopoverOpen, setIsPaidAtPopoverOpen] = React.useState(false);
   const [keepOpen, setKeepOpen] = React.useState(false);
   const keepOpenId = React.useId();
   const keepOpenRef = React.useRef(keepOpen);
@@ -286,6 +287,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     setIsDatePopoverOpen(false);
     setIsStartDatePopoverOpen(false);
     setIsEndDatePopoverOpen(false);
+    setIsPaidAtPopoverOpen(false);
 
     if (isEditing && effectiveExpense) {
       form.reset(mapExpenseToDefaultValues(effectiveExpense));
@@ -631,9 +633,10 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                 }}
                               />
 
-                              {/* Checkbox aligned with Date - Only show for future dates */}
+                              {/* Checkbox aligned with Date - Show for future dates or when editing pending expense */}
                               <AnimatePresence initial={false}>
-                                {isFutureDate && (
+                                {(isFutureDate ||
+                                  (isEditing && !isPaidValue)) && (
                                   <motion.div
                                     initial={{ opacity: 0, x: -10, width: 0 }}
                                     animate={{
@@ -928,6 +931,75 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                         )}
                       </AnimatePresence>
                     </section>
+
+                    {/* If Paid is checked, show payment date if different or when editing */}
+                    <AnimatePresence initial={false}>
+                      {isPaidValue && (!isUnique || isEditing) && (
+                        <motion.div
+                          key="paid-at"
+                          {...motionProps}
+                          className="pb-4"
+                        >
+                          <FormField
+                            control={form.control}
+                            name="paidAt"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Data do pagamento</FormLabel>
+                                <FormControl>
+                                  <Popover
+                                    open={isPaidAtPopoverOpen}
+                                    onOpenChange={setIsPaidAtPopoverOpen}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        className={cn(
+                                          "w-full justify-start text-left font-normal",
+                                          !field.value &&
+                                            "text-muted-foreground",
+                                        )}
+                                        disabled={isSubmitting}
+                                      >
+                                        <IconCalendar className="mr-2 h-4 w-4" />
+                                        {field.value
+                                          ? format(field.value, "PPP", {
+                                              locale,
+                                            })
+                                          : "Selecione a data"}
+                                        <IconChevronDown className="ml-auto h-4 w-4" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                      className="w-auto p-0"
+                                      align="start"
+                                    >
+                                      <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={(next) => {
+                                          if (next) {
+                                            field.onChange(next);
+                                            setIsPaidAtPopoverOpen(false);
+                                          }
+                                        }}
+                                        defaultMonth={
+                                          field.value ??
+                                          form.getValues("date") ??
+                                          dateRange.to
+                                        }
+                                        locale={locale}
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     {/* === Details Section === */}
                     <section className="space-y-2">

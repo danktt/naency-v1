@@ -33,6 +33,8 @@ type IncomeColumnsOptions = {
   onViewIncome?: (income: IncomeTableRow) => void;
   onEditIncome?: (income: IncomeTableRow) => void;
   onDeleteIncome?: (income: IncomeTableRow) => void;
+  onMarkAsPaid?: (income: IncomeTableRow) => void;
+  onMarkAsPending?: (income: IncomeTableRow) => void;
   getCategoryMeta?: (income: IncomeTableRow) => CategoryMeta | null;
   getAccountName?: (income: IncomeTableRow) => string | null;
 };
@@ -102,11 +104,19 @@ export function createIncomeColumns(
     onViewIncome,
     onEditIncome,
     onDeleteIncome,
+    onMarkAsPaid,
+    onMarkAsPending,
     getCategoryMeta,
     getAccountName,
   } = options;
 
-  const hasActions = Boolean(onViewIncome || onEditIncome || onDeleteIncome);
+  const hasActions = Boolean(
+    onViewIncome ||
+      onEditIncome ||
+      onDeleteIncome ||
+      onMarkAsPaid ||
+      onMarkAsPending,
+  );
 
   const columns: ColumnDef<IncomeTableRow>[] = [
     {
@@ -383,6 +393,27 @@ export function createIncomeColumns(
             >
               Editar receita
             </DropdownMenuItem>
+            {!row.original.isPaid ? (
+              <DropdownMenuItem
+                disabled={!onMarkAsPaid}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  onMarkAsPaid?.(row.original);
+                }}
+              >
+                Marcar como recebida
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                disabled={!onMarkAsPending}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  onMarkAsPending?.(row.original);
+                }}
+              >
+                Marcar como pendente
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"

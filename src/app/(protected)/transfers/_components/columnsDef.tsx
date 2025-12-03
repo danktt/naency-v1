@@ -6,7 +6,6 @@ import {
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
-import type { TFunction } from "i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,20 +18,18 @@ export type TransferTableRow =
   RouterOutput["transactions"]["listTransfers"][number];
 
 type CreateTransferColumnsParams = {
-  t: TFunction<"transfers">;
   onEditTransfer?: (transfer: TransferTableRow) => void;
   onDeleteTransfer?: (transfer: TransferTableRow) => void;
 };
 
 export function createTransferColumns({
-  t,
   onEditTransfer,
   onDeleteTransfer,
 }: CreateTransferColumnsParams): ColumnDef<TransferTableRow>[] {
   return [
     {
       accessorKey: "date",
-      header: t("table.columns.date"),
+      header: "Data",
       cell: ({ row }) => {
         const transfer = row.original;
         const date = transfer.date ? new Date(transfer.date) : null;
@@ -40,7 +37,7 @@ export function createTransferColumns({
           return (
             <div className="flex items-center gap-2 text-muted-foreground">
               <IconCalendar className="size-4" />
-              <span>{t("table.noDate")}</span>
+              <span>Sem data</span>
             </div>
           );
         }
@@ -55,7 +52,7 @@ export function createTransferColumns({
     },
     {
       accessorKey: "amount",
-      header: t("table.columns.amount"),
+      header: "Valor",
       cell: ({ row }) => {
         const amount = Number(row.getValue("amount"));
         return (
@@ -67,7 +64,7 @@ export function createTransferColumns({
     },
     {
       accessorKey: "description",
-      header: t("table.columns.description"),
+      header: "Descrição",
       cell: ({ row }) => {
         const description = row.getValue("description");
         if (!description) {
@@ -86,14 +83,12 @@ export function createTransferColumns({
     },
     {
       accessorKey: "fromAccountName",
-      header: t("table.columns.fromAccount"),
+      header: "Conta de origem",
       cell: ({ row }) => {
         const fromAccount = row.original.fromAccountName;
         if (!fromAccount) {
           return (
-            <span className="text-sm text-muted-foreground">
-              {t("table.noData")}
-            </span>
+            <span className="text-sm text-muted-foreground">-</span>
           );
         }
 
@@ -102,14 +97,12 @@ export function createTransferColumns({
     },
     {
       accessorKey: "toAccountName",
-      header: t("table.columns.toAccount"),
+      header: "Conta de destino",
       cell: ({ row }) => {
         const toAccount = row.original.toAccountName;
         if (!toAccount) {
           return (
-            <span className="text-sm text-muted-foreground">
-              {t("table.noData")}
-            </span>
+            <span className="text-sm text-muted-foreground">-</span>
           );
         }
 
@@ -125,7 +118,7 @@ export function createTransferColumns({
       ? [
           {
             id: "actions",
-            header: t("table.columns.actions"),
+            header: "Ações",
             cell: ({ row }: { row: { original: TransferTableRow } }) => (
               <div className="flex items-center gap-1">
                 {onEditTransfer ? (
@@ -134,7 +127,7 @@ export function createTransferColumns({
                     size="icon"
                     className="size-8"
                     onClick={() => onEditTransfer(row.original)}
-                    title={t("table.actions.edit")}
+                    title="Editar transferência"
                   >
                     <IconPencil className="size-4" />
                   </Button>
@@ -145,7 +138,7 @@ export function createTransferColumns({
                     size="icon"
                     className="size-8 text-destructive hover:text-destructive"
                     onClick={() => onDeleteTransfer(row.original)}
-                    title={t("table.actions.delete")}
+                    title="Excluir transferência"
                   >
                     <IconTrash className="size-4" />
                   </Button>

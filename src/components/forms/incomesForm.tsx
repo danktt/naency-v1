@@ -620,9 +620,10 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                                 }}
                               />
 
-                              {/* Checkbox aligned with Date - Only show for future dates */}
+                              {/* Checkbox aligned with Date - Show for future dates or when editing pending income */}
                               <AnimatePresence initial={false}>
-                                {isFutureDate && (
+                                {(isFutureDate ||
+                                  (isEditing && !isPaidValue)) && (
                                   <motion.div
                                     initial={{ opacity: 0, x: -10, width: 0 }}
                                     animate={{
@@ -754,7 +755,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                           <motion.div
                             key="recurring"
                             {...motionProps}
-                            className="grid gap-4 sm:grid-cols-2"
+                            className="grid gap-4 sm:grid-cols-3"
                           >
                             <FormField
                               control={form.control}
@@ -905,9 +906,9 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                       </AnimatePresence>
                     </section>
 
-                    {/* If Paid is checked, show payment date if different */}
+                    {/* If Paid is checked, show payment date if different or when editing */}
                     <AnimatePresence initial={false}>
-                      {isPaidValue && !isUnique && (
+                      {isPaidValue && (!isUnique || isEditing) && (
                         <motion.div
                           key="paid-at"
                           {...motionProps}
@@ -918,7 +919,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                             name="paidAt"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Data do Pagamento Real</FormLabel>
+                                <FormLabel>Recebido em</FormLabel>
                                 <FormControl>
                                   <Popover
                                     open={isPaidAtPopoverOpen}

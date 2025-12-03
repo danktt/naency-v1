@@ -1,0 +1,101 @@
+{
+  "heading": {
+    "title": "Visão geral financeira",
+    "description": "Acompanhe como suas contas estão evoluindo neste mês.",
+    "greeting": {
+      "morning": "Bom dia, {{name}}!",
+      "afternoon": "Boa tarde, {{name}}!",
+      "evening": "Boa noite, {{name}}!"
+    }
+  },
+  "actions": {
+    "retry": "Tentar novamente"
+  },
+  "snapshot": {
+    "title": "Resumo do mês atual",
+    "description": "Monitore entradas, saídas e saldo em tempo real.",
+    "cards": {
+      "incomes": {
+        "title": "Receitas",
+        "subtitle": "Total recebido neste mês."
+      },
+      "expenses": {
+        "title": "Despesas",
+        "subtitle": "Todos os gastos registrados no período."
+      },
+      "monthBalance": {
+        "title": "Saldo do mês",
+        "subtitle": "Receitas menos despesas do mês corrente."
+      },
+      "accumulatedBalance": {
+        "title": "Saldo acumulado",
+        "subtitle": "Saldo considerando meses anteriores."
+      },
+      "pending": {
+        "title": "Pendentes de pagamento",
+        "subtitle": "{{count}} transações aguardando confirmação."
+      }
+    }
+  },
+  "charts": {
+    "monthly": {
+      "title": "Evolução mensal",
+      "description": "Compare receitas e despesas mês a mês.",
+      "legend": {
+        "incomes": "Receitas",
+        "expenses": "Despesas"
+      },
+      "empty": {
+        "title": "Sem histórico ainda",
+        "description": "Cadastre transações para visualizar a tendência mensal."
+      }
+    },
+    "distribution": {
+      "title": "Distribuição por categoria",
+      "description": "Entenda para onde o dinheiro está indo neste mês.",
+      "uncategorized": "Sem categoria",
+      "tooltip": {
+        "percentage": "{{value}}% das despesas do mês"
+      },
+      "breakdownTitle": "Detalhe por categoria",
+      "empty": {
+        "title": "Nenhuma despesa registrada",
+        "description": "Adicione despesas para ver a distribuição por categoria."
+      }
+    }
+  },
+  "payments": {
+    "title": "Status de pagamentos",
+    "description": "Acompanhe quais transações estão em dia, atrasadas ou pendentes.",
+    "sections": {
+      "incomes": {
+        "title": "Receitas",
+        "description": "Status das receitas registradas neste mês.",
+        "cta": "Ir para receitas"
+      },
+      "expenses": {
+        "title": "Despesas",
+        "description": "Status das despesas registradas neste mês.",
+        "cta": "Ir para despesas"
+      }
+    },
+    "statuses": {
+      "onTime": {
+        "title": "Pago no prazo",
+        "description": "Transações pagas até a data de vencimento."
+      },
+      "late": {
+        "title": "Pago com atraso",
+        "description": "Transações pagas após a data de vencimento."
+      },
+      "pending": {
+        "title": "Atrasado / pendente",
+        "description": "Inclui {{overdue}} transações em atraso."
+      }
+    },
+    "empty": {
+      "title": "Nada por aqui ainda",
+      "description": "Adicione transações para acompanhar o status de pagamento."
+    }
+  }
+}

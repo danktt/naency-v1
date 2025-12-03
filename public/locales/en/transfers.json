@@ -1,0 +1,101 @@
+{
+  "header": {
+    "title": "Account Transfers",
+    "subtitle": "Review and manage the money moving between your accounts.",
+    "new": "New Transfer"
+  },
+  "filters": {
+    "month": "Month",
+    "monthPlaceholder": "Select month",
+    "year": "Year",
+    "account": "Account",
+    "accountPlaceholder": "Select account",
+    "allAccounts": "All accounts"
+  },
+  "table": {
+    "empty": "No transfers registered for this period.",
+    "emptyError": "We couldn't load the transfers.",
+    "summary": "{{count}} transfer found",
+    "summary_other": "{{count}} transfers found",
+    "summaryEmpty": "No transfers found",
+    "summaryError": "Error loading transfers",
+    "refresh": "Refresh",
+    "noData": "-",
+    "columns": {
+      "date": "Date",
+      "fromAccount": "From account",
+      "toAccount": "To account",
+      "amount": "Amount",
+      "description": "Description",
+      "status": "Status",
+      "paidAt": "Completed at",
+      "method": "Method",
+      "actions": "Actions"
+    },
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed"
+    },
+    "actions": {
+      "edit": "Edit transfer",
+      "delete": "Delete transfer"
+    },
+    "noDate": "No date"
+  },
+  "form": {
+    "title": {
+      "create": "New transfer",
+      "edit": "Edit transfer"
+    },
+    "description": {
+      "create": "Fill in the details below to register a new transfer.",
+      "edit": "Update the information below to edit this transfer."
+    },
+    "labels": {
+      "date": "Date",
+      "fromAccount": "From account",
+      "toAccount": "To account",
+      "amount": "Amount",
+      "description": "Description"
+    },
+    "placeholders": {
+      "date": "Pick a date",
+      "account": "Select an account",
+      "description": "Optional description"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "create": "Create transfer",
+      "save": "Save changes"
+    },
+    "validation": {
+      "date": "Select a date.",
+      "fromAccount": "Select the origin account.",
+      "toAccount": "Select the destination account.",
+      "amount": "Enter a transfer amount.",
+      "amountPositive": "Enter an amount greater than zero.",
+      "descriptionMax": "The description must have a maximum of 500 characters.",
+      "sameAccount": "Origin and destination accounts must be different."
+    },
+    "toast": {
+      "createSuccess": "Transfer created successfully.",
+      "createError": "Could not create the transfer.",
+      "updateSuccess": "Transfer updated successfully.",
+      "updateError": "Could not update the transfer."
+    }
+  },
+  "delete": {
+    "title": "Delete transfer",
+    "description": "This action cannot be undone. The transfer will be permanently removed.",
+    "actions": {
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "loading": "Deleting..."
+    },
+    "toast": {
+      "success": "Transfer deleted successfully.",
+      "error": "Could not delete the transfer."
+    }
+  }
+}
+

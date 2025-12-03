@@ -2,7 +2,6 @@
 
 import { IconRefresh } from "@tabler/icons-react";
 import * as React from "react";
-import { useTranslation } from "react-i18next";
 
 import { DataTable } from "@/components/Table";
 import { Button } from "@/components/ui/button";
@@ -30,34 +29,13 @@ export function TransfersTable({
   onEdit,
   onDelete,
 }: TransfersTableProps) {
-  const { t, i18n } = useTranslation("transfers");
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const fallbackLng =
-    (Array.isArray(i18n.options?.fallbackLng) && i18n.options.fallbackLng[0]) ||
-    (typeof i18n.options?.fallbackLng === "string"
-      ? i18n.options.fallbackLng
-      : "en");
-
-  const fallbackT = React.useMemo(
-    () => i18n.getFixedT(fallbackLng, "transfers"),
-    [i18n, fallbackLng],
-  );
-
-  const translate = isMounted ? t : fallbackT;
-
   const columns = React.useMemo(
     () =>
       createTransferColumns({
-        t: translate,
         onEditTransfer: onEdit,
         onDeleteTransfer: onDelete,
       }),
-    [onDelete, onEdit, translate],
+    [onDelete, onEdit],
   );
 
   const toolbar = (
@@ -70,7 +48,7 @@ export function TransfersTable({
         isLoading={isRefetching}
         icon={<IconRefresh className="size-4" />}
       >
-        {translate("table.refresh")}
+        Atualizar
       </Button>
     </div>
   );

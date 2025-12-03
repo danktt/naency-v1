@@ -1,6 +1,5 @@
 "use client";
 
-import { IconRefresh } from "@tabler/icons-react";
 import type { Row } from "@tanstack/react-table";
 import * as React from "react";
 
@@ -19,8 +18,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { useDateStore } from "@/stores/useDateStore";
+import { IconCalendar, IconChevronDown } from "@tabler/icons-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 import { createIncomeColumns, type IncomeTableRow } from "./columnsDef";
 
@@ -44,10 +53,22 @@ export function IncomesTable() {
   const { data, isLoading, isError, refetch, isRefetching } =
     trpc.transactions.list.useQuery(queryInput);
   const utils = trpc.useUtils();
+  const calendarLocale = ptBR;
 
   const [incomeToDelete, setIncomeToDelete] =
     React.useState<IncomeTableRow | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [incomeToMarkAsPending, setIncomeToMarkAsPending] =
+    React.useState<IncomeTableRow | null>(null);
+  const [isMarkAsPendingDialogOpen, setIsMarkAsPendingDialogOpen] =
+    React.useState(false);
+  const [incomeToMarkAsPaid, setIncomeToMarkAsPaid] =
+    React.useState<IncomeTableRow | null>(null);
+  const [isMarkAsPaidDialogOpen, setIsMarkAsPaidDialogOpen] =
+    React.useState(false);
+  const [markAsPaidDate, setMarkAsPaidDate] = React.useState<Date>(new Date());
+  const [isMarkAsPaidDatePopoverOpen, setIsMarkAsPaidDatePopoverOpen] =
+    React.useState(false);
 
   const deleteIncomeMutation = trpc.transactions.delete.useMutation({
     onSuccess: () => {
@@ -56,6 +77,35 @@ export function IncomesTable() {
       void utils.bankAccounts.list.invalidate();
       setIsDeleteDialogOpen(false);
       setIncomeToDelete(null);
+    },
+    onError: (error) => {
+      toast(error.message);
+    },
+  });
+
+  const markAsPendingMutation =
+    trpc.transactions.updatePaymentStatus.useMutation({
+      onSuccess: () => {
+        toast("Receita marcada como pendente.");
+        void utils.transactions.list.invalidate(queryInput);
+        void utils.transactions.metrics.invalidate();
+        void utils.bankAccounts.list.invalidate();
+        setIsMarkAsPendingDialogOpen(false);
+        setIncomeToMarkAsPending(null);
+      },
+      onError: (error) => {
+        toast(error.message);
+      },
+    });
+
+  const markAsPaidMutation = trpc.transactions.updatePaymentStatus.useMutation({
+    onSuccess: () => {
+      toast("Receita marcada como recebida.");
+      void utils.transactions.list.invalidate(queryInput);
+      void utils.transactions.metrics.invalidate();
+      void utils.bankAccounts.list.invalidate();
+      setIsMarkAsPaidDialogOpen(false);
+      setIncomeToMarkAsPaid(null);
     },
     onError: (error) => {
       toast(error.message);
@@ -71,6 +121,48 @@ export function IncomesTable() {
     if (!incomeToDelete) return;
     deleteIncomeMutation.mutate({ id: incomeToDelete.id, type: "income" });
   }, [deleteIncomeMutation, incomeToDelete]);
+
+  const handleMarkAsPaid = React.useCallback((income: IncomeTableRow) => {
+    if (income.isPaid) {
+      toast("Esta receita já está marcada como recebida.");
+      return;
+    }
+
+    setMarkAsPaidDate(income.paidAt ? new Date(income.paidAt) : new Date());
+    setIncomeToMarkAsPaid(income);
+    setIsMarkAsPaidDatePopoverOpen(false);
+    setIsMarkAsPaidDialogOpen(true);
+  }, []);
+
+  const confirmMarkAsPaid = React.useCallback(() => {
+    if (!incomeToMarkAsPaid) return;
+    markAsPaidMutation.mutate({
+      id: incomeToMarkAsPaid.id,
+      type: "income",
+      isPaid: true,
+      paidAt: markAsPaidDate,
+    });
+  }, [incomeToMarkAsPaid, markAsPaidDate, markAsPaidMutation]);
+
+  const handleMarkAsPending = React.useCallback((income: IncomeTableRow) => {
+    if (!income.isPaid) {
+      toast("Esta receita já está pendente.");
+      return;
+    }
+
+    setIncomeToMarkAsPending(income);
+    setIsMarkAsPendingDialogOpen(true);
+  }, []);
+
+  const confirmMarkAsPending = React.useCallback(() => {
+    if (!incomeToMarkAsPending) return;
+    markAsPendingMutation.mutate({
+      id: incomeToMarkAsPending.id,
+      type: "income",
+      isPaid: false,
+      paidAt: null,
+    });
+  }, [incomeToMarkAsPending, markAsPendingMutation]);
 
   const handleEditIncome = React.useCallback((income: IncomeTableRow) => {
     setEditingIncome(income);
@@ -96,8 +188,15 @@ export function IncomesTable() {
       createIncomeColumns({
         onEditIncome: handleEditIncome,
         onDeleteIncome: handleDeleteIncome,
+        onMarkAsPaid: handleMarkAsPaid,
+        onMarkAsPending: handleMarkAsPending,
       }),
-    [handleDeleteIncome, handleEditIncome],
+    [
+      handleDeleteIncome,
+      handleEditIncome,
+      handleMarkAsPaid,
+      handleMarkAsPending,
+    ],
   );
 
   const rows = data ?? [];
@@ -141,6 +240,110 @@ export function IncomesTable() {
               disabled={deleteIncomeMutation.isPending}
             >
               {deleteIncomeMutation.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={isMarkAsPaidDialogOpen}
+        onOpenChange={(open) => {
+          setIsMarkAsPaidDialogOpen(open);
+          if (!open) {
+            setIncomeToMarkAsPaid(null);
+            setIsMarkAsPaidDatePopoverOpen(false);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Marcar receita como recebida?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Escolha a data de recebimento para confirmar que esta receita foi
+              recebida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Data do recebimento</p>
+            <Popover
+              open={isMarkAsPaidDatePopoverOpen}
+              onOpenChange={setIsMarkAsPaidDatePopoverOpen}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !markAsPaidDate && "text-muted-foreground",
+                  )}
+                >
+                  <IconCalendar className="mr-2 size-4" />
+                  {markAsPaidDate
+                    ? format(markAsPaidDate, "PPP", {
+                        locale: calendarLocale,
+                      })
+                    : "Selecione uma data"}
+                  <IconChevronDown className="ml-auto size-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={markAsPaidDate}
+                  onSelect={(date) => {
+                    if (!date) return;
+                    setMarkAsPaidDate(date);
+                    setIsMarkAsPaidDatePopoverOpen(false);
+                  }}
+                  defaultMonth={markAsPaidDate ?? new Date()}
+                  locale={calendarLocale}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={markAsPaidMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmMarkAsPaid}
+              disabled={markAsPaidMutation.isPending}
+            >
+              {markAsPaidMutation.isPending
+                ? "Atualizando..."
+                : "Marcar como recebida"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={isMarkAsPendingDialogOpen}
+        onOpenChange={(open) => {
+          setIsMarkAsPendingDialogOpen(open);
+          if (!open) {
+            setIncomeToMarkAsPending(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Marcar receita como pendente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A informação de recebimento será removida e a receita voltará para o
+              status pendente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={markAsPendingMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmMarkAsPending}
+              disabled={markAsPendingMutation.isPending}
+            >
+              {markAsPendingMutation.isPending
+                ? "Atualizando..."
+                : "Marcar como pendente"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
