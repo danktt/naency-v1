@@ -233,7 +233,6 @@ export function DatePicker() {
               onMonthChange={setMonth}
               className="p-2"
               numberOfMonths={2}
-              disabled={[{ after: today }]}
             />
           </div>
         </div>

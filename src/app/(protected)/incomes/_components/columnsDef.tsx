@@ -49,6 +49,52 @@ const PAYMENT_METHODS: Record<string, string> = {
   investment: "Investimento",
 };
 
+// Helper function to get date value for filtering
+function getDateValue(tx: IncomeTableRow): string {
+  if (!tx.date) return "";
+  return formatDate(new Date(tx.date));
+}
+
+// Helper function to get status label for filtering
+function getStatusLabel(tx: IncomeTableRow): string {
+  const isRecurring = Boolean(tx.recurringId);
+  const isInstallment = Boolean(tx.installmentGroupId);
+  const isPaid = Boolean(tx.isPaid);
+
+  if (isInstallment) {
+    return `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
+  }
+
+  if (isRecurring) {
+    return "Recorrente";
+  }
+
+  if (!isPaid) {
+    return "Pendente";
+  }
+
+  const expectedDate = tx.date ? new Date(tx.date) : null;
+  const paidAtDate = tx.paidAt ? new Date(tx.paidAt) : null;
+
+  if (!expectedDate || !paidAtDate) {
+    return "Recebido";
+  }
+
+  const normalizeDate = (value: Date) =>
+    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+
+  const expectedTime = normalizeDate(expectedDate);
+  const paidTime = normalizeDate(paidAtDate);
+
+  if (paidTime === expectedTime) {
+    return "Recebido";
+  }
+  if (paidTime > expectedTime) {
+    return "Recebido";
+  }
+  return "Recebido";
+}
+
 export function createIncomeColumns(
   options: CreateIncomeColumnsParams,
 ): ColumnDef<IncomeTableRow>[] {
@@ -64,8 +110,9 @@ export function createIncomeColumns(
 
   const columns: ColumnDef<IncomeTableRow>[] = [
     {
-      accessorKey: "dateAndStatus",
+      id: "date",
       header: "Data",
+      accessorFn: (row) => getDateValue(row),
       cell: ({ row }) => {
         const tx = row.original;
 
@@ -119,6 +166,7 @@ export function createIncomeColumns(
     {
       id: "status",
       header: "Status",
+      accessorFn: (row) => getStatusLabel(row),
       cell: ({ row }) => {
         const tx = row.original;
 
@@ -281,9 +329,7 @@ export function createIncomeColumns(
           getAccountName?.(row.original) ?? row.original.accountName;
 
         if (row.original.method === "credit") {
-          return (
-            <Badge variant="outline">{PAYMENT_METHODS.credit}</Badge>
-          );
+          return <Badge variant="outline">{PAYMENT_METHODS.credit}</Badge>;
         }
 
         if (!account) return "-";

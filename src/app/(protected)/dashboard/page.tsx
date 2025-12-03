@@ -1,18 +1,17 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/helpers/formatCurrency";
+import { trpc } from "@/lib/trpc/client";
 import { useUser } from "@clerk/nextjs";
 import {
   IconArrowDownLeft,
-  IconArrowDownRight,
   IconArrowUpRight,
   IconPigMoney,
   IconWallet,
 } from "@tabler/icons-react";
 import { CheckCircle2, CircleDollarSign, Clock } from "lucide-react";
 import * as React from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/helpers/formatCurrency";
-import { trpc } from "@/lib/trpc/client";
 import { DistributionCard } from "./_components/DistributionCard";
 import { MonthlyTrendCard } from "./_components/MonthlyTrendCard";
 import { type PaymentSection, PaymentsCard } from "./_components/PaymentsCard";

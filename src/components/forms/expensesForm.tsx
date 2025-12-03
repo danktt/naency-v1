@@ -318,6 +318,16 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const dateValue = form.watch("date");
   const isPaidValue = form.watch("isPaid");
 
+  // Check if selected date is in the future (at least one day ahead)
+  const isFutureDate = React.useMemo(() => {
+    if (!dateValue) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(dateValue);
+    selectedDate.setHours(0, 0, 0, 0);
+    return selectedDate > today;
+  }, [dateValue]);
+
   const invalidateTransactionsData = React.useCallback(async () => {
     await Promise.all([
       utils.transactions.list.invalidate({ type: "expense" }),
@@ -621,30 +631,48 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                 }}
                               />
 
-                              {/* Checkbox aligned with Date */}
-                              <FormField
-                                control={form.control}
-                                name="isPaid"
-                                render={({ field }) => (
-                                  <FormItem className="flex flex-row items-end gap-2 pb-2.5 h-full max-w-40 ">
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value}
-                                        onCheckedChange={(checked) =>
-                                          field.onChange(Boolean(checked))
-                                        }
-                                        disabled={isSubmitting}
-                                      />
-                                    </FormControl>
-                                    <FormLabel
-                                      className=" font-medium cursor-pointer mb-0"
-                                      style={{ marginTop: 0 }}
-                                    >
-                                      Pago
-                                    </FormLabel>
-                                  </FormItem>
+                              {/* Checkbox aligned with Date - Only show for future dates */}
+                              <AnimatePresence initial={false}>
+                                {isFutureDate && (
+                                  <motion.div
+                                    initial={{ opacity: 0, x: -10, width: 0 }}
+                                    animate={{
+                                      opacity: 1,
+                                      x: 0,
+                                      width: "auto",
+                                    }}
+                                    exit={{ opacity: 0, x: -10, width: 0 }}
+                                    transition={{
+                                      duration: 0.2,
+                                      ease: "easeInOut",
+                                    }}
+                                  >
+                                    <FormField
+                                      control={form.control}
+                                      name="isPaid"
+                                      render={({ field }) => (
+                                        <FormItem className="flex flex-row items-end gap-2 pb-2.5 h-full max-w-40 ">
+                                          <FormControl>
+                                            <Checkbox
+                                              checked={field.value}
+                                              onCheckedChange={(checked) =>
+                                                field.onChange(Boolean(checked))
+                                              }
+                                              disabled={isSubmitting}
+                                            />
+                                          </FormControl>
+                                          <FormLabel
+                                            className=" font-medium cursor-pointer mb-0"
+                                            style={{ marginTop: 0 }}
+                                          >
+                                            Pago
+                                          </FormLabel>
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </motion.div>
                                 )}
-                              />
+                              </AnimatePresence>
                             </div>
                           </motion.div>
                         )}

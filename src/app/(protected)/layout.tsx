@@ -1,17 +1,15 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/nextjs";
-import type { ReactNode } from "react";
-import { BreadcrumbComponent } from "@/components/Breadcrumb";
+"use client";
 import { DatePicker } from "@/components/DatePicker";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import OnboardingAnimationModal from "@/components/onboarding/OnboardingAnimationModal";
 import { AppSidebar } from "@/components/Sidebar";
 import { ToggleTheme } from "@/components/ToggleTheme";
-import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/nextjs";
+import type { ReactNode } from "react";
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
