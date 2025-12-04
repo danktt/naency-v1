@@ -1,13 +1,5 @@
 "use client";
 
-import {
-  ChevronDown,
-  ChevronRightIcon,
-  Edit,
-  MoreHorizontal,
-  Trash2,
-} from "lucide-react";
-import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -17,6 +9,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import {
+  ChevronDown,
+  ChevronRightIcon,
+  Edit,
+  MoreHorizontal,
+  Trash2,
+} from "lucide-react";
+import { Icon } from "./iconMap";
 
 type CategoryRowProps = {
   category: {
@@ -74,9 +74,11 @@ export function CategoryRow({
         ) : (
           <div className="w-6" />
         )}
-        {/* <span className="text-2xl" style={colorStyle}>
-          {iconLabel}
-        </span> */}
+        {!isChild && category.icon && (
+          <div className="flex h-8 w-8 items-center justify-center">
+            <Icon iconName={category.icon} />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <p className="font-medium text-foreground truncate">
             {category.name}
@@ -136,9 +138,7 @@ export function CategoryRow({
                   variant={category.is_active ? "destructive" : "default"}
                 >
                   <Trash2 className="h-4 w-4" />
-                  <span>
-                    {category.is_active ? "Excluir" : "Restaurar"}
-                  </span>
+                  <span>{category.is_active ? "Excluir" : "Restaurar"}</span>
                 </DropdownMenuItem>
               </>
             )}
