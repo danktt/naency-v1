@@ -1,5 +1,6 @@
 "use client";
 
+import { ICON_MAP } from "@/components/iconMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,7 +10,6 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import * as React from "react";
-import { ICON_MAP } from "./iconMap";
 
 // Lista de nomes de ícones disponíveis
 const AVAILABLE_ICONS = Object.keys(ICON_MAP) as Array<keyof typeof ICON_MAP>;

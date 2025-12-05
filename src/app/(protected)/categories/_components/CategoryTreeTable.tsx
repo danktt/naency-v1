@@ -19,6 +19,8 @@ type CategoryTreeTableProps = {
   onDelete: (category: CategoryNode) => void;
   onRestore: (category: CategoryNode) => void;
   onCreateSubcategory?: (category: CategoryNode) => void;
+  onDuplicate?: (category: CategoryNode) => void;
+  onMove?: (category: CategoryNode) => void;
   processingId: string | null;
 };
 
@@ -32,6 +34,8 @@ export function CategoryTreeTable({
   onDelete,
   onRestore,
   onCreateSubcategory,
+  onDuplicate,
+  onMove,
   processingId,
 }: CategoryTreeTableProps) {
   const renderNodes = React.useCallback(
@@ -62,6 +66,13 @@ export function CategoryTreeTable({
               onEdit={() => onEdit(node)}
               onDelete={node.is_active ? () => onDelete(node) : undefined}
               onRestore={!node.is_active ? () => onRestore(node) : undefined}
+              onCreateSubcategory={
+                onCreateSubcategory
+                  ? () => onCreateSubcategory(node)
+                  : undefined
+              }
+              onDuplicate={onDuplicate ? () => onDuplicate(node) : undefined}
+              onMove={onMove ? () => onMove(node) : undefined}
               isProcessing={isProcessing}
             />
             {hasChildren && isExpanded && (
@@ -78,17 +89,22 @@ export function CategoryTreeTable({
       onEdit,
       onDelete,
       onRestore,
+      onCreateSubcategory,
+      onDuplicate,
+      onMove,
       processingId,
     ],
   );
 
   return (
-    <GlowCard>
-      <div className="flex items-center gap-4 border-b border-border bg-muted/30 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <div className="min-w-[300px] flex-1">{headers.category}</div>
-        <div className="min-w-[120px]">{headers.type}</div>
-        <div className="min-w-[100px]">{headers.status}</div>
-        <div className="min-w-[40px]" />
+    <GlowCard contentClassName="p-0">
+      <div className="grid grid-cols-[1fr_120px_100px_50px] gap-4 rounded-t-lg px-4 py-3 border-b border-foreground/10 bg-accent">
+        <span className="text-xs font-medium text-muted-foreground  tracking-wider">
+          Categoria
+        </span>
+        <span className="text-xs font-medium text-muted-foreground  tracking-wider">
+          Status
+        </span>
       </div>
       <div>
         {categories.length > 0 ? (

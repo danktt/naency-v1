@@ -12,18 +12,25 @@ import {
   IconLabelOff,
   IconPlus,
 } from "@tabler/icons-react";
+import { parseAsStringEnum, useQueryState } from "nuqs";
 import * as React from "react";
 import { toast } from "sonner";
 import { CategoryDialog } from "./_components/CategoryDialog";
 import { CategoryTreeTable } from "./_components/CategoryTreeTable";
-
+import { CreateCategoryDialog } from "./_components/CreateCategoryDialog";
 export default function CategoriesPage() {
-  const [selectedType, setSelectedType] = React.useState<"expense" | "income">(
-    "income",
+  const [selectedTab, setSelectedTab] = useQueryState(
+    "tab",
+    parseAsStringEnum(["income", "expense"]).withDefault("income"),
   );
+
   const [includeInactive, setIncludeInactive] = React.useState(false);
+  const [createCategoryDialogOpen, setCreateCategoryDialogOpen] =
+    React.useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = React.useState(false);
   const [selectedCategory, setSelectedCategory] =
+    React.useState<CategoryNode | null>(null);
+  const [parentCategory, setParentCategory] =
     React.useState<CategoryNode | null>(null);
   const [processingId, setProcessingId] = React.useState<string | null>(null);
 
@@ -32,13 +39,13 @@ export default function CategoriesPage() {
     isLoading: isCategoriesLoading,
     isError: isCategoriesError,
   } = trpc.categories.list.useQuery({
-    type: selectedType,
+    type: selectedTab ?? "income",
     includeInactive,
   });
 
   const { categoryTree, expandedCategories, toggleCategory } = useCategoryTree({
     categories: categories ?? [],
-    selectedType,
+    selectedType: selectedTab ?? "income",
     includeInactive,
   });
 
@@ -56,8 +63,29 @@ export default function CategoriesPage() {
     },
   });
 
+  const findParentCategory = (
+    categoryId: string,
+    nodes: CategoryNode[],
+  ): CategoryNode | null => {
+    for (const node of nodes) {
+      if (node.children.some((child) => child.id === categoryId)) {
+        return node;
+      }
+      const found = findParentCategory(categoryId, node.children);
+      if (found) return found;
+    }
+    return null;
+  };
+
   const handleEdit = (category: CategoryNode) => {
     setSelectedCategory(category);
+    // Se for subcategoria, encontrar a categoria pai
+    if (category.parent_id) {
+      const parent = findParentCategory(category.id, categoryTree);
+      setParentCategory(parent);
+    } else {
+      setParentCategory(null);
+    }
     setCategoryDialogOpen(true);
   };
 
@@ -85,9 +113,26 @@ export default function CategoriesPage() {
     deleteMutation.mutate({ id: category.id });
   };
 
+  const handleCreateSubcategory = (category: CategoryNode) => {
+    setSelectedCategory(null);
+    setParentCategory(category);
+    setCategoryDialogOpen(true);
+  };
+
+  const handleDuplicate = (_category: CategoryNode) => {
+    // TODO: Implement category duplication
+    toast.info("Funcionalidade de duplicar categoria em desenvolvimento.");
+  };
+
+  const handleMove = (_category: CategoryNode) => {
+    // TODO: Implement category move functionality
+    toast.info("Funcionalidade de mover categoria em desenvolvimento.");
+  };
+
   const handleDialogSuccess = () => {
     setCategoryDialogOpen(false);
     setSelectedCategory(null);
+    setParentCategory(null);
   };
 
   const isEmptyState =
@@ -103,7 +148,7 @@ export default function CategoriesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => setCategoryDialogOpen(true)}>
+          <Button onClick={() => setCreateCategoryDialogOpen(true)}>
             <IconPlus stroke={1.5} className="size-4" />
             Nova categoria
           </Button>
@@ -113,10 +158,12 @@ export default function CategoriesPage() {
       <section>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Tabs
-            value={selectedType}
-            onValueChange={(value) =>
-              setSelectedType(value as "expense" | "income")
-            }
+            value={selectedTab ?? "income"}
+            onValueChange={(value) => {
+              if (value === "income" || value === "expense") {
+                setSelectedTab(value);
+              }
+            }}
           >
             <TabsList>
               {typeTabs.map((tab) => {
@@ -136,9 +183,11 @@ export default function CategoriesPage() {
 
           <div className="flex items-center gap-2">
             <Toggle
-              aria-label="Toggle bookmark"
+              aria-label="Mostrar categorias inativas"
               size="sm"
               variant="outline"
+              pressed={includeInactive}
+              onPressedChange={setIncludeInactive}
               className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-primary data-[state=on]:*:[svg]:stroke-primary"
             >
               <IconLabelOff />
@@ -184,15 +233,31 @@ export default function CategoriesPage() {
             onEdit={handleEdit}
             onDelete={handleDelete}
             onRestore={handleRestore}
+            onCreateSubcategory={handleCreateSubcategory}
+            onDuplicate={handleDuplicate}
+            onMove={handleMove}
             processingId={processingId}
           />
         )}
       </section>
 
+      <CreateCategoryDialog
+        open={createCategoryDialogOpen}
+        onOpenChange={setCreateCategoryDialogOpen}
+        onSuccess={() => setCreateCategoryDialogOpen(false)}
+      />
+
       <CategoryDialog
         open={categoryDialogOpen}
-        onOpenChange={setCategoryDialogOpen}
+        onOpenChange={(open) => {
+          setCategoryDialogOpen(open);
+          if (!open) {
+            setSelectedCategory(null);
+            setParentCategory(null);
+          }
+        }}
         category={selectedCategory}
+        parentCategory={parentCategory}
         onSuccess={handleDialogSuccess}
       />
     </div>

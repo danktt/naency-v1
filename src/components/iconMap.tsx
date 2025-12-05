@@ -96,6 +96,7 @@ export function Icon({
   if (!IconComponent) return null;
   const Component = IconComponent as React.ComponentType<{
     className?: string;
+    stroke?: number;
   }>;
-  return <Component className="h-5 w-5" />;
+  return <Component className="size-4" stroke={1.5} />;
 }
