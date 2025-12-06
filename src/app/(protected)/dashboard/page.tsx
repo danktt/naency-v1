@@ -2,6 +2,7 @@
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/helpers/formatCurrency";
+import { getTextBalanceColor } from "@/helpers/getBalanceColor";
 import { trpc } from "@/lib/trpc/client";
 import { useUser } from "@clerk/nextjs";
 import {
@@ -25,21 +26,6 @@ type PaymentStatusKey = "onTime" | "late" | "pending";
 const getMonthLabel = (date: Date, formatter: Intl.DateTimeFormat) => {
   const label = formatter.format(date);
   return label.charAt(0).toUpperCase() + label.slice(1);
-};
-
-/**
- * Retorna a classe CSS apropriada baseada no valor:
- * - < 0: vermelho (text-text-negative)
- * - > 0: verde (text-text-positive)
- * - = 0: undefined (cor padrão/branco)
- */
-const getBalanceValueClassName = (
-  value: number | null | undefined,
-): string | undefined => {
-  if (value === null || value === undefined) return undefined;
-  if (value < 0) return "text-text-negative dark:text-text-negative";
-  if (value > 0) return "text-text-positive dark:text-text-positive";
-  return undefined;
 };
 
 export default function DashboardPage() {
@@ -128,7 +114,7 @@ export default function DashboardPage() {
           : formatCurrency(0),
         subtitle: "Receitas menos despesas do mês corrente.",
         icon: IconChartBar,
-        valueClassName: getBalanceValueClassName(snapshot?.monthBalance),
+        valueClassName: getTextBalanceColor(snapshot?.monthBalance),
         iconContainerClassName: monthBalanceIconClassName,
       },
       {
@@ -139,7 +125,7 @@ export default function DashboardPage() {
           : formatCurrency(0),
         subtitle: "Saldo considerando meses anteriores.",
         icon: IconPigMoney,
-        valueClassName: getBalanceValueClassName(snapshot?.accumulatedBalance),
+        valueClassName: getTextBalanceColor(snapshot?.accumulatedBalance),
         iconContainerClassName: "bg-primary/10 text-primary",
       },
     ];

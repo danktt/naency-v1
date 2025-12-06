@@ -15,7 +15,8 @@ const interMono = Inter({
 
 export const metadata: Metadata = {
   title: "Næncy",
-  description: "Næncy is a platform for creating and managing your financie.",
+  description:
+    "Domine suas finanças com controle total e inteligente para seu futuro.",
 };
 
 export default function RootLayout({

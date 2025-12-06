@@ -48,7 +48,6 @@ export function Hero() {
             <Button
               size="lg"
               color="primary"
-              variant="shadow"
               endContent={<ArrowRight className="w-4 h-4" />}
               className="font-semibold"
             >
