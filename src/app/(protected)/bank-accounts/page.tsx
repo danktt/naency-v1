@@ -1,10 +1,10 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc/client";
 import { IconPlus } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { trpc } from "@/lib/trpc/client";
 import { AccountDetailsPanel } from "./_components/AccountDetailsPanel";
 import { AccountFormDialog } from "./_components/AccountFormDialog";
 import { AccountsList } from "./_components/AccountsList";
@@ -155,7 +155,7 @@ export default function BankAccountsPage() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">
-            Contas Bancárias
+            Contas bancárias
           </h2>
           <p className="text-muted-foreground text-sm">
             Gerencie suas contas bancárias e de investimentos.

@@ -1,12 +1,11 @@
 "use client";
 
-import { IconCreditCard, IconPlus } from "@tabler/icons-react";
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import { BreadcrumbComponent as Breadcrumb } from "@/components/Breadcrumb";
-import { ExpensesForm } from "@/components/forms/expensesForm";
+import { CreditCardExpenseForm } from "@/components/forms/CreditCardExpenseForm";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc/client";
+import { IconPlus } from "@tabler/icons-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { CreditCardDetailsPanel } from "./_components/CreditCardDetailsPanel";
 import { CreditCardFormDialog } from "./_components/CreditCardFormDialog";
 import { CreditCardsList } from "./_components/CreditCardsList";
@@ -139,11 +138,11 @@ export default function CreditCardsPage() {
       };
 
   return (
-    <div className="container mx-auto space-y-8   ">
+    <div className="space-y-4">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">
-            Cartões de Crédito
+            Cartões de crédito
           </h2>
           <p className="text-muted-foreground text-sm">
             Gerencie seus cartões, limites e datas de vencimento.
@@ -154,10 +153,11 @@ export default function CreditCardsPage() {
             <IconPlus className="size-4" />
             Novo Cartão
           </Button>
-          <Button onClick={() => setIsExpenseFormOpen(true)} variant="outline">
-            <IconPlus className="mr-2 size-4" />
-            Nova Despesa
-          </Button>
+          <CreditCardExpenseForm
+            open={isExpenseFormOpen}
+            onOpenChange={setIsExpenseFormOpen}
+            defaultCreditCardId={selectedCard?.id ?? null}
+          />
         </div>
       </header>
 

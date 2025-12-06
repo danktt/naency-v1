@@ -1,17 +1,15 @@
-import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/nextjs";
-import type { ReactNode } from "react";
-import { BreadcrumbComponent } from "@/components/Breadcrumb";
+"use client";
 import { DatePicker } from "@/components/DatePicker";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import OnboardingAnimationModal from "@/components/onboarding/OnboardingAnimationModal";
 import { AppSidebar } from "@/components/Sidebar";
 import { ToggleTheme } from "@/components/ToggleTheme";
-import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/nextjs";
+import type { ReactNode } from "react";
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
@@ -24,20 +22,14 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
               <div className="flex items-center  px-4 justify-between w-full">
                 <div className="flex items-center gap-2">
                   <SidebarTrigger className="-ml-1" />
-                  <Separator
-                    orientation="vertical"
-                    className="mr-2 data-[orientation=vertical]:h-4"
-                  />
-                  <BreadcrumbComponent />
                 </div>
                 <div className="ml-auto flex items-center gap-2">
-                  <LanguageSwitcher />
                   <DatePicker />
                   <ToggleTheme />
                 </div>
               </div>
             </header>
-            <div className="p-4 pt-0 ">{children}</div>
+            <div className="p-4 pt-0">{children}</div>
           </SidebarInset>
           <OnboardingAnimationModal />
         </SidebarProvider>

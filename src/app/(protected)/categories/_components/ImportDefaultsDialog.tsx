@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import {
@@ -28,44 +27,23 @@ export function ImportDefaultsDialog({
   onOpenChange,
   onSuccess,
 }: ImportDefaultsDialogProps) {
-  const { t, i18n } = useTranslation("categories");
-  const [isMounted, setIsMounted] = React.useState(false);
   const [overwrite, setOverwrite] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const fallbackT = React.useCallback(
-    (key: string) => {
-      const fallbackLng =
-        (Array.isArray(i18n.options?.fallbackLng) &&
-          i18n.options.fallbackLng[0]) ||
-        (typeof i18n.options?.fallbackLng === "string"
-          ? i18n.options.fallbackLng
-          : "en");
-      return i18n.getFixedT(fallbackLng, "categories")(key);
-    },
-    [i18n],
-  );
-
-  const translate = isMounted ? t : fallbackT;
   const utils = trpc.useUtils();
 
   const importMutation = trpc.categories.importDefaults.useMutation({
     onSuccess: async (data) => {
       if (data.skipped) {
-        toast.warning(translate("toasts.importSkipped"));
+        toast.warning("Categorias já existem. Ative a opção de sobrescrever para importar.");
       } else {
         await utils.categories.list.invalidate();
-        toast.success(translate("toasts.importSuccess"));
+        toast.success("Categorias importadas com sucesso.");
       }
       onOpenChange(false);
       setOverwrite(false);
       onSuccess?.();
     },
     onError: () => {
-      toast.error(translate("toasts.importError"));
+      toast.error("Não foi possível importar as categorias.");
     },
   });
 
@@ -79,9 +57,9 @@ export function ImportDefaultsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{translate("importDialog.title")}</DialogTitle>
+          <DialogTitle>Importar categorias padrão</DialogTitle>
           <DialogDescription>
-            {translate("importDialog.description")}
+            Importe categorias pré-definidas para começar rapidamente.
           </DialogDescription>
         </DialogHeader>
 
@@ -96,12 +74,12 @@ export function ImportDefaultsDialog({
               htmlFor="overwrite"
               className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              {translate("importDialog.overwriteLabel")}
+              Sobrescrever categorias existentes
             </Label>
           </div>
           {!overwrite && (
             <p className="text-sm text-muted-foreground">
-              {translate("importDialog.overwriteWarning")}
+              Isso excluirá todas as categorias existentes. Ative a opção de sobrescrever para continuar.
             </p>
           )}
         </div>
@@ -113,10 +91,10 @@ export function ImportDefaultsDialog({
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
           >
-            {translate("importDialog.cancel")}
+            Cancelar
           </Button>
           <Button type="button" onClick={handleImport} disabled={isSubmitting}>
-            {translate("importDialog.submit")}
+            Importar
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -20,14 +20,12 @@ type UseCategoryTreeParams = {
   rows: GridRow[];
   selectedType: "expense" | "income";
   periodInput: { month: number; year: number };
-  translate: (key: string) => string;
 };
 
 export function useCategoryTree({
   rows,
   selectedType,
   periodInput,
-  translate,
 }: UseCategoryTreeParams) {
   const utils = trpc.useUtils();
   const [expandedCategories, setExpandedCategories] = React.useState<
@@ -128,10 +126,10 @@ export function useCategoryTree({
         utils.provisions.grid.invalidate({ period: periodInput }),
         utils.provisions.metrics.invalidate(periodInput),
       ]);
-      toast.success(translate("toasts.plannedUpdateSuccess"));
+      toast.success("Provisão atualizada com sucesso.");
     },
     onError: () => {
-      toast.error(translate("toasts.plannedUpdateError"));
+      toast.error("Não foi possível atualizar a provisão.");
     },
   });
 

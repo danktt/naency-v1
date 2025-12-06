@@ -1,18 +1,5 @@
 "use client";
 
-import { Tab, Tabs } from "@heroui/tabs";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
-import type { inferRouterOutputs } from "@trpc/server";
-import { addMonths, format, setDate, startOfDay } from "date-fns";
-// ... existing imports ...
-import { ptBR } from "date-fns/locale";
-import { AnimatePresence, motion } from "framer-motion";
-import * as React from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-import { CreditCardDetail } from "@/components/CreditCardDetail";
 import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
 import { CategoriesSelect } from "@/components/Selects/CategoriesSelect";
 import { Button } from "@/components/ui/button";
@@ -48,11 +35,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { useDateStore } from "@/stores/useDateStore";
+import { Tab, Tabs } from "@heroui/tabs";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
+import type { inferRouterOutputs } from "@trpc/server";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { AnimatePresence, motion } from "framer-motion";
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { Checkbox } from "../ui/checkbox";
 import { ScrollArea } from "../ui/scroll-area";
 
@@ -60,7 +57,6 @@ const paymentMethodValues = [
   "pix",
   "transfer",
   "debit",
-  "credit",
   "cash",
   "boleto",
   "investment",
@@ -75,7 +71,6 @@ const paymentMethodOptions: Array<{
   { value: "pix", label: "Pix" },
   { value: "transfer", label: "Transferência" },
   { value: "debit", label: "Débito" },
-  { value: "credit", label: "Crédito" },
   { value: "cash", label: "Dinheiro" },
   { value: "boleto", label: "Boleto" },
   { value: "investment", label: "Investimento" },
@@ -92,6 +87,7 @@ type ExpensesFormProps = {
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
   onSuccess?: () => void;
+  excludeCreditCard?: boolean; // Kept for compatibility but effectively always true now
 };
 
 const createExpenseFormSchema = () =>
@@ -102,7 +98,6 @@ const createExpenseFormSchema = () =>
       currency: z.enum(["BRL", "USD", "EUR"]),
       date: z.date(),
       accountId: z.string().optional(),
-      creditCardId: z.string().optional(),
       categoryId: z.string().min(1, "Selecione uma categoria."),
       method: z.enum(paymentMethodValues),
       attachmentUrl: z
@@ -111,7 +106,8 @@ const createExpenseFormSchema = () =>
         .refine(
           (value) => value.length === 0 || isValidUrl(value),
           "Informe uma URL válida.",
-        ),
+        )
+        .optional(),
       mode: z.enum(["unique", "installment", "recurring"]),
       totalInstallments: z
         .number()
@@ -135,22 +131,12 @@ const createExpenseFormSchema = () =>
         });
       }
 
-      if (data.method === "credit") {
-        if (!data.creditCardId) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["creditCardId"],
-            message: "Selecione um cartão de crédito.",
-          });
-        }
-      } else {
-        if (!data.accountId) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["accountId"],
-            message: "Selecione uma conta.",
-          });
-        }
+      if (!data.accountId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["accountId"],
+          message: "Selecione uma conta.",
+        });
       }
     });
 
@@ -172,7 +158,6 @@ const getDefaultValues = (
     currency: "BRL",
     date,
     accountId: "",
-    creditCardId: "",
     categoryId: "",
     method: "pix",
     attachmentUrl: "",
@@ -225,9 +210,8 @@ function mapExpenseToDefaultValues(
     amount: Number.isNaN(amountInCents) ? 0 : amountInCents,
     date: expense.date ? new Date(expense.date) : new Date(),
     accountId: expense.accountId ?? "",
-    creditCardId: expense.creditCardId ?? "",
     categoryId: expense.categoryId ?? "",
-    method: expense.method,
+    method: expense.method as PaymentMethodValue,
     attachmentUrl: expense.attachmentUrl ?? "",
     mode,
     totalInstallments: expense.totalInstallments ?? 2,
@@ -257,6 +241,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const [isStartDatePopoverOpen, setIsStartDatePopoverOpen] =
     React.useState(false);
   const [isEndDatePopoverOpen, setIsEndDatePopoverOpen] = React.useState(false);
+  const [isPaidAtPopoverOpen, setIsPaidAtPopoverOpen] = React.useState(false);
   const [keepOpen, setKeepOpen] = React.useState(false);
   const keepOpenId = React.useId();
   const keepOpenRef = React.useRef(keepOpen);
@@ -302,6 +287,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     setIsDatePopoverOpen(false);
     setIsStartDatePopoverOpen(false);
     setIsEndDatePopoverOpen(false);
+    setIsPaidAtPopoverOpen(false);
 
     if (isEditing && effectiveExpense) {
       form.reset(mapExpenseToDefaultValues(effectiveExpense));
@@ -330,49 +316,19 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     enabled: dialogOpen,
   });
 
-  const creditCardsQuery = trpc.creditCards.list.useQuery(undefined, {
-    enabled: dialogOpen,
-  });
-
   const hasAccounts = (accountsQuery.data?.length ?? 0) > 0;
-  const hasCreditCards = (creditCardsQuery.data?.length ?? 0) > 0;
-  const method = form.watch("method");
-  const creditCardId = form.watch("creditCardId");
   const dateValue = form.watch("date");
-  const amount = form.watch("amount");
+  const isPaidValue = form.watch("isPaid");
 
-  const selectedCard = React.useMemo(() => {
-    return creditCardsQuery.data?.find((card) => card.id === creditCardId);
-  }, [creditCardsQuery.data, creditCardId]);
-
-  const estimatedDueDate = React.useMemo(() => {
-    if (!selectedCard || !dateValue) return null;
-    const closingDay = selectedCard.closing_day;
-    const dueDay = selectedCard.due_day;
-
-    if (!closingDay || !dueDay) return null;
-
-    const purchaseDate = startOfDay(dateValue);
-
-    // Se a data da compra for antes ou igual ao dia de fechamento, a fatura é do mês atual (vencimento no próximo mês)
-    // Se for depois, a fatura é do próximo mês (vencimento em 2 meses)
-    // Nota: Isso é uma simplificação. O fechamento geralmente pega compras até o dia X.
-    // Se fechamento é 25. Compra dia 20 -> Fatura fecha dia 25 -> Vence dia 5 (prox mes).
-    // Compra dia 26 -> Fatura fecha dia 25 (do prox mes) -> Vence dia 5 (2 meses).
-
-    let dueDate = setDate(purchaseDate, dueDay);
-
-    // Se a compra for feita APÓS o fechamento, ela só entra na fatura seguinte
-    if (purchaseDate.getDate() > closingDay) {
-      dueDate = addMonths(dueDate, 2);
-    } else {
-      dueDate = addMonths(dueDate, 1);
-    }
-
-    return dueDate;
-  }, [selectedCard, dateValue]);
-
-  const showCreditCardDetail = method === "credit" && !!selectedCard;
+  // Check if selected date is in the future (at least one day ahead)
+  const isFutureDate = React.useMemo(() => {
+    if (!dateValue) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(dateValue);
+    selectedDate.setHours(0, 0, 0, 0);
+    return selectedDate > today;
+  }, [dateValue]);
 
   const invalidateTransactionsData = React.useCallback(async () => {
     await Promise.all([
@@ -412,26 +368,77 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   const isSubmitting = isEditing
     ? updateExpenseMutation.isPending
     : createExpenseMutation.isPending;
-  const isFormDisabled = method === "credit" ? !hasCreditCards : !hasAccounts;
+  const isFormDisabled = !hasAccounts;
 
   const modeValue = form.watch("mode");
   const isUnique = modeValue === "unique";
   const isInstallment = modeValue === "installment";
   const isRecurring = modeValue === "recurring";
 
+  // Auto-adjust isPaid based on date (future dates = not paid, today/past = paid)
+  React.useEffect(() => {
+    if (!dialogOpen || isEditing || modeValue !== "unique") {
+      return;
+    }
+
+    if (!dateValue) {
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(dateValue);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    const isFutureDate = selectedDate > today;
+
+    if (isFutureDate) {
+      form.setValue("isPaid", false, { shouldDirty: false });
+      form.setValue("paidAt", undefined, { shouldDirty: false });
+    } else {
+      form.setValue("isPaid", true, { shouldDirty: false });
+      form.setValue("paidAt", dateValue, { shouldDirty: false });
+    }
+  }, [dateValue, dialogOpen, form, isEditing, modeValue]);
+
+  // Manage paidAt based on isPaid checkbox
+  React.useEffect(() => {
+    if (!dialogOpen) {
+      return;
+    }
+
+    if (!isPaidValue) {
+      form.setValue("paidAt", undefined, { shouldDirty: false });
+      return;
+    }
+
+    const currentMode = form.getValues("mode");
+    if (!isEditing && currentMode === "unique") {
+      form.setValue("paidAt", form.getValues("date"), {
+        shouldDirty: false,
+      });
+      return;
+    }
+
+    const paidAt = form.getValues("paidAt");
+    if (!paidAt) {
+      form.setValue("paidAt", form.getValues("date"), {
+        shouldDirty: false,
+      });
+    }
+  }, [dialogOpen, dateValue, form, isEditing, isPaidValue]);
+
+  // Set default isPaid for non-unique modes
   React.useEffect(() => {
     if (!dialogOpen || isEditing) {
       return;
     }
 
-    if (modeValue === "unique") {
-      form.setValue("isPaid", true, { shouldDirty: false });
-      form.setValue("paidAt", dateValue, { shouldDirty: false });
-    } else {
+    if (modeValue !== "unique") {
       form.setValue("isPaid", false, { shouldDirty: false });
       form.setValue("paidAt", undefined, { shouldDirty: false });
     }
-  }, [dateValue, dialogOpen, form, isEditing, modeValue]);
+  }, [dialogOpen, form, isEditing, modeValue]);
 
   const onSubmit = React.useCallback(
     (values: CreateExpenseFormValues) => {
@@ -439,24 +446,12 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
       const attachmentUrl = values.attachmentUrl?.trim().length
         ? values.attachmentUrl.trim()
         : undefined;
-      const shouldAutoMarkPaid = !isEditing && values.mode === "unique";
-      const isPaid = shouldAutoMarkPaid ? true : values.isPaid;
-      const paidAt = shouldAutoMarkPaid
-        ? values.date
-        : values.isPaid
-          ? (values.paidAt ?? values.date)
-          : undefined;
+      const isPaid = values.isPaid;
+      const paidAt = values.isPaid ? (values.paidAt ?? values.date) : undefined;
 
       const payload = {
         type: "expense" as const,
-        accountId:
-          values.method === "credit"
-            ? undefined
-            : values.accountId || undefined,
-        creditCardId:
-          values.method === "credit"
-            ? values.creditCardId || undefined
-            : undefined,
+        accountId: values.accountId || undefined,
         categoryId: values.categoryId || undefined,
         amount: amountInCents / 100,
         description: values.description,
@@ -506,9 +501,8 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
       <DialogContent
         className={cn(
-          "flex w-full flex-col p-0 transition-all duration-300",
+          "flex w-full flex-col p-0 transition-all duration-300 sm:max-w-3xl",
           "max-h-[90vh] sm:max-h-[calc(100vh-4rem)]",
-          showCreditCardDetail ? "sm:max-w-5xl" : "sm:max-w-3xl",
         )}
       >
         <motion.div layout className="flex flex-1 overflow-hidden">
@@ -537,9 +531,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                     name="mode"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel className="text-sm font-medium">
-                          Tipo de transação
-                        </FormLabel>
                         <FormControl>
                           <Tabs
                             selectedKey={field.value}
@@ -579,70 +570,113 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                   <div className="space-y-6 px-1 pb-1">
                     {/* === Dates Section === */}
                     <section className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        Defina quando esta despesa deve ser paga ou iniciar a
-                        recorrência.
-                      </p>
                       <AnimatePresence initial={false} mode="wait">
                         {isUnique && (
                           <motion.div key="unique" {...motionProps}>
-                            <FormField
-                              control={form.control}
-                              name="date"
-                              render={({ field }) => {
-                                const selectedDate = field.value;
-                                return (
-                                  <FormItem>
-                                    <FormLabel>Data de pagamento</FormLabel>
-                                    <FormControl>
-                                      <Popover
-                                        open={isDatePopoverOpen}
-                                        onOpenChange={setIsDatePopoverOpen}
-                                      >
-                                        <PopoverTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            className={cn(
-                                              "w-full justify-start text-left font-normal",
-                                              !selectedDate &&
-                                                "text-muted-foreground",
-                                            )}
-                                            disabled={isSubmitting}
-                                          >
-                                            <IconCalendar className="mr-2 h-4 w-4" />
-                                            {selectedDate
-                                              ? format(selectedDate, "PPP", {
-                                                  locale,
-                                                })
-                                              : "Selecione uma data"}
-                                            <IconChevronDown className="ml-auto h-4 w-4" />
-                                          </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent
-                                          className="w-auto p-0"
-                                          align="start"
+                            <div className="flex gap-4 w-full items-end">
+                              <FormField
+                                control={form.control}
+                                name="date"
+                                render={({ field }) => {
+                                  const selectedDate = field.value;
+                                  return (
+                                    <FormItem className="flex flex-col w-full">
+                                      <FormLabel>Data de pagamento</FormLabel>
+                                      <FormControl>
+                                        <Popover
+                                          open={isDatePopoverOpen}
+                                          onOpenChange={setIsDatePopoverOpen}
                                         >
-                                          <Calendar
-                                            mode="single"
-                                            selected={selectedDate}
-                                            onSelect={(next) => {
-                                              if (next) {
-                                                field.onChange(next);
-                                                setIsDatePopoverOpen(false);
+                                          <PopoverTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              className={cn(
+                                                "w-full justify-start text-left font-normal",
+                                                !selectedDate &&
+                                                  "text-muted-foreground",
+                                              )}
+                                              disabled={isSubmitting}
+                                            >
+                                              <IconCalendar className="mr-2 h-4 w-4" />
+                                              {selectedDate
+                                                ? format(selectedDate, "PPP", {
+                                                    locale,
+                                                  })
+                                                : "Selecione uma data"}
+                                              <IconChevronDown className="ml-auto h-4 w-4" />
+                                            </Button>
+                                          </PopoverTrigger>
+                                          <PopoverContent
+                                            className="w-auto p-0"
+                                            align="start"
+                                          >
+                                            <Calendar
+                                              mode="single"
+                                              selected={selectedDate}
+                                              onSelect={(next) => {
+                                                if (next) {
+                                                  field.onChange(next);
+                                                  setIsDatePopoverOpen(false);
+                                                }
+                                              }}
+                                              defaultMonth={
+                                                selectedDate ?? dateRange.to
                                               }
-                                            }}
-                                            defaultMonth={
-                                              selectedDate ?? dateRange.to
-                                            }
-                                            locale={locale}
-                                          />
-                                        </PopoverContent>
-                                      </Popover>
-                                    </FormControl>
-                                  </FormItem>
-                                );
-                              }}
-                            />
+                                              locale={locale}
+                                            />
+                                          </PopoverContent>
+                                        </Popover>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+
+                              {/* Checkbox aligned with Date - Show for future dates or when editing pending expense */}
+                              <AnimatePresence initial={false}>
+                                {(isFutureDate ||
+                                  (isEditing && !isPaidValue)) && (
+                                  <motion.div
+                                    initial={{ opacity: 0, x: -10, width: 0 }}
+                                    animate={{
+                                      opacity: 1,
+                                      x: 0,
+                                      width: "auto",
+                                    }}
+                                    exit={{ opacity: 0, x: -10, width: 0 }}
+                                    transition={{
+                                      duration: 0.2,
+                                      ease: "easeInOut",
+                                    }}
+                                  >
+                                    <FormField
+                                      control={form.control}
+                                      name="isPaid"
+                                      render={({ field }) => (
+                                        <FormItem className="flex flex-row items-end gap-2 pb-2.5 h-full max-w-40 ">
+                                          <FormControl>
+                                            <Checkbox
+                                              checked={field.value}
+                                              onCheckedChange={(checked) =>
+                                                field.onChange(Boolean(checked))
+                                              }
+                                              disabled={isSubmitting}
+                                            />
+                                          </FormControl>
+                                          <FormLabel
+                                            className=" font-medium cursor-pointer mb-0"
+                                            style={{ marginTop: 0 }}
+                                          >
+                                            Pago
+                                          </FormLabel>
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
                           </motion.div>
                         )}
 
@@ -799,7 +833,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                           >
                                             <IconCalendar className="mr-2 h-4 w-4" />
                                             {selected
-                                              ? format(selected, "PPP", {
+                                              ? format(selected, "PP", {
                                                   locale,
                                                 })
                                               : "Selecione uma data"}
@@ -860,7 +894,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                           >
                                             <IconCalendar className="mr-2 h-4 w-4" />
                                             {selected
-                                              ? format(selected, "PPP", {
+                                              ? format(selected, "PP", {
                                                   locale,
                                                 })
                                               : "Selecione uma data"}
@@ -898,13 +932,78 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                       </AnimatePresence>
                     </section>
 
+                    {/* If Paid is checked, show payment date if different or when editing */}
+                    <AnimatePresence initial={false}>
+                      {isPaidValue && (!isUnique || isEditing) && (
+                        <motion.div
+                          key="paid-at"
+                          {...motionProps}
+                          className="pb-4"
+                        >
+                          <FormField
+                            control={form.control}
+                            name="paidAt"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Data do pagamento</FormLabel>
+                                <FormControl>
+                                  <Popover
+                                    open={isPaidAtPopoverOpen}
+                                    onOpenChange={setIsPaidAtPopoverOpen}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        className={cn(
+                                          "w-full justify-start text-left font-normal",
+                                          !field.value &&
+                                            "text-muted-foreground",
+                                        )}
+                                        disabled={isSubmitting}
+                                      >
+                                        <IconCalendar className="mr-2 h-4 w-4" />
+                                        {field.value
+                                          ? format(field.value, "PPP", {
+                                              locale,
+                                            })
+                                          : "Selecione a data"}
+                                        <IconChevronDown className="ml-auto h-4 w-4" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                      className="w-auto p-0"
+                                      align="start"
+                                    >
+                                      <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={(next) => {
+                                          if (next) {
+                                            field.onChange(next);
+                                            setIsPaidAtPopoverOpen(false);
+                                          }
+                                        }}
+                                        defaultMonth={
+                                          field.value ??
+                                          form.getValues("date") ??
+                                          dateRange.to
+                                        }
+                                        locale={locale}
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     {/* === Details Section === */}
                     <section className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        Forneça as informações principais para acompanhar e
-                        reportar esta despesa.
-                      </p>
-                      <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-4 md:grid-cols-2 items-start">
                         <FieldCurrencyAmount
                           control={form.control}
                           amountName="amount"
@@ -912,157 +1011,36 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                           label="Valor"
                           required
                         />
-                        {method === "credit" ? (
-                          <FormField
-                            control={form.control}
-                            name="creditCardId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  Cartão de crédito{" "}
-                                  <span className="text-destructive">*</span>
-                                </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  onOpenChange={(openState) =>
-                                    !openState && field.onBlur()
-                                  }
+                        <FormField
+                          control={form.control}
+                          name="categoryId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Categoria{" "}
+                                <span className="text-destructive">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <CategoriesSelect
+                                  type="expense"
                                   value={field.value}
-                                  disabled={
-                                    creditCardsQuery.isLoading ||
-                                    !hasCreditCards ||
-                                    isSubmitting
-                                  }
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="w-full">
-                                      <SelectValue
-                                        placeholder={
-                                          creditCardsQuery.isLoading
-                                            ? "Carregando cartões..."
-                                            : hasCreditCards
-                                              ? "Selecione um cartão"
-                                              : "Nenhum cartão cadastrado"
-                                        }
-                                      />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {creditCardsQuery.data?.map((card) => (
-                                      <SelectItem key={card.id} value={card.id}>
-                                        {card.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                {selectedCard && (
-                                  <div className="mt-2 text-xs text-muted-foreground space-y-1 rounded-md bg-muted/50 p-2 md:hidden">
-                                    <div className="flex justify-between">
-                                      <span>Limite disponível:</span>
-                                      <span
-                                        className={cn(
-                                          Number(selectedCard.available_limit) <
-                                            0
-                                            ? "text-destructive"
-                                            : "text-emerald-600",
-                                        )}
-                                      >
-                                        {formatCurrency(
-                                          Number(selectedCard.available_limit),
-                                          selectedCard.currency as
-                                            | "BRL"
-                                            | "USD"
-                                            | "EUR",
-                                        )}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Limite total:</span>
-                                      <span>
-                                        {formatCurrency(
-                                          Number(selectedCard.credit_limit),
-                                          selectedCard.currency as
-                                            | "BRL"
-                                            | "USD"
-                                            | "EUR",
-                                        )}
-                                      </span>
-                                    </div>
-                                    {estimatedDueDate && (
-                                      <div className="flex justify-between pt-1 border-t border-border/50">
-                                        <span>Previsão de débito:</span>
-                                        <span className="font-medium text-primary">
-                                          {format(
-                                            estimatedDueDate,
-                                            "dd/MM/yyyy",
-                                            { locale },
-                                          )}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </FormItem>
-                            )}
-                          />
-                        ) : (
-                          <FormField
-                            control={form.control}
-                            name="accountId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  Conta{" "}
-                                  <span className="text-destructive">*</span>
-                                </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  onOpenChange={(openState) =>
-                                    !openState && field.onBlur()
-                                  }
-                                  value={field.value}
-                                  disabled={
-                                    accountsQuery.isLoading ||
-                                    !hasAccounts ||
-                                    isSubmitting
-                                  }
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="w-full">
-                                      <SelectValue
-                                        placeholder={
-                                          accountsQuery.isLoading
-                                            ? "Carregando contas..."
-                                            : hasAccounts
-                                              ? "Selecione uma conta"
-                                              : "Nenhuma conta cadastrada"
-                                        }
-                                      />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {accountsQuery.data?.map((account) => (
-                                      <SelectItem
-                                        key={account.id}
-                                        value={account.id}
-                                      >
-                                        {account.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <FormField
                           control={form.control}
                           name="description"
                           render={({ field }) => (
                             <FormItem className="md:col-span-2">
-                              <FormLabel>Descrição</FormLabel>
+                              <FormLabel>
+                                Descrição
+                                <span className="text-destructive">*</span>
+                              </FormLabel>
                               <FormControl>
                                 <Input
                                   placeholder="ex.: Aluguel, contas, fornecedores..."
@@ -1074,6 +1052,56 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                             </FormItem>
                           )}
                         />
+                        <FormField
+                          control={form.control}
+                          name="accountId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Conta bancária{" "}
+                                <span className="text-destructive">*</span>
+                              </FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                onOpenChange={(openState) =>
+                                  !openState && field.onBlur()
+                                }
+                                value={field.value}
+                                disabled={
+                                  accountsQuery.isLoading ||
+                                  !hasAccounts ||
+                                  isSubmitting
+                                }
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue
+                                      placeholder={
+                                        accountsQuery.isLoading
+                                          ? "Carregando contas..."
+                                          : hasAccounts
+                                            ? "Selecione uma conta bancária"
+                                            : "Nenhuma conta bancária cadastrada"
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {accountsQuery.data?.map((account) => (
+                                    <SelectItem
+                                      key={account.id}
+                                      value={account.id}
+                                    >
+                                      {account.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
                         <FormField
                           control={form.control}
                           name="method"
@@ -1105,33 +1133,11 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={form.control}
-                          name="categoryId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Categoria</FormLabel>
-                              <FormControl>
-                                <CategoriesSelect
-                                  type="expense"
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  onBlur={field.onBlur}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </div>
                     </section>
 
                     {/* === Extras Section === */}
                     <section className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        Adicione detalhes opcionais ou informações de apoio para
-                        esta despesa.
-                      </p>
                       <FormField
                         control={form.control}
                         name="attachmentUrl"
@@ -1199,32 +1205,6 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                   </div>
                 </div>
               </form>
-              <AnimatePresence>
-                {showCreditCardDetail && selectedCard && (
-                  <motion.div
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 320, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    className="hidden md:block border-l bg-muted/10 overflow-hidden"
-                  >
-                    <div className="w-[320px] h-full overflow-y-auto">
-                      <CreditCardDetail
-                        name={selectedCard.name}
-                        brand={selectedCard.brand}
-                        creditLimit={Number(selectedCard.credit_limit)}
-                        availableLimit={Number(selectedCard.available_limit)}
-                        currency={
-                          selectedCard.currency as "BRL" | "USD" | "EUR"
-                        }
-                        closingDay={selectedCard.closing_day}
-                        dueDay={selectedCard.due_day}
-                        transactionAmount={amount ? amount / 100 : 0}
-                        className="h-full"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
           </Form>
         </motion.div>

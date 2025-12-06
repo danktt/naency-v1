@@ -1,8 +1,4 @@
 "use client";
-import { IconPlus } from "@tabler/icons-react";
-import * as React from "react";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,35 +19,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc/client";
+import { IconPlus } from "@tabler/icons-react";
+import * as React from "react";
+import { toast } from "sonner";
 import type { TransferTableRow } from "./_components/columnsDef";
 import { TransferFormDialog } from "./_components/TransferFormDialog";
 import { TransfersTable } from "./_components/TransfersTable";
 
 export default function TransfersPage() {
-  const { t, i18n } = useTranslation("transfers");
   const utils = trpc.useUtils();
-
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const fallbackLng =
-    (Array.isArray(i18n.options?.fallbackLng) && i18n.options.fallbackLng[0]) ||
-    (typeof i18n.options?.fallbackLng === "string"
-      ? i18n.options.fallbackLng
-      : "en");
-
-  const fallbackT = React.useMemo(
-    () => i18n.getFixedT(fallbackLng, "transfers"),
-    [i18n, fallbackLng],
-  );
-
-  const translate = isMounted ? t : fallbackT;
-  const effectiveLanguage = isMounted
-    ? (i18n.language ?? fallbackLng)
-    : fallbackLng;
 
   const now = React.useMemo(() => new Date(), []);
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
@@ -71,10 +47,10 @@ export default function TransfersPage() {
 
   const monthFormatter = React.useMemo(
     () =>
-      new Intl.DateTimeFormat(effectiveLanguage ?? "en-US", {
+      new Intl.DateTimeFormat("pt-BR", {
         month: "long",
       }),
-    [effectiveLanguage],
+    [],
   );
 
   const monthOptions = React.useMemo(
@@ -107,24 +83,26 @@ export default function TransfersPage() {
 
   const transfers = transfersQuery.data ?? [];
   const emptyMessage = transfersQuery.isError
-    ? translate("table.emptyError")
-    : translate("table.empty");
+    ? "Não foi possível carregar as transferências."
+    : "Nenhuma transferência registrada neste período.";
   const summaryLabel = transfersQuery.isError
-    ? translate("table.summaryError")
+    ? "Erro ao carregar as transferências"
     : transfers.length
-      ? translate("table.summary", { count: transfers.length })
-      : translate("table.summaryEmpty");
+      ? transfers.length === 1
+        ? "1 transferência encontrada"
+        : `${transfers.length} transferências encontradas`
+      : "Nenhuma transferência encontrada";
 
   const deleteMutation = trpc.transactions.deleteTransfer.useMutation({
     onSuccess: async () => {
-      toast.success(translate("delete.toast.success"));
+      toast.success("Transferência excluída com sucesso.");
       await utils.transactions.listTransfers.invalidate();
       await utils.bankAccounts.list.invalidate();
       setIsDeleteOpen(false);
       setTransferToDelete(null);
     },
     onError: (err) => {
-      toast.error(err.message ?? translate("delete.toast.error"));
+      toast.error(err.message ?? "Não foi possível excluir a transferência.");
     },
   });
 
@@ -150,17 +128,17 @@ export default function TransfersPage() {
       <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">
-            {translate("header.title")}
+            Transferências entre contas
           </h2>
           <p className="text-muted-foreground text-sm">
-            {translate("header.subtitle")}
+            Acompanhe e organize as movimentações entre suas contas.
           </p>
         </div>
         <TransferFormDialog
           trigger={
             <Button className="gap-2">
               <IconPlus className="size-4" />
-              {translate("header.new")}
+              Nova transferência
             </Button>
           }
           open={isCreateOpen}
@@ -175,16 +153,14 @@ export default function TransfersPage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="flex flex-col gap-2">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {translate("filters.month")}
+              Mês
             </span>
             <Select
               value={selectedMonth.toString()}
               onValueChange={(value) => setSelectedMonth(Number(value))}
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={translate("filters.monthPlaceholder")}
-                />
+                <SelectValue placeholder="Selecione o mês" />
               </SelectTrigger>
               <SelectContent>
                 {monthOptions.map((option) => (
@@ -197,7 +173,7 @@ export default function TransfersPage() {
           </div>
           <div className="flex flex-col gap-2">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {translate("filters.year")}
+              Ano
             </span>
             <Input
               type="number"
@@ -210,7 +186,7 @@ export default function TransfersPage() {
           </div>
           <div className="flex flex-col gap-2">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {translate("filters.account")}
+              Conta
             </span>
             <Select
               value={accountSelectValue}
@@ -219,14 +195,10 @@ export default function TransfersPage() {
               }
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={translate("filters.accountPlaceholder")}
-                />
+                <SelectValue placeholder="Selecione a conta" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={anyAccountValue}>
-                  {translate("filters.allAccounts")}
-                </SelectItem>
+                <SelectItem value={anyAccountValue}>Todas as contas</SelectItem>
                 {accountOptions.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
                     {account.name}
@@ -267,23 +239,22 @@ export default function TransfersPage() {
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{translate("delete.title")}</AlertDialogTitle>
+            <AlertDialogTitle>Excluir transferência</AlertDialogTitle>
             <AlertDialogDescription>
-              {translate("delete.description")}
+              Essa ação não pode ser desfeita. A transferência será removida
+              permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMutation.isPending}>
-              {translate("delete.actions.cancel")}
+              Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending
-                ? translate("delete.actions.loading")
-                : translate("delete.actions.confirm")}
+              {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

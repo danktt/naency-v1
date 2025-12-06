@@ -1,100 +1,118 @@
 "use client";
 
-import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { motion } from "framer-motion";
+import { Tabs as TabsPrimitive } from "radix-ui";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Tabs = ({
+const TabsContext = React.createContext<{ layoutId: string } | null>(null);
+
+function Tabs({
   className,
+  isEdit,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Root>) => {
-  return (
-    <TabsPrimitive.Root
-      data-slot="tabs"
-      className={cn("flex flex-col gap-2", className)}
-      {...props}
-    />
-  );
-};
-Tabs.displayName = "Tabs";
-
-const TabsList = ({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.List>) => {
-  return (
-    <TabsPrimitive.List
-      data-slot="tabs-list"
-      className={cn(
-        "bg-muted text-muted-foreground relative inline-flex h-9 w-fit items-center justify-center rounded-lg p-1",
-        className,
-      )}
-      {...props}
-    />
-  );
-};
-TabsList.displayName = "TabsList";
-
-const TabsTrigger = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, children, ...props }, ref) => {
-  const dataState = (props as { "data-state"?: "active" | "inactive" })[
-    "data-state"
-  ];
-  const isActive = dataState === "active";
+}: React.ComponentProps<typeof TabsPrimitive.Root> & { isEdit?: boolean }) {
+  const layoutId = React.useId();
 
   return (
-    <TabsPrimitive.Trigger asChild {...props}>
-      <motion.button
-        ref={ref}
-        data-slot="tabs-trigger"
+    <TabsContext.Provider value={{ layoutId }}>
+      <TabsPrimitive.Root
         className={cn(
-          "relative text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center rounded-md px-2 py-1 text-sm font-medium whitespace-nowrap focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          "flex flex-col gap-2",
+          isEdit && "pointer-events-none opacity-50",
           className,
         )}
-        layout
-        transition={{ type: "spring", stiffness: 260, damping: 30 }}
-        whileTap={{ scale: 0.97 }}
-      >
-        <span className="relative flex w-full items-center justify-center gap-1.5 px-2 py-1">
-          {isActive ? (
-            <motion.span
-              layoutId="tabs-active-indicator"
-              className="absolute inset-0 rounded-md bg-background shadow-sm dark:bg-input/40"
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            />
-          ) : null}
-          <span className="relative z-10">{children}</span>
-        </span>
-      </motion.button>
+        data-slot="tabs"
+        {...props}
+      />
+    </TabsContext.Provider>
+  );
+}
+
+function TabsList({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.List>) {
+  return (
+    <TabsPrimitive.List
+      className={cn(
+        "inline-flex w-fit items-center justify-center rounded-md bg-muted p-0.5 text-muted-foreground/70",
+        className,
+      )}
+      data-slot="tabs-list"
+      {...props}
+    />
+  );
+}
+
+function TabsTrigger({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  const [isActive, setIsActive] = React.useState(false);
+  const ref = React.useRef<HTMLButtonElement>(null);
+  const context = React.useContext(TabsContext);
+  const layoutId = context?.layoutId ?? "active-tab";
+
+  React.useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const observer = new MutationObserver(() => {
+      setIsActive(element.getAttribute("data-state") === "active");
+    });
+
+    observer.observe(element, {
+      attributes: true,
+      attributeFilter: ["data-state"],
+    });
+
+    // Check initial state
+    setIsActive(element.getAttribute("data-state") === "active");
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <TabsPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        "relative inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 font-medium text-sm outline-none transition-all hover:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=active]:text-foreground [&_svg]:shrink-0",
+        className,
+      )}
+      data-slot="tabs-trigger"
+      {...props}
+    >
+      {isActive && (
+        <motion.div
+          layoutId={layoutId}
+          className="absolute inset-0 bg-background rounded-md shadow-sm"
+          transition={{
+            type: "spring",
+            duration: 0.4,
+            bounce: 0.1,
+          }}
+        />
+      )}
+      <span className="relative z-10 flex items-center justify-center">
+        {props.children}
+      </span>
     </TabsPrimitive.Trigger>
   );
-});
-TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
+}
 
-const TabsContent = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, children, ...props }, ref) => {
+function TabsContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Content>) {
   return (
-    <TabsPrimitive.Content asChild {...props}>
-      <motion.div
-        ref={ref}
-        data-slot="tabs-content"
-        className={cn("flex-1 outline-none", className)}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -6 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-      >
-        {children}
-      </motion.div>
-    </TabsPrimitive.Content>
+    <TabsPrimitive.Content
+      className={cn("flex-1 outline-none", className)}
+      data-slot="tabs-content"
+      {...props}
+    />
   );
-});
-TabsContent.displayName = TabsPrimitive.Content.displayName;
+}
 
-export { Tabs, TabsList, TabsTrigger, TabsContent };
+export { Tabs, TabsContent, TabsList, TabsTrigger };

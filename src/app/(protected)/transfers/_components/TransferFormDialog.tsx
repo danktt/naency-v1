@@ -1,19 +1,27 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconCalendar, IconLoader2, IconPlus } from "@tabler/icons-react";
+import {
+  IconArrowRight,
+  IconArrowsExchange,
+  IconCalendar,
+  IconLoader2,
+  IconPlus,
+} from "@tabler/icons-react";
 import { format } from "date-fns";
-import { enUS, ptBR } from "date-fns/locale";
-import * as React from "react";
+import { ptBR } from "date-fns/locale";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { type Resolver, useForm } from "react-hook-form";
-import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -39,60 +47,57 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
+import { formatCurrency } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 
 import type { TransferTableRow } from "./columnsDef";
 
-const transferSchema = (t: ReturnType<typeof useTranslation>["t"]) =>
-  z
-    .object({
-      date: z.coerce.date(),
-      fromAccountId: z
-        .string()
-        .min(1, t("form.validation.fromAccount"))
-        .uuid(t("form.validation.fromAccount")),
-      toAccountId: z
-        .string()
-        .min(1, t("form.validation.toAccount"))
-        .uuid(t("form.validation.toAccount")),
-      amount: z.number(),
-      description: z
-        .string()
-        .max(500, t("form.validation.descriptionMax"))
-        .optional(),
-    })
-    .superRefine((data, ctx) => {
-      if (Number.isNaN(data.amount)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["amount"],
-          message: t("form.validation.amount"),
-        });
-      } else if (!(data.amount > 0)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["amount"],
-          message: t("form.validation.amountPositive"),
-        });
-      }
+const transferSchema = z
+  .object({
+    date: z.coerce.date(),
+    fromAccountId: z
+      .string()
+      .min(1, "Selecione a conta de origem")
+      .uuid("Selecione a conta de origem"),
+    toAccountId: z
+      .string()
+      .min(1, "Selecione a conta de destino")
+      .uuid("Selecione a conta de destino"),
+    amount: z.number(),
+    currency: z.enum(["BRL", "USD"]).default("BRL"),
+    description: z.string().max(500, "Máximo 500 caracteres").optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (Number.isNaN(data.amount)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["amount"],
+        message: "Valor é obrigatório",
+      });
+    } else if (!(data.amount > 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["amount"],
+        message: "Valor deve ser maior que zero",
+      });
+    }
 
-      if (!(data.date instanceof Date) || Number.isNaN(data.date.getTime())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["date"],
-          message: t("form.validation.date"),
-        });
-      }
-    })
-    .refine((data) => data.fromAccountId !== data.toAccountId, {
-      path: ["toAccountId"],
-      message: t("form.validation.sameAccount"),
-    });
+    if (!(data.date instanceof Date) || Number.isNaN(data.date.getTime())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["date"],
+        message: "Data inválida",
+      });
+    }
+  })
+  .refine((data) => data.fromAccountId !== data.toAccountId, {
+    path: ["toAccountId"],
+    message: "As contas devem ser diferentes",
+  });
 
-type TransferFormValues = z.infer<ReturnType<typeof transferSchema>>;
+type TransferFormValues = z.infer<typeof transferSchema>;
 
 type TransferFormDialogProps = {
   mode?: "create" | "edit";
@@ -103,6 +108,75 @@ type TransferFormDialogProps = {
   trigger?: React.ReactNode;
 };
 
+// Animation variants
+const draw = {
+  hidden: { pathLength: 0, opacity: 0 },
+  visible: (i: number) => ({
+    pathLength: 1,
+    opacity: 1,
+    transition: {
+      pathLength: {
+        delay: i * 0.2,
+        type: "spring" as const,
+        duration: 1.5,
+        bounce: 0.2,
+        ease: [0.22, 1, 0.36, 1],
+      },
+      opacity: { delay: i * 0.2, duration: 0.3 },
+    },
+  }),
+};
+
+function Checkmark({
+  size = 100,
+  strokeWidth = 2,
+  color = "currentColor",
+  className = "",
+}: {
+  size?: number;
+  strokeWidth?: number;
+  color?: string;
+  className?: string;
+}) {
+  return (
+    <motion.svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      initial="hidden"
+      animate="visible"
+      className={className}
+    >
+      <title>Checkmark</title>
+      <motion.circle
+        cx="50"
+        cy="50"
+        r="42"
+        stroke={color}
+        variants={draw as never}
+        custom={0}
+        style={{
+          strokeWidth,
+          strokeLinecap: "round",
+          fill: "transparent",
+        }}
+      />
+      <motion.path
+        d="M32 50L45 63L68 35"
+        stroke={color}
+        variants={draw as never}
+        custom={1}
+        style={{
+          strokeWidth: strokeWidth + 0.5,
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+          fill: "transparent",
+        }}
+      />
+    </motion.svg>
+  );
+}
+
 export function TransferFormDialog({
   mode = "create",
   transfer,
@@ -111,72 +185,37 @@ export function TransferFormDialog({
   onSuccess,
   trigger,
 }: TransferFormDialogProps) {
-  const { t, i18n } = useTranslation("transfers");
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const fallbackLng =
-    (Array.isArray(i18n.options?.fallbackLng) && i18n.options.fallbackLng[0]) ||
-    (typeof i18n.options?.fallbackLng === "string"
-      ? i18n.options.fallbackLng
-      : "en");
-
-  const fallbackT = React.useMemo(
-    () => i18n.getFixedT(fallbackLng, "transfers"),
-    [i18n, fallbackLng],
-  );
-
-  const translate = isMounted ? t : fallbackT;
-
   const isEditing = mode === "edit" && Boolean(transfer);
-  const [internalOpen, setInternalOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = open !== undefined;
   const dialogOpen = isControlled ? Boolean(open) : internalOpen;
-
-  const locale = React.useMemo(
-    () =>
-      (isMounted ? (i18n.language ?? fallbackLng) : fallbackLng).startsWith(
-        "pt",
-      )
-        ? ptBR
-        : enUS,
-    [fallbackLng, i18n.language, isMounted],
-  );
+  const [isCompleted, setIsCompleted] = useState(false);
 
   const accountsQuery = trpc.accounts.list.useQuery(undefined, {
     enabled: dialogOpen,
   });
 
-  const schema = React.useMemo(
-    () => transferSchema(isMounted ? t : fallbackT),
-    [fallbackT, isMounted, t],
-  );
-
-  const defaultValues = React.useMemo<TransferFormValues>(
-    () => ({
-      date: transfer?.date ? new Date(transfer.date) : new Date(),
-      fromAccountId: transfer?.fromAccountId ?? "",
-      toAccountId: transfer?.toAccountId ?? "",
-      amount:
-        transfer && typeof transfer.amount === "number"
-          ? transfer.amount
-          : Number.NaN,
-      description: transfer?.description ?? "",
-    }),
-    [transfer],
-  );
+  const defaultValues: TransferFormValues = {
+    date: transfer?.date ? new Date(transfer.date) : new Date(),
+    fromAccountId: transfer?.fromAccountId ?? "",
+    toAccountId: transfer?.toAccountId ?? "",
+    amount:
+      transfer && typeof transfer.amount === "number"
+        ? Math.round(transfer.amount * 100)
+        : 0,
+    currency: "BRL",
+    description: transfer?.description ?? "",
+  };
 
   const form = useForm<TransferFormValues>({
-    resolver: zodResolver(schema) as Resolver<TransferFormValues>,
+    resolver: zodResolver(transferSchema) as Resolver<TransferFormValues>,
     defaultValues,
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (dialogOpen) {
       form.reset(defaultValues);
+      setIsCompleted(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialogOpen, transfer?.id]);
@@ -188,6 +227,7 @@ export function TransferFormDialog({
     onOpenChange?.(nextOpen);
     if (!nextOpen) {
       form.reset(defaultValues);
+      setIsCompleted(false);
     }
   };
 
@@ -195,34 +235,38 @@ export function TransferFormDialog({
 
   const createMutation = trpc.transactions.createTransfer.useMutation({
     onSuccess: async () => {
-      toast.success(translate("form.toast.createSuccess"));
-      handleOpenChange(false);
+      setIsCompleted(true);
+      toast.success("Transferência criada com sucesso!");
       await utils.bankAccounts.list.invalidate();
       await onSuccess?.();
+      setTimeout(() => handleOpenChange(false), 2000);
     },
     onError: (err) => {
-      toast.error(err.message ?? translate("form.toast.createError"));
+      toast.error(err.message ?? "Erro ao criar transferência");
     },
   });
 
   const updateMutation = trpc.transactions.updateTransfer.useMutation({
     onSuccess: async () => {
-      toast.success(translate("form.toast.updateSuccess"));
-      handleOpenChange(false);
+      setIsCompleted(true);
+      toast.success("Transferência atualizada com sucesso!");
       await utils.bankAccounts.list.invalidate();
       await onSuccess?.();
+      setTimeout(() => handleOpenChange(false), 2000);
     },
     onError: (err) => {
-      toast.error(err.message ?? translate("form.toast.updateError"));
+      toast.error(err.message ?? "Erro ao atualizar transferência");
     },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
+    const amountInDecimal = values.amount / 100;
+
     const payload = {
       date: values.date,
       fromAccountId: values.fromAccountId,
       toAccountId: values.toAccountId,
-      amount: values.amount,
+      amount: amountInDecimal,
       description: values.description?.trim()
         ? values.description.trim()
         : undefined,
@@ -245,188 +289,354 @@ export function TransferFormDialog({
   const renderTrigger = trigger ?? (
     <Button size="sm" className="gap-2">
       <IconPlus className="size-4" />
-      {translate("header.new")}
+      Nova Transferência
     </Button>
+  );
+
+  const selectedFromAccount = accounts.find(
+    (a) => a.id === form.watch("fromAccountId"),
+  );
+  const selectedToAccount = accounts.find(
+    (a) => a.id === form.watch("toAccountId"),
   );
 
   return (
     <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{renderTrigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing
-              ? translate("form.title.edit")
-              : translate("form.title.create")}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? translate("form.description.edit")
-              : translate("form.description.create")}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>{translate("form.labels.date")}</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "justify-start gap-2",
-                          !field.value && "text-muted-foreground",
+      <DialogContent className="sm:max-w-xl p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        <div className="bg-background border rounded-xl shadow-xl overflow-hidden">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle className="sr-only">
+              {isEditing ? "Editar Transferência" : "Nova Transferência"}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {isEditing
+                ? "Edite os detalhes da transferência"
+                : "Preencha os detalhes da nova transferência"}
+            </DialogDescription>
+
+            <div className="flex items-center justify-center pb-4">
+              <div className="relative w-[80px] h-[80px] flex items-center justify-center">
+                <motion.div
+                  className="absolute inset-0 blur-2xl bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 0.8] }}
+                  transition={{
+                    duration: 1.5,
+                    times: [0, 0.5, 1],
+                    ease: [0.22, 1, 0.36, 1],
+                    repeat: Infinity,
+                  }}
+                />
+                <AnimatePresence mode="wait">
+                  {!isCompleted ? (
+                    <motion.div
+                      key="progress"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0, rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                      className="w-[80px] h-[80px] flex items-center justify-center"
+                    >
+                      <div className="relative z-10">
+                        {isSubmitting && (
+                          <motion.div
+                            className="absolute inset-0 rounded-full border-2 border-transparent"
+                            style={{
+                              borderLeftColor: "rgb(16 185 129)",
+                              borderTopColor: "rgb(16 185 129 / 0.2)",
+                            }}
+                            animate={{ rotate: 360 }}
+                            transition={{
+                              duration: 1,
+                              repeat: Infinity,
+                              ease: "linear",
+                            }}
+                          />
                         )}
-                      >
-                        <IconCalendar className="size-4" />
-                        {field.value
-                          ? format(field.value, "PPP", { locale })
-                          : translate("form.placeholders.date")}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="p-0">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={(date) => field.onChange(date ?? new Date())}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
+                        <div className="relative z-10 bg-background rounded-full p-4 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                          <IconArrowsExchange
+                            className={cn(
+                              "h-8 w-8",
+                              isSubmitting
+                                ? "text-emerald-500"
+                                : "text-muted-foreground",
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="completed"
+                      initial={{ opacity: 0, rotate: -180 }}
+                      animate={{ opacity: 1, rotate: 0 }}
+                      className="w-[80px] h-[80px] flex items-center justify-center"
+                    >
+                      <Checkmark size={80} color="rgb(16 185 129)" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+            <div className="text-center space-y-1">
+              <h2 className="text-lg font-semibold tracking-tight ">
+                {isCompleted
+                  ? "Transferência Concluída"
+                  : isSubmitting
+                    ? "Processando..."
+                    : isEditing
+                      ? "Editar Transferência"
+                      : "Nova Transferência"}
+              </h2>
+              {!isCompleted && !isSubmitting && (
+                <p className="text-sm text-muted-foreground">
+                  Informe os detalhes da transferência abaixo
+                </p>
               )}
-            />
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="fromAccountId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {translate("form.labels.fromAccount")}
-                    </FormLabel>
-                    <Select
-                      disabled={accountsQuery.isLoading}
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={translate("form.placeholders.account")}
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="toAccountId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{translate("form.labels.toAccount")}</FormLabel>
-                    <Select
-                      disabled={accountsQuery.isLoading}
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={translate("form.placeholders.account")}
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
+          </DialogHeader>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{translate("form.labels.amount")}</FormLabel>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      inputMode="decimal"
-                      value={Number.isNaN(field.value) ? "" : field.value}
-                      onChange={(event) =>
-                        field.onChange(
-                          event.target.value === ""
-                            ? Number.NaN
-                            : Number(event.target.value),
-                        )
-                      }
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <Form {...form}>
+            <form onSubmit={onSubmit} className="space-y-0">
+              <div className="p-6 space-y-4">
+                {/* Accounts: Responsive grid - vertical on mobile, horizontal on desktop */}
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_32px_1fr] gap-3 sm:gap-4 sm:items-end">
+                  <FormField
+                    control={form.control}
+                    name="fromAccountId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>De</FormLabel>
+                        <Select
+                          disabled={
+                            accountsQuery.isLoading ||
+                            isSubmitting ||
+                            isCompleted
+                          }
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger className="h-16! w-full">
+                            <div className="flex items-center gap-2.5 w-full text-left">
+                              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 text-[10px] font-bold shrink-0">
+                                {selectedFromAccount?.currency === "BRL"
+                                  ? "R$"
+                                  : "$"}
+                              </div>
+                              <div className="flex flex-col items-start min-w-0 flex-1">
+                                <span className="font-medium text-sm truncate w-full">
+                                  {selectedFromAccount
+                                    ? selectedFromAccount.name
+                                    : "Selecione uma conta"}
+                                </span>
+                                {selectedFromAccount && (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    Saldo:{" "}
+                                    {formatCurrency(
+                                      selectedFromAccount.current_balance ?? 0,
+                                      selectedFromAccount.currency as
+                                        | "BRL"
+                                        | "USD",
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {accounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">
+                                    {account.name}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatCurrency(
+                                      account.current_balance ?? 0,
+                                      account.currency as "BRL" | "USD",
+                                    )}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {translate("form.labels.description")}
-                    </FormLabel>
-                    <Input
-                      placeholder={translate("form.placeholders.description")}
-                      {...field}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                  {/* Arrow Icon - rotates on mobile */}
+                  <div className="flex items-center justify-center sm:mb-3">
+                    <div className="bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full p-1.5 text-emerald-600 dark:text-emerald-400 rotate-90 sm:rotate-0">
+                      <IconArrowRight className="size-4" />
+                    </div>
+                  </div>
 
-            <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => handleOpenChange(false)}
-              >
-                {translate("form.actions.cancel")}
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="gap-2">
-                {isSubmitting && (
-                  <IconLoader2 className="size-4 animate-spin" />
-                )}
-                {isEditing
-                  ? translate("form.actions.save")
-                  : translate("form.actions.create")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                  <FormField
+                    control={form.control}
+                    name="toAccountId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Para</FormLabel>
+                        <Select
+                          disabled={
+                            accountsQuery.isLoading ||
+                            isSubmitting ||
+                            isCompleted
+                          }
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger className="h-16! w-full">
+                            <div className="flex items-center gap-2.5 w-full text-left">
+                              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 text-[10px] font-bold shrink-0">
+                                {selectedToAccount?.currency === "BRL"
+                                  ? "R$"
+                                  : "$"}
+                              </div>
+                              <div className="flex flex-col items-start min-w-0 flex-1">
+                                <span className="font-medium text-sm truncate w-full">
+                                  {selectedToAccount
+                                    ? selectedToAccount.name
+                                    : "Selecione uma conta"}
+                                </span>
+                                {selectedToAccount && (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    Saldo:{" "}
+                                    {formatCurrency(
+                                      selectedToAccount.current_balance ?? 0,
+                                      selectedToAccount.currency as
+                                        | "BRL"
+                                        | "USD",
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {accounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">
+                                    {account.name}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatCurrency(
+                                      account.current_balance ?? 0,
+                                      account.currency as "BRL" | "USD",
+                                    )}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FieldCurrencyAmount
+                    control={form.control}
+                    amountName="amount"
+                    currencyName="currency"
+                    label="Valor"
+                    disabled={isSubmitting || isCompleted}
+                    required
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Data</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              disabled={isSubmitting || isCompleted}
+                              className={cn(
+                                "justify-start gap-2 h-9 w-full",
+                                !field.value && "text-muted-foreground",
+                              )}
+                            >
+                              <IconCalendar className="size-4" />
+                              {field.value
+                                ? format(field.value, "P", { locale: ptBR })
+                                : "Selecione a data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" className="p-0 w-fit">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(date) =>
+                                field.onChange(date ?? new Date())
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição</FormLabel>
+                      <Input
+                        placeholder="Descrição opcional"
+                        disabled={isSubmitting || isCompleted}
+                        {...field}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter className="flex w-full p-6 flex-col-reverse gap-2  sm:flex-row sm:items-center sm:justify-end">
+                <DialogClose asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isSubmitting || isCompleted}
+                  >
+                    Cancelar
+                  </Button>
+                </DialogClose>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || isCompleted}
+                  className={cn(
+                    "gap-2",
+                    isCompleted && "bg-emerald-500 hover:bg-emerald-600",
+                  )}
+                >
+                  {isSubmitting && (
+                    <IconLoader2 className="size-4 animate-spin" />
+                  )}
+                  {isCompleted
+                    ? "Concluído"
+                    : isEditing
+                      ? "Salvar"
+                      : "Transferir"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

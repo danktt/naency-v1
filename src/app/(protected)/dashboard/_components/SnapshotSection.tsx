@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowUpRight } from "lucide-react";
 import type * as React from "react";
 
 import { GridItem } from "@/components/gloweffect";
@@ -25,15 +24,7 @@ interface SnapshotSectionProps {
   onRetry: () => void;
 }
 
-export function SnapshotSection({
-  title,
-  description,
-  retryLabel,
-  isLoading,
-  isError,
-  cards,
-  onRetry,
-}: SnapshotSectionProps) {
+export function SnapshotSection({ isLoading, cards }: SnapshotSectionProps) {
   return (
     <section className="space-y-4">
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

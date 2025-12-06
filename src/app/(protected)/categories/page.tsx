@@ -1,63 +1,51 @@
 "use client";
 
-import { Tab, Tabs } from "@heroui/tabs";
-import { IconPlus } from "@tabler/icons-react";
-import * as React from "react";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import { GlowCard } from "@/components/gloweffect";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Toggle } from "@/components/ui/toggle";
 import type { CategoryNode } from "@/hooks/categories/useCategoryTree";
 import { useCategoryTree } from "@/hooks/categories/useCategoryTree";
 import { trpc } from "@/lib/trpc/client";
+import {
+  IconArrowDownLeft,
+  IconArrowUpRight,
+  IconLabelOff,
+  IconPlus,
+} from "@tabler/icons-react";
+import { parseAsStringEnum, useQueryState } from "nuqs";
+import * as React from "react";
+import { toast } from "sonner";
 import { CategoryDialog } from "./_components/CategoryDialog";
 import { CategoryTreeTable } from "./_components/CategoryTreeTable";
-import { ImportDefaultsDialog } from "./_components/ImportDefaultsDialog";
-
+import { CreateCategoryDialog } from "./_components/CreateCategoryDialog";
 export default function CategoriesPage() {
-  const { t, i18n } = useTranslation("categories");
-  const [isMounted, setIsMounted] = React.useState(false);
+  const [selectedTab, setSelectedTab] = useQueryState(
+    "tab",
+    parseAsStringEnum(["income", "expense"]).withDefault("income"),
+  );
 
-  const [selectedType, setSelectedType] = React.useState<
-    "expense" | "income" | "all"
-  >("all");
   const [includeInactive, setIncludeInactive] = React.useState(false);
+  const [createCategoryDialogOpen, setCreateCategoryDialogOpen] =
+    React.useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = React.useState(false);
   const [selectedCategory, setSelectedCategory] =
     React.useState<CategoryNode | null>(null);
-  const [parentId, setParentId] = React.useState<string | null>(null);
-  const [importDialogOpen, setImportDialogOpen] = React.useState(false);
+  const [parentCategory, setParentCategory] =
+    React.useState<CategoryNode | null>(null);
   const [processingId, setProcessingId] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const fallbackLng =
-    (Array.isArray(i18n.options?.fallbackLng) && i18n.options.fallbackLng[0]) ||
-    (typeof i18n.options?.fallbackLng === "string"
-      ? i18n.options.fallbackLng
-      : "en");
-
-  const fallbackT = React.useMemo(
-    () => i18n.getFixedT(fallbackLng, "categories"),
-    [i18n, fallbackLng],
-  );
-
-  const translate = isMounted ? t : fallbackT;
 
   const {
     data: categories,
     isLoading: isCategoriesLoading,
     isError: isCategoriesError,
   } = trpc.categories.list.useQuery({
-    type: selectedType === "all" ? undefined : selectedType,
+    type: selectedTab ?? "income",
     includeInactive,
   });
 
   const { categoryTree, expandedCategories, toggleCategory } = useCategoryTree({
     categories: categories ?? [],
-    selectedType,
+    selectedType: selectedTab ?? "income",
     includeInactive,
   });
 
@@ -66,26 +54,53 @@ export default function CategoriesPage() {
   const deleteMutation = trpc.categories.delete.useMutation({
     onSuccess: async () => {
       await utils.categories.list.invalidate();
-      toast.success(translate("toasts.deleteSuccess"));
+      toast.success("Categoria excluída com sucesso.");
       setProcessingId(null);
     },
     onError: () => {
-      toast.error(translate("toasts.deleteError"));
+      toast.error("Não foi possível excluir a categoria.");
       setProcessingId(null);
     },
   });
 
-  const handleCreate = () => {
-    setSelectedCategory(null);
-    setParentId(null);
-    setCategoryDialogOpen(true);
+  const findParentCategory = (
+    categoryId: string,
+    nodes: CategoryNode[],
+  ): CategoryNode | null => {
+    for (const node of nodes) {
+      if (node.children.some((child) => child.id === categoryId)) {
+        return node;
+      }
+      const found = findParentCategory(categoryId, node.children);
+      if (found) return found;
+    }
+    return null;
   };
 
   const handleEdit = (category: CategoryNode) => {
     setSelectedCategory(category);
-    setParentId(null);
+    // Se for subcategoria, encontrar a categoria pai
+    if (category.parent_id) {
+      const parent = findParentCategory(category.id, categoryTree);
+      setParentCategory(parent);
+    } else {
+      setParentCategory(null);
+    }
     setCategoryDialogOpen(true);
   };
+
+  const typeTabs = [
+    {
+      id: "income",
+      label: "Receitas",
+      icon: IconArrowDownLeft,
+    },
+    {
+      id: "expense",
+      label: "Despesas",
+      icon: IconArrowUpRight,
+    },
+  ] as const;
 
   const handleDelete = (category: CategoryNode) => {
     setProcessingId(category.id);
@@ -98,10 +113,26 @@ export default function CategoriesPage() {
     deleteMutation.mutate({ id: category.id });
   };
 
+  const handleCreateSubcategory = (category: CategoryNode) => {
+    setSelectedCategory(null);
+    setParentCategory(category);
+    setCategoryDialogOpen(true);
+  };
+
+  const handleDuplicate = (_category: CategoryNode) => {
+    // TODO: Implement category duplication
+    toast.info("Funcionalidade de duplicar categoria em desenvolvimento.");
+  };
+
+  const handleMove = (_category: CategoryNode) => {
+    // TODO: Implement category move functionality
+    toast.info("Funcionalidade de mover categoria em desenvolvimento.");
+  };
+
   const handleDialogSuccess = () => {
     setCategoryDialogOpen(false);
     setSelectedCategory(null);
-    setParentId(null);
+    setParentCategory(null);
   };
 
   const isEmptyState =
@@ -111,20 +142,15 @@ export default function CategoriesPage() {
     <div className="space-y-4">
       <section className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            {translate("header.title")}
-          </h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Categorias</h2>
           <p className="text-muted-foreground text-sm">
-            {translate("header.subtitle")}
+            Gerencie suas categorias de despesas e receitas.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => setImportDialogOpen(true)}>
-            {translate("header.importButtonTitle")}
-          </Button>
-          <Button onClick={handleCreate}>
+          <Button onClick={() => setCreateCategoryDialogOpen(true)}>
             <IconPlus stroke={1.5} className="size-4" />
-            {translate("actions.create")}
+            Nova categoria
           </Button>
         </div>
       </section>
@@ -132,95 +158,106 @@ export default function CategoriesPage() {
       <section>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Tabs
-            aria-label="Category type"
-            selectedKey={selectedType}
-            onSelectionChange={(key) =>
-              setSelectedType(key as "expense" | "income" | "all")
-            }
+            value={selectedTab ?? "income"}
+            onValueChange={(value) => {
+              if (value === "income" || value === "expense") {
+                setSelectedTab(value);
+              }
+            }}
           >
-            <Tab key="all" title={translate("tabs.all")} />
-            <Tab key="expense" title={translate("tabs.expenses")} />
-            <Tab key="income" title={translate("tabs.incomes")} />
+            <TabsList>
+              {typeTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <TabsTrigger key={tab.id} value={tab.id} className="flex-1">
+                    <IconComponent
+                      aria-hidden="true"
+                      className={`mr-1.5 h-4 w-4 opacity-60 ${tab.id === "income" ? "text-icon-income" : "text-icon-expense"}`}
+                    />
+                    {tab.label}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
           </Tabs>
 
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="includeInactive"
-              checked={includeInactive}
-              onChange={(e) => setIncludeInactive(e.target.checked)}
-              className="h-4 w-4 rounded border-border"
-            />
-            <label
-              htmlFor="includeInactive"
-              className="text-sm text-muted-foreground cursor-pointer"
+            <Toggle
+              aria-label="Mostrar categorias inativas"
+              size="sm"
+              variant="outline"
+              pressed={includeInactive}
+              onPressedChange={setIncludeInactive}
+              className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-primary data-[state=on]:*:[svg]:stroke-primary"
             >
-              {translate("status.inactive")}
-            </label>
+              <IconLabelOff />
+              Inativas
+            </Toggle>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-7">
-        <GlowCard
-          className="lg:col-span-7"
-          title={translate("header.title")}
-          description={translate("header.subtitle")}
-          contentClassName="gap-6"
-        >
-          {isCategoriesLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={`categories-skeleton-${index}`}
-                  className="h-24 animate-pulse rounded-lg bg-muted/60"
-                />
-              ))}
-            </div>
-          ) : isCategoriesError ? (
-            <div className="py-12 text-center text-muted-foreground">
-              {translate("table.error")}
-            </div>
-          ) : isEmptyState ? (
-            <div className="py-12 text-center">
-              <p className="text-muted-foreground mb-4">
-                {translate("table.empty")}
-              </p>
-              <Button onClick={() => setImportDialogOpen(true)}>
-                {translate("header.importButtonTitle")}
-              </Button>
-            </div>
-          ) : (
-            <CategoryTreeTable
-              categories={categoryTree}
-              headers={{
-                category: translate("table.headers.category"),
-                type: translate("table.headers.type"),
-                status: translate("table.headers.status"),
-              }}
-              emptyMessage={translate("table.empty")}
-              expandedCategories={expandedCategories}
-              onToggleCategory={toggleCategory}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onRestore={handleRestore}
-              processingId={processingId}
-            />
-          )}
-        </GlowCard>
+      <section>
+        {isCategoriesLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`categories-skeleton-${index}`}
+                className="h-24 animate-pulse rounded-lg bg-muted/60"
+              />
+            ))}
+          </div>
+        ) : isCategoriesError ? (
+          <div className="py-12 text-center text-muted-foreground">
+            Não foi possível carregar as categorias no momento.
+          </div>
+        ) : isEmptyState ? (
+          <div className="py-12 text-center">
+            <p className="text-muted-foreground mb-4">
+              Nenhuma categoria encontrada. Importe categorias padrão para
+              começar.
+            </p>
+            <Button disabled>Importar padrões</Button>
+          </div>
+        ) : (
+          <CategoryTreeTable
+            categories={categoryTree}
+            headers={{
+              category: "Categoria",
+              type: "Tipo",
+              status: "Status",
+            }}
+            emptyMessage="Nenhuma categoria encontrada. Importe categorias padrão para começar."
+            expandedCategories={expandedCategories}
+            onToggleCategory={toggleCategory}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onRestore={handleRestore}
+            onCreateSubcategory={handleCreateSubcategory}
+            onDuplicate={handleDuplicate}
+            onMove={handleMove}
+            processingId={processingId}
+          />
+        )}
       </section>
+
+      <CreateCategoryDialog
+        open={createCategoryDialogOpen}
+        onOpenChange={setCreateCategoryDialogOpen}
+        onSuccess={() => setCreateCategoryDialogOpen(false)}
+      />
 
       <CategoryDialog
         open={categoryDialogOpen}
-        onOpenChange={setCategoryDialogOpen}
+        onOpenChange={(open) => {
+          setCategoryDialogOpen(open);
+          if (!open) {
+            setSelectedCategory(null);
+            setParentCategory(null);
+          }
+        }}
         category={selectedCategory}
-        parentId={parentId}
-        onSuccess={handleDialogSuccess}
-      />
-
-      <ImportDefaultsDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
+        parentCategory={parentCategory}
         onSuccess={handleDialogSuccess}
       />
     </div>

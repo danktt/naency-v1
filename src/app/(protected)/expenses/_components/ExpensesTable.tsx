@@ -1,11 +1,5 @@
 "use client";
 
-import { IconCalendar, IconChevronDown } from "@tabler/icons-react";
-import type { Row } from "@tanstack/react-table";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import * as React from "react";
-import { toast } from "sonner";
 import { ExpensesForm } from "@/components/forms/expensesForm";
 import { DataTable } from "@/components/Table";
 import {
@@ -28,6 +22,12 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useDateStore } from "@/stores/useDateStore";
+import { IconCalendar, IconChevronDown } from "@tabler/icons-react";
+import type { Row } from "@tanstack/react-table";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import * as React from "react";
+import { toast } from "sonner";
 
 import { createExpenseColumns, type ExpenseTableRow } from "./columnsDef";
 
@@ -60,6 +60,7 @@ export function ExpensesTable() {
         from: dateRange.from,
         to: dateRange.to,
       },
+      excludeCreditCard: true,
     }),
     [dateRange],
   );
@@ -70,6 +71,7 @@ export function ExpensesTable() {
     onSuccess: () => {
       toast("Despesa deletada com sucesso.");
       void utils.transactions.list.invalidate(queryInput);
+      void utils.transactions.metrics.invalidate();
       void utils.bankAccounts.list.invalidate();
       setIsDeleteDialogOpen(false);
       setExpenseToDelete(null);
@@ -82,6 +84,7 @@ export function ExpensesTable() {
     onSuccess: () => {
       toast("Despesa marcada como paga.");
       void utils.transactions.list.invalidate(queryInput);
+      void utils.transactions.metrics.invalidate();
       void utils.bankAccounts.list.invalidate();
       setIsMarkAsPaidDialogOpen(false);
       setExpenseToMarkAsPaid(null);
@@ -95,6 +98,7 @@ export function ExpensesTable() {
       onSuccess: () => {
         toast("Despesa marcada como pendente.");
         void utils.transactions.list.invalidate(queryInput);
+        void utils.transactions.metrics.invalidate();
         void utils.bankAccounts.list.invalidate();
         setIsMarkAsPendingDialogOpen(false);
         setExpenseToMarkAsPending(null);

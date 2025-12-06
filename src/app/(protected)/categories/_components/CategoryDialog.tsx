@@ -1,12 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as React from "react";
-import { useForm } from "react-hook-form";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import { z } from "zod";
-
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -24,64 +18,47 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { trpc } from "@/lib/trpc/client";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CategoryNode } from "@/hooks/categories/useCategoryTree";
+import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  IconArrowDownLeft,
+  IconArrowUpRight,
+  IconCornerDownRight,
+} from "@tabler/icons-react";
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { IconSelector } from "./IconSelector";
 
 type CategoryDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   category?: CategoryNode | null;
-  parentId?: string | null;
+  parentCategory?: CategoryNode | null;
   onSuccess?: () => void;
 };
 
-const createCategorySchema = () =>
+const createCategorySchema = (isSubcategory: boolean) =>
   z.object({
-    name: z.string().min(1, "Name is required"),
+    name: z.string().min(1, "O nome é obrigatório"),
     type: z.enum(["expense", "income"]),
-    color: z.string().min(1, "Color is required").default("#cccccc"),
-    icon: z.string().default(""),
-    parent_id: z.string().uuid().nullable().optional(),
+    icon: isSubcategory
+      ? z.string().optional()
+      : z.string().min(1, "O ícone é obrigatório"),
   });
 
 export function CategoryDialog({
   open,
   onOpenChange,
   category,
-  parentId,
+  parentCategory,
   onSuccess,
 }: CategoryDialogProps) {
-  const { t, i18n } = useTranslation("categories");
   const utils = trpc.useUtils();
-  const isMounted = React.useState(false)[0];
-  const [isMountedState, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const fallbackT = React.useCallback(
-    (key: string) => {
-      const fallbackLng =
-        (Array.isArray(i18n.options?.fallbackLng) &&
-          i18n.options.fallbackLng[0]) ||
-        (typeof i18n.options?.fallbackLng === "string"
-          ? i18n.options.fallbackLng
-          : "en");
-      return i18n.getFixedT(fallbackLng, "categories")(key);
-    },
-    [i18n],
-  );
-
-  const translate = isMountedState ? t : fallbackT;
 
   const { data: allCategories } = trpc.categories.list.useQuery(
     {
@@ -92,14 +69,20 @@ export function CategoryDialog({
     },
   );
 
+  const isEdit = !!category;
+  const isSubcategory = !!parentCategory || category?.parent_id !== null;
+
+  const schema = React.useMemo(
+    () => createCategorySchema(isSubcategory),
+    [isSubcategory],
+  );
+
   const form = useForm<z.infer<ReturnType<typeof createCategorySchema>>>({
-    resolver: zodResolver(createCategorySchema()),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: category?.name ?? "",
-      type: category?.type ?? "expense",
-      color: category?.color ?? "#cccccc",
+      type: category?.type ?? "income",
       icon: category?.icon ?? "",
-      parent_id: parentId ?? category?.parent_id ?? null,
     },
   });
 
@@ -108,45 +91,43 @@ export function CategoryDialog({
       form.reset({
         name: category.name,
         type: category.type,
-        color: category.color ?? "#cccccc",
         icon: category.icon ?? "",
-        parent_id: category.parent_id,
       });
     } else if (open && !category) {
       form.reset({
         name: "",
-        type: "expense",
-        color: "#cccccc",
+        type: parentCategory?.type ?? "income",
         icon: "",
-        parent_id: parentId ?? null,
       });
     }
-  }, [open, category, parentId, form]);
+  }, [open, category, parentCategory, form]);
 
   const createMutation = trpc.categories.create.useMutation({
     onSuccess: async () => {
+      // Invalida todas as queries de categorias para atualizar a página
       await utils.categories.list.invalidate();
-      toast.success(translate("toasts.createSuccess"));
+      toast.success("Categoria criada com sucesso.");
       onOpenChange(false);
       form.reset();
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(translate("toasts.createError"));
+      toast.error("Não foi possível criar a categoria.");
       console.error(error);
     },
   });
 
   const updateMutation = trpc.categories.update.useMutation({
     onSuccess: async () => {
+      // Invalida todas as queries de categorias para atualizar a página
       await utils.categories.list.invalidate();
-      toast.success(translate("toasts.updateSuccess"));
+      toast.success("Categoria atualizada com sucesso.");
       onOpenChange(false);
       form.reset();
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(translate("toasts.updateError"));
+      toast.error("Não foi possível atualizar a categoria.");
       console.error(error);
     },
   });
@@ -154,57 +135,77 @@ export function CategoryDialog({
   const onSubmit = (
     values: z.infer<ReturnType<typeof createCategorySchema>>,
   ) => {
+    const isSubcategory = !!parentCategory || category?.parent_id !== null;
+    const parentId = parentCategory?.id ?? category?.parent_id ?? null;
+
+    // Verificar se já existe uma categoria/subcategoria com o mesmo nome e tipo
+    if (allCategories) {
+      const existingCategory = allCategories.find(
+        (cat) =>
+          cat.name.toLowerCase().trim() === values.name.toLowerCase().trim() &&
+          cat.type === values.type &&
+          cat.parent_id === parentId && // Mesmo parent_id
+          cat.id !== category?.id, // Ignorar a categoria atual se estiver editando
+      );
+
+      if (existingCategory) {
+        form.setError("name", {
+          type: "manual",
+          message: isSubcategory
+            ? "Já existe uma subcategoria com este nome."
+            : "Já existe uma categoria com este nome e tipo.",
+        });
+        return;
+      }
+    }
+
+    const iconValue = isSubcategory ? values.icon || undefined : values.icon;
+
     if (category) {
       updateMutation.mutate({
         id: category.id,
         ...values,
+        icon: iconValue,
+        parent_id: parentId,
       });
     } else {
-      createMutation.mutate(values);
+      createMutation.mutate({
+        ...values,
+        icon: iconValue,
+        parent_id: parentId,
+      });
     }
   };
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
-
-  const values = form.watch();
-
-  // Build parent options, excluding current category and its descendants if editing
-  const parentOptions = React.useMemo(() => {
-    if (!allCategories) return [];
-    const currentType = values.type || category?.type;
-    const filtered = allCategories.filter((cat) => {
-      // Exclude current category if editing
-      if (category && cat.id === category.id) return false;
-      // Exclude descendants of current category
-      if (category) {
-        const isDescendant = (catId: string): boolean => {
-          const cat = allCategories.find((c) => c.id === catId);
-          if (!cat) return false;
-          if (cat.parent_id === category.id) return true;
-          if (cat.parent_id) return isDescendant(cat.parent_id);
-          return false;
-        };
-        if (isDescendant(cat.id)) return false;
-      }
-      // Filter by type if type is selected
-      if (currentType && cat.type !== currentType) return false;
-      // Only show active categories as parents
-      if (!cat.is_active) return false;
-      return true;
-    });
-    return filtered;
-  }, [allCategories, category, values.type]);
-
-  const isEdit = !!category;
   const dialogTitle = isEdit
-    ? translate("dialog.edit.title")
-    : translate("dialog.create.title");
+    ? isSubcategory
+      ? "Editar subcategoria"
+      : "Editar categoria"
+    : isSubcategory
+      ? "Criar subcategoria"
+      : "Criar categoria";
   const dialogDescription = isEdit
-    ? translate("dialog.edit.description")
-    : translate("dialog.create.description");
-  const submitLabel = isEdit
-    ? translate("dialog.actions.update")
-    : translate("dialog.actions.create");
+    ? isSubcategory
+      ? "Atualize as informações da subcategoria."
+      : "Atualize as informações da categoria."
+    : isSubcategory
+      ? `Adicione uma nova subcategoria para "${parentCategory?.name}".`
+      : "Adicione uma nova categoria para organizar suas transações.";
+  const submitLabel = isEdit ? "Atualizar" : "Criar";
+
+  const typeTabs = [
+    {
+      id: "income",
+      label: "Receita",
+      icon: IconArrowDownLeft,
+    },
+    {
+      id: "expense",
+      label: "Despesa",
+      icon: IconArrowUpRight,
+    },
+  ] as const;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -215,143 +216,126 @@ export function CategoryDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{translate("dialog.fields.name")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={translate("dialog.fields.namePlaceholder")}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{translate("dialog.fields.type")}</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={isEdit}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="expense">
-                        {translate("tabs.expenses")}
-                      </SelectItem>
-                      <SelectItem value="income">
-                        {translate("tabs.incomes")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid sm:grid-cols-2 gap-4 items-start">
               <FormField
                 control={form.control}
-                name="color"
+                name="type"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{translate("dialog.fields.color")}</FormLabel>
+                  <FormItem className="col-span-2">
                     <FormControl>
-                      <div className="flex gap-2">
-                        <Input
-                          type="color"
-                          {...field}
-                          className="h-10 w-20 p-1 cursor-pointer"
-                        />
-                        <Input
-                          placeholder="#cccccc"
-                          {...field}
-                          className="flex-1"
-                        />
-                      </div>
+                      <Tabs
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        isEdit={isEdit || isSubcategory}
+                      >
+                        <TabsList className="w-full">
+                          {typeTabs.map((tab) => {
+                            const IconComponent = tab.icon;
+                            return (
+                              <TabsTrigger
+                                key={tab.id}
+                                value={tab.id}
+                                className="flex-1"
+                                disabled={isEdit || isSubcategory}
+                              >
+                                <IconComponent
+                                  aria-hidden="true"
+                                  className={`mr-1.5 h-4 w-4 opacity-60 ${tab.id === "income" ? "text-icon-income" : "text-icon-expense"}`}
+                                />
+                                {tab.label}
+                              </TabsTrigger>
+                            );
+                          })}
+                        </TabsList>
+                      </Tabs>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {isSubcategory && parentCategory && (
+                <FormItem className="col-span-2">
+                  <FormLabel>Categoria</FormLabel>
+                  <Input
+                    value={parentCategory.name}
+                    disabled
+                    className="bg-muted/50"
+                  />
+                </FormItem>
+              )}
+              <div className=" flex gap-4 col-span-2 items-start">
+                <div
+                  className={cn(
+                    "w-full flex items-center gap-2",
+                    !isSubcategory && "gap-0",
+                  )}
+                >
+                  {isSubcategory && (
+                    <IconCornerDownRight className="size-8 text-primary" />
+                  )}
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>
+                          {isSubcategory ? "Subcategoria" : "Nome"}
+                          <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={
+                              isSubcategory
+                                ? "Digite o nome da subcategoria"
+                                : "Digite o nome da categoria"
+                            }
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <FormField
-                control={form.control}
-                name="icon"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{translate("dialog.fields.icon")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={translate("dialog.fields.iconPlaceholder")}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                {!isSubcategory && (
+                  <FormField
+                    control={form.control}
+                    name="icon"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Ícone
+                          <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <IconSelector
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
+              </div>
             </div>
-
-            <FormField
-              control={form.control}
-              name="parent_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{translate("dialog.fields.parent")}</FormLabel>
-                  <Select
-                    onValueChange={(value) =>
-                      field.onChange(value === "none" ? null : value)
-                    }
-                    value={field.value ?? "none"}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={translate("dialog.fields.parentPlaceholder")}
-                        />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">
-                        {translate("dialog.fields.none")}
-                      </SelectItem>
-                      {parentOptions.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter>
+            <DialogFooter className="flex w-full flex-col-reverse gap-2 px-0 sm:flex-row sm:items-center sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
               >
-                {translate("dialog.actions.cancel")}
+                Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                isLoading={isSubmitting}
+                disabled={isSubmitting}
+              >
                 {submitLabel}
               </Button>
             </DialogFooter>

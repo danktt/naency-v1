@@ -1,87 +1,142 @@
-import "dotenv/config";
-import { v4 as uuidv4 } from "uuid";
+import "dotenv/config"; // TEM QUE SER A PRIMEIRA LINHA
+
 import { db } from "@/server/db/client";
 import { category_presets } from "@/server/db/schema";
+import { v4 as uuidv4 } from "uuid";
 
 // Presets organizados
 const defaultPresets = [
   {
     name: "Alimentação",
-    icon: "utensils",
-    color: "#FF8A80",
+    icon: "IconShoppingCart",
+    color: "#FF8A80", // vermelho claro
     type: "expense",
     children: [
-      { name: "Mercado/Supermercado", icon: "basket-shopping" },
-      { name: "Restaurantes e Bares", icon: "mug-hot" },
-      { name: "Lanches/Fast Food", icon: "burger" },
-      { name: "Delivery", icon: "motorcycle" },
-      { name: "Açougue/Pescados", icon: "drumstick-bite" },
-      { name: "Hortifruti", icon: "carrot" },
-      { name: "Padaria", icon: "bread-slice" },
+      { name: "Supermercado", icon: null },
+      { name: "Restaurantes", icon: null },
+      { name: "Bares", icon: null },
+      { name: "Fast Food", icon: null },
+      { name: "Delivery", icon: null },
+      { name: "Açougue", icon: null },
+      { name: "Pescados", icon: null },
+      { name: "Hortifruti", icon: null },
+      { name: "Padaria", icon: null },
     ],
   },
   {
     name: "Moradia",
-    icon: "house",
-    color: "#FFD700",
+    icon: "IconHome",
+    color: "#FFC107", // amarelo
     type: "expense",
     children: [
-      { name: "Aluguel/Hipoteca", icon: "file-invoice-dollar" },
-      { name: "Condomínio/Taxas", icon: "building" },
-      { name: "Água", icon: "droplet" },
-      { name: "Luz", icon: "lightbulb" },
-      { name: "Gás", icon: "fire-flame-simple" },
-      { name: "Internet", icon: "wifi" },
-      { name: "TV/Streaming", icon: "tv" },
-      { name: "Reparos/Manutenção", icon: "screwdriver-wrench" },
-      { name: "Móveis", icon: "couch" },
-      { name: "Eletrodomésticos", icon: "blender" },
+      { name: "Aluguel", icon: null },
+      { name: "Hipoteca", icon: null },
+      { name: "IPTU", icon: null },
+      { name: "Condomínio", icon: null },
+      { name: "Taxas", icon: null },
+      { name: "Água", icon: null },
+      { name: "Luz", icon: null },
+      { name: "Gás", icon: null },
+      { name: "Internet", icon: null },
+      { name: "Streaming", icon: null },
+      { name: "Reparos", icon: null },
+      { name: "Manutenção", icon: null },
+      { name: "Móveis", icon: null },
+      { name: "Eletrodomésticos", icon: null },
     ],
   },
   {
     name: "Transporte",
-    icon: "car",
-    color: "#82B1FF",
+    icon: "IconCar",
+    color: "#82B1FF", // azul claro
     type: "expense",
     children: [
-      { name: "Combustível", icon: "gas-pump" },
-      { name: "Aplicativos", icon: "taxi" },
-      { name: "Transporte Público", icon: "bus" },
-      { name: "Passagens", icon: "plane" },
-      { name: "Manutenção Veículo", icon: "car-on" },
-      { name: "Estacionamento", icon: "square-parking" },
-      { name: "Seguro do Carro", icon: "shield-car" },
-      { name: "IPVA", icon: "id-card" },
+      { name: "Combustível", icon: null },
+      { name: "Aplicativos", icon: null },
+      { name: "Transporte Público", icon: null },
+      { name: "Passagens", icon: null },
+      { name: "Manutenção Veículo", icon: null },
+      { name: "Estacionamento", icon: null },
+      { name: "Seguro do Carro", icon: null },
+      { name: "IPVA", icon: null },
+      { name: "Consorcio", icon: null },
+      { name: "Licenciamento", icon: null },
+      { name: "Lavagem", icon: null },
+      { name: "Táxi/Uber", icon: null },
+      { name: "Pedágios", icon: null },
+      { name: "Multas", icon: null },
+      { name: "Outros Transportes", icon: null },
+      { name: "Viagem", icon: null },
     ],
   },
   {
     name: "Saúde",
-    icon: "heart-pulse",
-    color: "#4CAF50",
+    icon: "IconMedicalCross",
+    color: "#66BB6A", // verde médio
     type: "expense",
     children: [
-      { name: "Plano de Saúde", icon: "briefcase-medical" },
-      { name: "Consultas Médicas", icon: "user-doctor" },
-      { name: "Farmácia", icon: "pills" },
-      { name: "Exames", icon: "microscope" },
-      { name: "Terapias", icon: "brain" },
-      { name: "Emergências", icon: "hospital" },
+      { name: "Academia", icon: null },
+      { name: "Plano de Saúde", icon: null },
+      { name: "Consultas Médicas", icon: null },
+      { name: "Barbearia", icon: null },
+      { name: "Farmácia", icon: null },
+      { name: "Exames", icon: null },
+      { name: "Terapias", icon: null },
+      { name: "Emergências", icon: null },
+      { name: "Plano Odontológico", icon: null },
+      { name: "Convênios", icon: null },
+      { name: "Particular", icon: null },
+      { name: "Plano de Saúde Familiar", icon: null },
+      { name: "Plano de Saúde Individual", icon: null },
     ],
   },
   {
-    name: "Receitas",
-    icon: "money-bill-wave",
-    color: "#4CAF50",
+    name: "Educação",
+    icon: "IconBook",
+    color: "#AB47BC", // roxo
+    type: "expense",
+    children: [
+      { name: "Escola", icon: null },
+      { name: "Curso", icon: null },
+      { name: "Faculdade", icon: null },
+      { name: "Ingles", icon: null },
+    ],
+  },
+  {
+    name: "Lazer",
+    icon: "IconStar",
+    color: "#FFB74D", // laranja claro
+    type: "expense",
+    children: [
+      { name: "Cinema", icon: null },
+      { name: "Teatro", icon: null },
+      { name: "Show", icon: null },
+      { name: "Festival", icon: null },
+      { name: "Festa", icon: null },
+      { name: "Bares", icon: null },
+      { name: "Restaurantes", icon: null },
+      { name: "Futebol", icon: null },
+    ],
+  },
+  {
+    name: "Renda",
+    icon: "IconCurrencyDollar",
+    color: "#26A69A", // teal
     type: "income",
     children: [
-      { name: "Salário/Pró-Labore", icon: "wallet" },
-      { name: "Renda Extra/Freelas", icon: "briefcase" },
-      { name: "Investimentos", icon: "chart-line" },
-      { name: "Venda de Bens", icon: "handshake" },
-      { name: "Cashback", icon: "rotate-left" },
-      { name: "Reembolsos", icon: "arrow-left" },
-      { name: "Doações Recebidas", icon: "gift" },
-      { name: "Outras Receitas", icon: "ellipsis" },
+      { name: "Salário", icon: null },
+      { name: "Pró-Labore", icon: null },
+      { name: "Renda Extra", icon: null },
+      { name: "Freelas", icon: null },
+      { name: "Investimentos", icon: null },
+      { name: "Venda de Bens", icon: null },
+      { name: "Cashback", icon: null },
+      { name: "Reembolsos", icon: null },
+      { name: "Doações Recebidas", icon: null },
+      { name: "Hora Extra", icon: null },
+      { name: "FGTS", icon: null },
+      { name: "Resgates", icon: null },
+      { name: "Outras Receitas", icon: null },
     ],
   },
 ];
@@ -100,18 +155,19 @@ async function main() {
     });
 
     if (parent.children?.length) {
-      const children = parent.children.map((child) => ({
-        id: uuidv4(),
-        parent_id: parentId,
-        name: child.name,
-        icon: child.icon,
-        color: parent.color,
-        type: parent.type,
-      }));
+      const children = parent.children.map((child) => {
+        const childData: typeof category_presets.$inferInsert = {
+          id: uuidv4(),
+          parent_id: parentId,
+          name: child.name,
+          icon: child.icon ?? undefined,
+          color: parent.color,
+          type: parent.type as "expense" | "income",
+        };
+        return childData;
+      });
 
-      await db
-        .insert(category_presets)
-        .values(children as (typeof category_presets.$inferInsert)[]);
+      await db.insert(category_presets).values(children);
     }
   }
 

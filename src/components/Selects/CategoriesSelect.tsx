@@ -1,17 +1,27 @@
 "use client";
 
-import * as React from "react";
+import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import * as React from "react";
+import { Fragment } from "react";
 
-const CATEGORY_EMPTY_MESSAGE = "No categories registered";
+const CATEGORY_EMPTY_MESSAGE = "Nenhuma categoria cadastrada";
 
 type CategorySource = {
   id: string;
@@ -19,11 +29,19 @@ type CategorySource = {
   name: string;
 };
 
-const buildCategoryOptions = (
-  data: CategorySource[],
-): Array<{ value: string; label: string }> => {
+type CategoryGroup = {
+  parent: CategorySource;
+  children: CategorySource[];
+};
+
+type CategoryOptions = {
+  standalone: Array<{ value: string; label: string }>;
+  groups: Array<CategoryGroup>;
+};
+
+const buildCategoryOptions = (data: CategorySource[]): CategoryOptions => {
   if (!data?.length) {
-    return [];
+    return { standalone: [], groups: [] };
   }
 
   const byId = new Map<string, CategorySource>();
@@ -41,7 +59,8 @@ const buildCategoryOptions = (
     childrenMap.set(category.parent_id, siblings);
   }
 
-  const options: Array<{ value: string; label: string }> = [];
+  const standalone: Array<{ value: string; label: string }> = [];
+  const groups: Array<CategoryGroup> = [];
   const processedChildren = new Set<string>();
 
   for (const category of data) {
@@ -49,25 +68,22 @@ const buildCategoryOptions = (
       continue;
     }
 
-    options.push({ value: category.id, label: category.name });
-
     const children = childrenMap.get(category.id);
 
-    if (!children?.length) {
-      continue;
-    }
-
-    children
-      .sort((a, b) =>
+    if (children?.length) {
+      const sortedChildren = [...children].sort((a, b) =>
         a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }),
-      )
-      .forEach((child) => {
-        processedChildren.add(child.id);
-        options.push({
-          value: child.id,
-          label: `${category.name} • ${child.name}`,
-        });
+      );
+      groups.push({
+        parent: category,
+        children: sortedChildren,
       });
+      sortedChildren.forEach((child) => {
+        processedChildren.add(child.id);
+      });
+    } else {
+      standalone.push({ value: category.id, label: category.name });
+    }
   }
 
   for (const category of data) {
@@ -76,14 +92,26 @@ const buildCategoryOptions = (
     }
 
     const parent = byId.get(category.parent_id);
-    const parentName = parent?.name ?? "Category";
-    options.push({
-      value: category.id,
-      label: `${parentName} • ${category.name}`,
-    });
+    if (parent) {
+      const existingGroup = groups.find((g) => g.parent.id === parent.id);
+      if (existingGroup) {
+        existingGroup.children.push(category);
+      } else {
+        groups.push({
+          parent,
+          children: [category],
+        });
+      }
+      processedChildren.add(category.id);
+    } else {
+      standalone.push({
+        value: category.id,
+        label: category.name,
+      });
+    }
   }
 
-  return options;
+  return { standalone, groups };
 };
 
 export type CategoriesSelectProps = {
@@ -109,76 +137,188 @@ export function CategoriesSelect({
   className,
   includeInactive,
 }: CategoriesSelectProps) {
+  const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+
   const { data, isLoading, isError } = trpc.categories.list.useQuery(
     { type, includeInactive },
     { staleTime: 1_000 * 60 * 5 },
   );
 
-  const options = React.useMemo(() => buildCategoryOptions(data ?? []), [data]);
+  const categoryOptions = React.useMemo(
+    () => buildCategoryOptions(data ?? []),
+    [data],
+  );
+
+  const filteredOptions = React.useMemo(() => {
+    if (!search.trim()) {
+      return categoryOptions;
+    }
+
+    const searchLower = search.toLowerCase().trim();
+    const filteredStandalone = categoryOptions.standalone.filter((option) =>
+      option.label.toLowerCase().includes(searchLower),
+    );
+
+    const filteredGroups = categoryOptions.groups
+      .map((group) => {
+        const parentMatches = group.parent.name
+          .toLowerCase()
+          .includes(searchLower);
+        const filteredChildren = group.children.filter((child) =>
+          child.name.toLowerCase().includes(searchLower),
+        );
+
+        if (parentMatches || filteredChildren.length > 0) {
+          return {
+            parent: group.parent,
+            children: parentMatches ? group.children : filteredChildren,
+          };
+        }
+        return null;
+      })
+      .filter((group): group is CategoryGroup => group !== null);
+
+    return {
+      standalone: filteredStandalone,
+      groups: filteredGroups,
+    };
+  }, [categoryOptions, search]);
 
   const handleValueChange = React.useCallback(
     (nextValue: string) => {
       onChange?.(nextValue);
+      setOpen(false);
+      setSearch("");
     },
     [onChange],
   );
 
   const selectPlaceholder = React.useMemo(() => {
-    if (placeholder) {
-      return placeholder;
-    }
+    if (placeholder) return placeholder;
+    if (isLoading) return "Carregando categorias...";
+    if (isError) return "Não foi possível carregar as categorias";
+    const totalOptions =
+      categoryOptions.standalone.length + categoryOptions.groups.length;
+    if (totalOptions === 0) return CATEGORY_EMPTY_MESSAGE;
+    return "Selecione uma categoria";
+  }, [placeholder, isLoading, isError, categoryOptions]);
 
-    if (isLoading) {
-      return "Loading categories...";
+  const selectedCategoryName = React.useMemo(() => {
+    if (!value) return undefined;
+    const standalone = categoryOptions.standalone.find(
+      (opt) => opt.value === value,
+    );
+    if (standalone) return standalone.label;
+    for (const group of categoryOptions.groups) {
+      const child = group.children.find((c) => c.id === value);
+      if (child) return child.name;
     }
-
-    if (isError) {
-      return "Unable to load categories";
-    }
-
-    if (!options.length) {
-      return CATEGORY_EMPTY_MESSAGE;
-    }
-
-    return "Select a category";
-  }, [placeholder, isLoading, isError, options.length]);
+    return undefined;
+  }, [value, categoryOptions]);
 
   const isSelectDisabled = disabled || isLoading;
 
+  if (isLoading) {
+    return <Skeleton className={cn("h-9 w-full", className)} />;
+  }
+
   return (
-    <Select
-      value={value ?? undefined}
-      onValueChange={handleValueChange}
-      disabled={isSelectDisabled}
-    >
-      <SelectTrigger
-        id={id}
-        onBlur={onBlur}
-        className={cn("w-full", className)}
+    <Popover open={open} onOpenChange={setOpen} modal>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={isSelectDisabled}
+          onBlur={onBlur}
+          className={cn(
+            "w-full justify-between border-input bg-background px-3 font-normal outline-none outline-offset-0 hover:bg-background focus-visible:outline-[3px]",
+            className,
+          )}
+        >
+          {selectedCategoryName ? (
+            <span className="truncate">{selectedCategoryName} </span>
+          ) : (
+            <span className="text-muted-foreground">{selectPlaceholder}</span>
+          )}
+          <ChevronDownIcon
+            aria-hidden="true"
+            className="shrink-0 text-muted-foreground/80"
+            size={16}
+          />
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        side="bottom"
+        sideOffset={4}
+        avoidCollisions={false}
+        className="w-full min-w-(--radix-popper-anchor-width) border-input p-0"
       >
-        <SelectValue placeholder={selectPlaceholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {isLoading ? (
-          <SelectItem value="__loading" disabled>
-            Loading categories...
-          </SelectItem>
-        ) : isError ? (
-          <SelectItem value="__error" disabled>
-            Error loading categories
-          </SelectItem>
-        ) : options.length ? (
-          options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))
-        ) : (
-          <SelectItem value="__empty" disabled>
-            {CATEGORY_EMPTY_MESSAGE}
-          </SelectItem>
-        )}
-      </SelectContent>
-    </Select>
+        <Command shouldFilter={false} className="overflow-visible">
+          <CommandInput
+            placeholder="Buscar categoria..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList>
+            <CommandEmpty>
+              {isError
+                ? "Erro ao carregar categorias"
+                : search.trim()
+                  ? "Nenhuma categoria encontrada"
+                  : CATEGORY_EMPTY_MESSAGE}
+            </CommandEmpty>
+
+            {filteredOptions.standalone.length > 0 && (
+              <CommandGroup>
+                {filteredOptions.standalone.map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    value={option.value}
+                    onSelect={handleValueChange}
+                  >
+                    {/* Ícone ANTES do texto para garantir alinhamento estável */}
+                    <CheckIcon
+                      className={cn(
+                        "mr-2 h-4 w-4 shrink-0",
+                        value === option.value ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    {option.label}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {filteredOptions.groups.map((group) => (
+              <Fragment key={group.parent.id}>
+                <CommandGroup heading={group.parent.name}>
+                  {group.children.map((child) => (
+                    <CommandItem
+                      key={child.id}
+                      value={child.id}
+                      onSelect={handleValueChange}
+                    >
+                      {/* Ícone ANTES do texto */}
+                      <CheckIcon
+                        className={cn(
+                          "mr-2 h-4 w-4 shrink-0",
+                          value === child.id ? "opacity-100" : "opacity-0",
+                        )}
+                      />
+                      {child.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Fragment>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

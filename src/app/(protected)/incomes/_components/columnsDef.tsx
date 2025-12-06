@@ -2,10 +2,14 @@
 
 import {
   IconCalendar,
+  IconChecks,
   IconCircle,
-  IconCreditCard,
   IconDotsVertical,
+  IconPencil,
+  IconReceiptRefund,
+  IconRefreshDot,
   IconRepeat,
+  IconTrash,
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -33,6 +37,8 @@ type IncomeColumnsOptions = {
   onViewIncome?: (income: IncomeTableRow) => void;
   onEditIncome?: (income: IncomeTableRow) => void;
   onDeleteIncome?: (income: IncomeTableRow) => void;
+  onMarkAsPaid?: (income: IncomeTableRow) => void;
+  onMarkAsPending?: (income: IncomeTableRow) => void;
   getCategoryMeta?: (income: IncomeTableRow) => CategoryMeta | null;
   getAccountName?: (income: IncomeTableRow) => string | null;
 };
@@ -49,6 +55,51 @@ const PAYMENT_METHODS: Record<string, string> = {
   investment: "Investimento",
 };
 
+// Helper function to get date value for filtering
+function getDateValue(tx: IncomeTableRow): string {
+  if (!tx.date) return "";
+  return formatDate(new Date(tx.date));
+}
+
+function getStatusLabel(tx: IncomeTableRow): string {
+  const isRecurring = Boolean(tx.recurringId);
+  const isInstallment = Boolean(tx.installmentGroupId);
+  const isPaid = Boolean(tx.isPaid);
+
+  if (isInstallment) {
+    return `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
+  }
+
+  if (isRecurring) {
+    return "Recorrente";
+  }
+
+  if (!isPaid) {
+    return "Pendente";
+  }
+
+  const expectedDate = tx.date ? new Date(tx.date) : null;
+  const paidAtDate = tx.paidAt ? new Date(tx.paidAt) : null;
+
+  if (!expectedDate || !paidAtDate) {
+    return "Recebido";
+  }
+
+  const normalizeDate = (value: Date) =>
+    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+
+  const expectedTime = normalizeDate(expectedDate);
+  const paidTime = normalizeDate(paidAtDate);
+
+  if (paidTime === expectedTime) {
+    return "Recebido";
+  }
+  if (paidTime > expectedTime) {
+    return "Recebido";
+  }
+  return "Recebido";
+}
+
 export function createIncomeColumns(
   options: CreateIncomeColumnsParams,
 ): ColumnDef<IncomeTableRow>[] {
@@ -56,16 +107,25 @@ export function createIncomeColumns(
     onViewIncome,
     onEditIncome,
     onDeleteIncome,
+    onMarkAsPaid,
+    onMarkAsPending,
     getCategoryMeta,
     getAccountName,
   } = options;
 
-  const hasActions = Boolean(onViewIncome || onEditIncome || onDeleteIncome);
+  const hasActions = Boolean(
+    onViewIncome ||
+      onEditIncome ||
+      onDeleteIncome ||
+      onMarkAsPaid ||
+      onMarkAsPending,
+  );
 
   const columns: ColumnDef<IncomeTableRow>[] = [
     {
-      accessorKey: "dateAndStatus",
+      id: "date",
       header: "Data",
+      accessorFn: (row) => getDateValue(row),
       cell: ({ row }) => {
         const tx = row.original;
 
@@ -77,7 +137,7 @@ export function createIncomeColumns(
           return (
             <div className="flex flex-col text-muted-foreground">
               <div className="flex items-center gap-2">
-                <IconCalendar className="size-4 text-success" />
+                <IconCalendar className="size-4 text-success" stroke={1.5} />
                 <span>{formatDate(tx.date)}</span>
               </div>
             </div>
@@ -89,7 +149,10 @@ export function createIncomeColumns(
           return (
             <div className="flex flex-col text-muted-foreground">
               <div className="flex items-center gap-2">
-                <IconCreditCard className="size-4 text-amber-500" />
+                <IconRefreshDot
+                  className="size-4 text-amber-500"
+                  stroke={1.5}
+                />
                 <span>{formatDate(tx.date)}</span>
               </div>
             </div>
@@ -119,6 +182,7 @@ export function createIncomeColumns(
     {
       id: "status",
       header: "Status",
+      accessorFn: (row) => getStatusLabel(row),
       cell: ({ row }) => {
         const tx = row.original;
 
@@ -173,7 +237,7 @@ export function createIncomeColumns(
             paidOnTime:
               "border-success/40 bg-success/10 text-success flex items-center gap-1",
             paidLate:
-              "border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1",
+              "border-success/40 bg-success/10 text-success flex items-center gap-1",
             paidEarly:
               "border-success/40 bg-success/10 text-success flex items-center gap-1",
             paid: "border-success/40 bg-success/10 text-success flex items-center gap-1",
@@ -182,7 +246,7 @@ export function createIncomeColumns(
           const paymentIconClassMap: Record<PaymentStatus, string> = {
             pending: "fill-destructive text-destructive",
             paidOnTime: "fill-success text-success",
-            paidLate: "fill-destructive text-destructive",
+            paidLate: "fill-success text-success",
             paidEarly: "fill-success text-success",
             paid: "fill-success text-success",
           };
@@ -209,7 +273,10 @@ export function createIncomeColumns(
           badgeClass =
             "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
           badgeIcon = (
-            <IconCreditCard className="size-3 text-amber-500 shrink-0" />
+            <IconRefreshDot
+              className="size-3 text-amber-500 shrink-0"
+              stroke={1.5}
+            />
           );
           badgeLabel = `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
         } else if (isRecurring) {
@@ -281,9 +348,7 @@ export function createIncomeColumns(
           getAccountName?.(row.original) ?? row.original.accountName;
 
         if (row.original.method === "credit") {
-          return (
-            <Badge variant="outline">{PAYMENT_METHODS.credit}</Badge>
-          );
+          return <Badge variant="outline">{PAYMENT_METHODS.credit}</Badge>;
         }
 
         if (!account) return "-";
@@ -327,7 +392,7 @@ export function createIncomeColumns(
               <span className="sr-only">Abrir menu</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end">
             <DropdownMenuItem
               disabled={!onEditIncome}
               onSelect={(event) => {
@@ -335,8 +400,32 @@ export function createIncomeColumns(
                 onEditIncome?.(row.original);
               }}
             >
+              <IconPencil className="size-4" stroke={1.5} />
               Editar receita
             </DropdownMenuItem>
+            {!row.original.isPaid ? (
+              <DropdownMenuItem
+                disabled={!onMarkAsPaid}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  onMarkAsPaid?.(row.original);
+                }}
+              >
+                <IconChecks className="size-4" stroke={1.5} />
+                Marcar como recebida
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                disabled={!onMarkAsPending}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  onMarkAsPending?.(row.original);
+                }}
+              >
+                <IconReceiptRefund className="size-4" stroke={1.5} />
+                Marcar como pendente
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
@@ -346,6 +435,7 @@ export function createIncomeColumns(
                 onDeleteIncome?.(row.original);
               }}
             >
+              <IconTrash className="size-4" stroke={1.5} />
               Excluir receita
             </DropdownMenuItem>
           </DropdownMenuContent>

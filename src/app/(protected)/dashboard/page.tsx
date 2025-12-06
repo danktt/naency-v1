@@ -1,18 +1,17 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import {
-  IconArrowDownLeft,
-  IconArrowDownRight,
-  IconArrowUpRight,
-  IconPigMoney,
-  IconWallet,
-} from "@tabler/icons-react";
-import { CheckCircle2, CircleDollarSign, Clock } from "lucide-react";
-import * as React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { trpc } from "@/lib/trpc/client";
+import { useUser } from "@clerk/nextjs";
+import {
+  IconArrowDownLeft,
+  IconArrowUpRight,
+  IconChartBar,
+  IconPigMoney,
+} from "@tabler/icons-react";
+import { CheckCircle2, CircleDollarSign, Clock } from "lucide-react";
+import * as React from "react";
 import { DistributionCard } from "./_components/DistributionCard";
 import { MonthlyTrendCard } from "./_components/MonthlyTrendCard";
 import { type PaymentSection, PaymentsCard } from "./_components/PaymentsCard";
@@ -26,6 +25,21 @@ type PaymentStatusKey = "onTime" | "late" | "pending";
 const getMonthLabel = (date: Date, formatter: Intl.DateTimeFormat) => {
   const label = formatter.format(date);
   return label.charAt(0).toUpperCase() + label.slice(1);
+};
+
+/**
+ * Retorna a classe CSS apropriada baseada no valor:
+ * - < 0: vermelho (text-text-negative)
+ * - > 0: verde (text-text-positive)
+ * - = 0: undefined (cor padrão/branco)
+ */
+const getBalanceValueClassName = (
+  value: number | null | undefined,
+): string | undefined => {
+  if (value === null || value === undefined) return undefined;
+  if (value < 0) return "text-text-negative dark:text-text-negative";
+  if (value > 0) return "text-text-positive dark:text-text-positive";
+  return undefined;
 };
 
 export default function DashboardPage() {
@@ -80,7 +94,7 @@ export default function DashboardPage() {
 
     const monthBalanceIsNegative = (snapshot?.monthBalance ?? 0) < 0;
     const monthBalanceIconClassName = monthBalanceIsNegative
-      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+      ? "bg-text-negative/10 text-text-negative dark:text-text-negative"
       : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
 
     const cards: SnapshotCard[] = [
@@ -113,11 +127,8 @@ export default function DashboardPage() {
           ? formatCurrency(snapshot.monthBalance)
           : formatCurrency(0),
         subtitle: "Receitas menos despesas do mês corrente.",
-        icon: IconWallet,
-        valueClassName:
-          snapshot && snapshot.monthBalance < 0
-            ? "text-rose-500"
-            : "text-blue-500",
+        icon: IconChartBar,
+        valueClassName: getBalanceValueClassName(snapshot?.monthBalance),
         iconContainerClassName: monthBalanceIconClassName,
       },
       {
@@ -128,10 +139,7 @@ export default function DashboardPage() {
           : formatCurrency(0),
         subtitle: "Saldo considerando meses anteriores.",
         icon: IconPigMoney,
-        valueClassName:
-          snapshot && snapshot.accumulatedBalance < 0
-            ? "text-rose-500"
-            : undefined,
+        valueClassName: getBalanceValueClassName(snapshot?.accumulatedBalance),
         iconContainerClassName: "bg-primary/10 text-primary",
       },
     ];

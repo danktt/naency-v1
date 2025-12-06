@@ -109,10 +109,10 @@ export function CreditCardDetail({
           </div>
           <div className="flex justify-between text-sm mt-1">
             <span className="font-semibold text-primary">
-              {formatCurrency(usedLimit, currency)}
+              {formatCurrency(usedLimit, "BRL")}
             </span>
             <span className="text-muted-foreground">
-              de {formatCurrency(creditLimit, currency)}
+              de {formatCurrency(creditLimit, "BRL")}
             </span>
           </div>
           <div className="flex justify-end">
@@ -133,7 +133,7 @@ export function CreditCardDetail({
                   : "text-emerald-600",
               )}
             >
-              {formatCurrency(projectedAvailable, currency)}
+              {formatCurrency(projectedAvailable, "BRL")}
             </p>
           </div>
           <div>

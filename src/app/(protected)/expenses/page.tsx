@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  IconArrowDownRight,
+  IconArrowDownLeft,
   IconArrowUpRight,
   IconChartBar,
 } from "@tabler/icons-react";
@@ -28,14 +28,14 @@ const metricConfigs: Array<{
     key: "totalExpenses",
     title: "Despesas totais",
     changeFormat: "{{value}} gastos no período selecionado",
-    icon: IconArrowDownRight,
+    icon: IconArrowUpRight,
     iconContainerClassName: "bg-red-500/10 text-red-600 dark:text-red-400",
   },
   {
     key: "totalIncomes",
     title: "Receitas totais",
     changeFormat: "{{value}} recebidos no período selecionado",
-    icon: IconArrowUpRight,
+    icon: IconArrowDownLeft,
     iconContainerClassName:
       "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   },
@@ -49,20 +49,13 @@ const metricConfigs: Array<{
 ];
 
 export default function ExpensesPage() {
-  const dateRange = useDateStore((state) => state.dateRange);
-
-  const metricsQueryInput = React.useMemo(
-    () => ({
-      dateRange: {
-        from: dateRange.from,
-        to: dateRange.to,
-      },
-    }),
-    [dateRange.from, dateRange.to],
-  );
+  const { from, to } = useDateStore((state) => state.dateRange);
 
   const { data: metricsData, isLoading: isMetricsLoading } =
-    trpc.transactions.metrics.useQuery(metricsQueryInput);
+    trpc.transactions.metrics.useQuery({
+      dateRange: { from, to },
+      excludeCreditCard: true,
+    });
 
   const totalsByKey: Record<MetricKey, number> = React.useMemo(
     () => ({
@@ -77,6 +70,8 @@ export default function ExpensesPage() {
     ],
   );
 
+  const netBalanceIsNegative = (totalsByKey.netBalance ?? 0) < 0;
+
   return (
     <div className="space-y-8">
       <section className="flex items-center justify-between">
@@ -87,7 +82,7 @@ export default function ExpensesPage() {
           </p>
         </div>
         <div>
-          <ExpensesForm />
+          <ExpensesForm excludeCreditCard />
         </div>
       </section>
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -95,6 +90,14 @@ export default function ExpensesPage() {
           const Icon = metric.icon;
           const value = formatCurrency(totalsByKey[metric.key]);
           const description = metric.changeFormat.replace("{{value}}", value);
+
+          const valueClassName =
+            metric.key === "netBalance"
+              ? netBalanceIsNegative
+                ? "text-text-negative dark:text-text-negative"
+                : "text-text-positive dark:text-text-positive"
+              : undefined;
+
           return (
             <GridItem
               key={metric.key}
@@ -104,6 +107,7 @@ export default function ExpensesPage() {
               isLoading={isMetricsLoading}
               value={value}
               description={description}
+              valueClassName={valueClassName}
             />
           );
         })}
