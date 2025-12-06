@@ -183,14 +183,14 @@ export function DataTable<TData>({
   enablePagination = true,
   enableColumnVisibility = true,
   enableSearch = true,
-  searchPlaceholder = "Search...",
+  searchPlaceholder = "Pesquisar...",
   onDataChange,
   onRowSelectionChange,
   onRowClick,
   className = "",
   showToolbar = true,
   toolbarActions,
-  emptyMessage = "No results.",
+  emptyMessage = "Nenhum resultado.",
   pageSizeOptions = [10, 20, 30, 40, 50],
   defaultPageSize = 10,
   storageKey,
@@ -396,8 +396,8 @@ export function DataTable<TData>({
       <div className="flex items-center justify-center p-8">
         <div className="text-muted-foreground">
           {!finalColumns || finalColumns.length === 0
-            ? "No columns defined"
-            : "Loading table..."}
+            ? "Nenhuma coluna definida"
+            : "Carregando tabela..."}
         </div>
       </div>
     );
@@ -437,7 +437,7 @@ export function DataTable<TData>({
                   placeholder={searchPlaceholder}
                   value={globalFilter ?? ""}
                   onChange={(event) => setGlobalFilter(event.target.value)}
-                  className="max-w-sm"
+                  className="w-56"
                   disabled={loading}
                 />
               </div>
@@ -449,9 +449,11 @@ export function DataTable<TData>({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" disabled={loading}>
-                    <IconLayoutColumns />
-                    <span className="hidden lg:inline">Customize columns</span>
-                    <span className="lg:hidden">Columns</span>
+                    <IconLayoutColumns className="size-4" stroke={1.5} />
+                    <span className="hidden lg:inline">
+                      Personalizar colunas
+                    </span>
+                    <span className="lg:hidden">Colunas</span>
                     <IconChevronDown />
                   </Button>
                 </DropdownMenuTrigger>
@@ -654,12 +656,12 @@ export function DataTable<TData>({
         <div className="flex items-center justify-between px-4 py-4">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
             {table.getFilteredSelectedRowModel()?.rows?.length || 0} of{" "}
-            {rows.length} row(s) selected.
+            {rows.length} linha(s) selecionada(s).
           </div>
           <div className="flex w-full items-center gap-8 lg:w-fit">
             <div className="hidden items-center gap-2 lg:flex">
               <Label htmlFor={rowsPerPageId} className="text-sm font-medium">
-                Rows per page
+                Linhas por página
               </Label>
               <Select
                 value={`${table.getState().pagination.pageSize}`}

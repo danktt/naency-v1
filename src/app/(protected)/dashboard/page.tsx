@@ -115,8 +115,8 @@ export default function DashboardPage() {
         icon: IconChartBar,
         valueClassName:
           snapshot && snapshot.monthBalance < 0
-            ? "text-rose-500"
-            : "text-blue-500",
+            ? "text-rose-600 dark:text-rose-400"
+            : "text-blue-600 dark:text-blue-400",
         iconContainerClassName: monthBalanceIconClassName,
       },
       {
@@ -129,8 +129,8 @@ export default function DashboardPage() {
         icon: IconPigMoney,
         valueClassName:
           snapshot && snapshot.accumulatedBalance < 0
-            ? "text-rose-500"
-            : undefined,
+            ? "text-text-negative dark:text-text-negative"
+            : "text-text-positive dark:text-text-positive",
         iconContainerClassName: "bg-primary/10 text-primary",
       },
     ];

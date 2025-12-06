@@ -2,10 +2,14 @@
 
 import {
   IconCalendar,
+  IconChecks,
   IconCircle,
   IconCreditCard,
   IconDotsVertical,
+  IconPencil,
+  IconReceiptRefund,
   IconRepeat,
+  IconTrash,
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -384,7 +388,7 @@ export function createExpenseColumns(
               <span className="sr-only">Abrir menu</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end">
             <DropdownMenuItem
               disabled={!onEditExpense}
               onSelect={(event) => {
@@ -392,6 +396,7 @@ export function createExpenseColumns(
                 onEditExpense?.(row.original);
               }}
             >
+              <IconPencil className="size-4" stroke={1.5} />
               Editar despesa
             </DropdownMenuItem>
             {!row.original.isPaid ? (
@@ -402,6 +407,7 @@ export function createExpenseColumns(
                   onMarkAsPaid?.(row.original);
                 }}
               >
+                <IconChecks className="size-4" stroke={1.5} />
                 Marcar como pago
               </DropdownMenuItem>
             ) : (
@@ -412,6 +418,7 @@ export function createExpenseColumns(
                   onMarkAsPending?.(row.original);
                 }}
               >
+                <IconReceiptRefund className="size-4" stroke={1.5} />
                 Marcar como pendente
               </DropdownMenuItem>
             )}
@@ -424,6 +431,7 @@ export function createExpenseColumns(
                 onDeleteExpense?.(row.original);
               }}
             >
+              <IconTrash className="size-4" stroke={1.5} />
               Deletar despesa
             </DropdownMenuItem>
           </DropdownMenuContent>

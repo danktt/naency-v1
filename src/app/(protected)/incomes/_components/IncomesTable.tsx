@@ -1,10 +1,5 @@
 "use client";
 
-import type { Row } from "@tanstack/react-table";
-import * as React from "react";
-
-import { toast } from "sonner";
-
 import { IncomesForm } from "@/components/forms/incomesForm";
 import { DataTable } from "@/components/Table";
 import {
@@ -28,8 +23,11 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useDateStore } from "@/stores/useDateStore";
 import { IconCalendar, IconChevronDown } from "@tabler/icons-react";
+import type { Row } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import * as React from "react";
+import { toast } from "sonner";
 
 import { createIncomeColumns, type IncomeTableRow } from "./columnsDef";
 
@@ -329,8 +327,8 @@ export function IncomesTable() {
           <AlertDialogHeader>
             <AlertDialogTitle>Marcar receita como pendente?</AlertDialogTitle>
             <AlertDialogDescription>
-              A informação de recebimento será removida e a receita voltará para o
-              status pendente.
+              A informação de recebimento será removida e a receita voltará para
+              o status pendente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

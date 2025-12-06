@@ -2,10 +2,14 @@
 
 import {
   IconCalendar,
+  IconChecks,
   IconCircle,
-  IconCreditCard,
   IconDotsVertical,
+  IconPencil,
+  IconReceiptRefund,
+  IconRefreshDot,
   IconRepeat,
+  IconTrash,
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -57,7 +61,6 @@ function getDateValue(tx: IncomeTableRow): string {
   return formatDate(new Date(tx.date));
 }
 
-// Helper function to get status label for filtering
 function getStatusLabel(tx: IncomeTableRow): string {
   const isRecurring = Boolean(tx.recurringId);
   const isInstallment = Boolean(tx.installmentGroupId);
@@ -134,7 +137,7 @@ export function createIncomeColumns(
           return (
             <div className="flex flex-col text-muted-foreground">
               <div className="flex items-center gap-2">
-                <IconCalendar className="size-4 text-success" />
+                <IconCalendar className="size-4 text-success" stroke={1.5} />
                 <span>{formatDate(tx.date)}</span>
               </div>
             </div>
@@ -146,7 +149,10 @@ export function createIncomeColumns(
           return (
             <div className="flex flex-col text-muted-foreground">
               <div className="flex items-center gap-2">
-                <IconCreditCard className="size-4 text-amber-500" />
+                <IconRefreshDot
+                  className="size-4 text-amber-500"
+                  stroke={1.5}
+                />
                 <span>{formatDate(tx.date)}</span>
               </div>
             </div>
@@ -231,7 +237,7 @@ export function createIncomeColumns(
             paidOnTime:
               "border-success/40 bg-success/10 text-success flex items-center gap-1",
             paidLate:
-              "border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1",
+              "border-success/40 bg-success/10 text-success flex items-center gap-1",
             paidEarly:
               "border-success/40 bg-success/10 text-success flex items-center gap-1",
             paid: "border-success/40 bg-success/10 text-success flex items-center gap-1",
@@ -240,7 +246,7 @@ export function createIncomeColumns(
           const paymentIconClassMap: Record<PaymentStatus, string> = {
             pending: "fill-destructive text-destructive",
             paidOnTime: "fill-success text-success",
-            paidLate: "fill-destructive text-destructive",
+            paidLate: "fill-success text-success",
             paidEarly: "fill-success text-success",
             paid: "fill-success text-success",
           };
@@ -267,7 +273,10 @@ export function createIncomeColumns(
           badgeClass =
             "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
           badgeIcon = (
-            <IconCreditCard className="size-3 text-amber-500 shrink-0" />
+            <IconRefreshDot
+              className="size-3 text-amber-500 shrink-0"
+              stroke={1.5}
+            />
           );
           badgeLabel = `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
         } else if (isRecurring) {
@@ -383,7 +392,7 @@ export function createIncomeColumns(
               <span className="sr-only">Abrir menu</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end">
             <DropdownMenuItem
               disabled={!onEditIncome}
               onSelect={(event) => {
@@ -391,6 +400,7 @@ export function createIncomeColumns(
                 onEditIncome?.(row.original);
               }}
             >
+              <IconPencil className="size-4" stroke={1.5} />
               Editar receita
             </DropdownMenuItem>
             {!row.original.isPaid ? (
@@ -401,6 +411,7 @@ export function createIncomeColumns(
                   onMarkAsPaid?.(row.original);
                 }}
               >
+                <IconChecks className="size-4" stroke={1.5} />
                 Marcar como recebida
               </DropdownMenuItem>
             ) : (
@@ -411,6 +422,7 @@ export function createIncomeColumns(
                   onMarkAsPending?.(row.original);
                 }}
               >
+                <IconReceiptRefund className="size-4" stroke={1.5} />
                 Marcar como pendente
               </DropdownMenuItem>
             )}
@@ -423,6 +435,7 @@ export function createIncomeColumns(
                 onDeleteIncome?.(row.original);
               }}
             >
+              <IconTrash className="size-4" stroke={1.5} />
               Excluir receita
             </DropdownMenuItem>
           </DropdownMenuContent>

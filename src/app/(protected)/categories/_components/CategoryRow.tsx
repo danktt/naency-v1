@@ -80,7 +80,9 @@ export function CategoryRow({
     "delete" | "restore" | null
   >(null);
 
-  const isParent = hasChildren && !isChild;
+  // Uma categoria é "pai" se não é subcategoria (isChild = false)
+  // Independentemente de ter filhos ou não
+  const isParent = !isChild;
   const canEdit = !(isChild && !category.is_active);
 
   const handleDeleteOrRestore = () => {
