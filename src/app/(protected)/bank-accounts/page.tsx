@@ -155,7 +155,7 @@ export default function BankAccountsPage() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">
-            Contas Bancárias
+            Contas bancárias
           </h2>
           <p className="text-muted-foreground text-sm">
             Gerencie suas contas bancárias e de investimentos.

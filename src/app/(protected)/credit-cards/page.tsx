@@ -138,11 +138,11 @@ export default function CreditCardsPage() {
       };
 
   return (
-    <div className="container mx-auto space-y-8">
+    <div className="space-y-4">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">
-            Cartões de Crédito
+            Cartões de crédito
           </h2>
           <p className="text-muted-foreground text-sm">
             Gerencie seus cartões, limites e datas de vencimento.

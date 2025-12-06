@@ -56,8 +56,7 @@ export function LoginForm({
         setErrorMessage(null);
         setPendingProvider(provider);
 
-        // Save provider to localStorage before redirect
-        // This will be used on the next login attempt to show the badge
+        // Salvar provedor no localStorage antes do redirecionamento
         setLastProvider(provider);
 
         await signIn.authenticateWithRedirect({
@@ -88,10 +87,11 @@ export function LoginForm({
           return;
         }
 
+        // Fallback: pegar mensagem e traduzir se necessário
         const fallbackMessage =
           error instanceof Error
-            ? error.message
-            : "Something went wrong. Please try again.";
+            ? "Algo deu errado. Por favor, tente novamente."
+            : "Algo deu errado. Por favor, tente novamente.";
 
         setErrorMessage(
           clerkError?.errors?.[0]?.longMessage ??
@@ -111,9 +111,9 @@ export function LoginForm({
     <form className={cn("flex flex-col gap-6", className)} {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Login to your account</h1>
+          <h1 className="text-2xl font-bold">Entrar na sua conta</h1>
           <p className="text-muted-foreground text-sm text-balance">
-            Choose a provider below to continue
+            Escolha um provedor abaixo para continuar
           </p>
         </div>
         <Field className="space-y-3">
@@ -130,12 +130,12 @@ export function LoginForm({
             {pendingProvider === "google" ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Redirecting...
+                Redirecionando...
               </>
             ) : (
               <>
                 <GoogleIcon />
-                Continue with Google
+                Continuar com Google
               </>
             )}
           </Button>
@@ -152,12 +152,12 @@ export function LoginForm({
             {pendingProvider === "apple" ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Redirecting...
+                Redirecionando...
               </>
             ) : (
               <div className="flex items-center gap-2">
                 <AppleIcon />
-                Continue with Apple
+                Continuar com Apple
               </div>
             )}
           </Button>
@@ -168,9 +168,9 @@ export function LoginForm({
           </FieldError>
         ) : null}
         <FieldDescription className="text-center">
-          Don&apos;t have an account?{" "}
+          Não possui uma conta?{" "}
           <a href="/sign-up" className="underline underline-offset-4">
-            Sign up
+            Cadastre-se
           </a>
         </FieldDescription>
       </FieldGroup>
@@ -181,7 +181,7 @@ export function LoginForm({
 const LastProviderBadge = () => {
   return (
     <Badge className="absolute -right-2 -top-2 px-2 uppercase leading-none">
-      Last
+      Último
     </Badge>
   );
 };

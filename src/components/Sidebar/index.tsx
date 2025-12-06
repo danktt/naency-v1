@@ -1,7 +1,6 @@
 "use client";
 
 import { NavMain } from "@/components/Sidenav/nav-main";
-import { NavProjects } from "@/components/Sidenav/nav-projects";
 import { NavSecondary } from "@/components/Sidenav/nav-secondary";
 import { NavUser } from "@/components/Sidenav/nav-user";
 import {
@@ -25,7 +24,7 @@ import {
   IconTableFilled,
   IconTransfer,
 } from "@tabler/icons-react";
-import { Bot, Frame, LifeBuoy, PieChart, Send } from "lucide-react";
+import { Bot, Frame, PieChart } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
@@ -96,16 +95,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const navSecondary = useMemo(
     () => [
-      {
-        title: "Suporte",
-        url: "/",
-        icon: LifeBuoy,
-      },
-      {
-        title: "Sugestões",
-        url: "/feedback",
-        icon: Send,
-      },
+      // {
+      //   title: "Suporte",
+      //   url: "/",
+      //   icon: LifeBuoy,
+      // },
+      // {
+      //   title: "Sugestões",
+      //   url: "/feedback",
+      //   icon: Send,
+      // },
     ],
     [],
   );
@@ -152,7 +151,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
-        <NavProjects projects={projects} />
+        {/* <NavProjects projects={projects} /> */}
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

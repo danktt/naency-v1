@@ -27,6 +27,21 @@ const getMonthLabel = (date: Date, formatter: Intl.DateTimeFormat) => {
   return label.charAt(0).toUpperCase() + label.slice(1);
 };
 
+/**
+ * Retorna a classe CSS apropriada baseada no valor:
+ * - < 0: vermelho (text-text-negative)
+ * - > 0: verde (text-text-positive)
+ * - = 0: undefined (cor padrão/branco)
+ */
+const getBalanceValueClassName = (
+  value: number | null | undefined,
+): string | undefined => {
+  if (value === null || value === undefined) return undefined;
+  if (value < 0) return "text-text-negative dark:text-text-negative";
+  if (value > 0) return "text-text-positive dark:text-text-positive";
+  return undefined;
+};
+
 export default function DashboardPage() {
   const { user } = useUser();
 
@@ -79,7 +94,7 @@ export default function DashboardPage() {
 
     const monthBalanceIsNegative = (snapshot?.monthBalance ?? 0) < 0;
     const monthBalanceIconClassName = monthBalanceIsNegative
-      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+      ? "bg-text-negative/10 text-text-negative dark:text-text-negative"
       : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
 
     const cards: SnapshotCard[] = [
@@ -113,10 +128,7 @@ export default function DashboardPage() {
           : formatCurrency(0),
         subtitle: "Receitas menos despesas do mês corrente.",
         icon: IconChartBar,
-        valueClassName:
-          snapshot && snapshot.monthBalance < 0
-            ? "text-rose-600 dark:text-rose-400"
-            : "text-blue-600 dark:text-blue-400",
+        valueClassName: getBalanceValueClassName(snapshot?.monthBalance),
         iconContainerClassName: monthBalanceIconClassName,
       },
       {
@@ -127,10 +139,7 @@ export default function DashboardPage() {
           : formatCurrency(0),
         subtitle: "Saldo considerando meses anteriores.",
         icon: IconPigMoney,
-        valueClassName:
-          snapshot && snapshot.accumulatedBalance < 0
-            ? "text-text-negative dark:text-text-negative"
-            : "text-text-positive dark:text-text-positive",
+        valueClassName: getBalanceValueClassName(snapshot?.accumulatedBalance),
         iconContainerClassName: "bg-primary/10 text-primary",
       },
     ];
