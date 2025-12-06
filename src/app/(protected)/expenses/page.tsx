@@ -70,6 +70,8 @@ export default function ExpensesPage() {
     ],
   );
 
+  const netBalanceIsNegative = (totalsByKey.netBalance ?? 0) < 0;
+
   return (
     <div className="space-y-8">
       <section className="flex items-center justify-between">
@@ -88,6 +90,14 @@ export default function ExpensesPage() {
           const Icon = metric.icon;
           const value = formatCurrency(totalsByKey[metric.key]);
           const description = metric.changeFormat.replace("{{value}}", value);
+
+          const valueClassName =
+            metric.key === "netBalance"
+              ? netBalanceIsNegative
+                ? "text-text-negative dark:text-text-negative"
+                : "text-text-positive dark:text-text-positive"
+              : undefined;
+
           return (
             <GridItem
               key={metric.key}
@@ -97,6 +107,7 @@ export default function ExpensesPage() {
               isLoading={isMetricsLoading}
               value={value}
               description={description}
+              valueClassName={valueClassName}
             />
           );
         })}

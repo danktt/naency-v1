@@ -4,10 +4,10 @@ import {
   IconCalendar,
   IconChecks,
   IconCircle,
-  IconCreditCard,
   IconDotsVertical,
   IconPencil,
   IconReceiptRefund,
+  IconRefreshDot,
   IconRepeat,
   IconTrash,
 } from "@tabler/icons-react";
@@ -149,7 +149,10 @@ export function createExpenseColumns(
           return (
             <div className="flex flex-col text-muted-foreground">
               <div className="flex items-center gap-2">
-                <IconCreditCard className="size-4 text-amber-500" />
+                <IconRefreshDot
+                  className="size-4 text-amber-500"
+                  stroke={1.5}
+                />
                 <span>{formatDate(tx.date)}</span>
               </div>
             </div>
@@ -269,7 +272,10 @@ export function createExpenseColumns(
           badgeClass =
             "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
           badgeIcon = (
-            <IconCreditCard className="size-3 text-amber-500 shrink-0" />
+            <IconRefreshDot
+              className="size-3 text-amber-500 shrink-0"
+              stroke={1.5}
+            />
           );
           badgeLabel = `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
         } else if (isRecurring) {
