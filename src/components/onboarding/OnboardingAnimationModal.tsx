@@ -80,6 +80,188 @@ interface AccountData {
   type: "checking" | "investment" | "";
 }
 
+const CardPreview = ({
+  accountData,
+  displayBalance,
+}: {
+  accountData: AccountData;
+  displayBalance: string;
+}) => (
+  <div className="relative w-full max-w-xs perspective-1000 mx-auto">
+    {/* Glowing orbs */}
+    <motion.div
+      className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-gradient-to-br from-primary/30 to-accent/20 blur-3xl"
+      animate={{
+        scale: [1, 1.2, 1],
+        opacity: [0.5, 0.8, 0.5],
+      }}
+      transition={{
+        duration: 4,
+        repeat: Number.POSITIVE_INFINITY,
+        ease: "easeInOut",
+      }}
+    />
+    <motion.div
+      className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-gradient-to-tr from-accent/20 to-primary/30 blur-3xl"
+      animate={{
+        scale: [1.2, 1, 1.2],
+        opacity: [0.3, 0.6, 0.3],
+      }}
+      transition={{
+        duration: 5,
+        repeat: Number.POSITIVE_INFINITY,
+        ease: "easeInOut",
+        delay: 1,
+      }}
+    />
+
+    {/* Card */}
+    <motion.div
+      className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-accent/80 p-6 text-primary-foreground shadow-2xl shadow-primary/30"
+      whileHover={{ scale: 1.03, rotateY: 5 }}
+      transition={{ type: "spring", stiffness: 300 }}
+      style={{ transformStyle: "preserve-3d" }}
+    >
+      {/* Animated mesh gradient */}
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
+          className="absolute -top-1/2 -right-1/2 h-full w-full rounded-full bg-white/10"
+          animate={{ rotate: 360 }}
+          transition={{
+            duration: 15,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "linear",
+          }}
+        />
+        <motion.div
+          className="absolute -bottom-1/2 -left-1/2 h-full w-full rounded-full bg-black/10"
+          animate={{ rotate: -360 }}
+          transition={{
+            duration: 20,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "linear",
+          }}
+        />
+      </div>
+
+      {/* Shine effect */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
+        animate={{ x: ["-200%", "200%"] }}
+        transition={{
+          duration: 3,
+          repeat: Number.POSITIVE_INFINITY,
+          repeatDelay: 2,
+        }}
+      />
+
+      <div className="relative">
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={accountData.type || "default"}
+              initial={{ scale: 0.8, opacity: 0, y: -10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 10 }}
+              className="flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5"
+            >
+              {accountData.type === "investment" ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <CreditCard className="h-4 w-4" />
+              )}
+              <span className="text-sm font-medium">
+                {accountData.type === "checking"
+                  ? "Conta Corrente"
+                  : accountData.type === "investment"
+                    ? "Investimento"
+                    : "Tipo da conta"}
+              </span>
+            </motion.div>
+          </AnimatePresence>
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{
+              duration: 4,
+              repeat: Number.POSITIVE_INFINITY,
+            }}
+          >
+            <Wallet className="h-8 w-8 opacity-80" />
+          </motion.div>
+        </div>
+
+        {/* Account Name */}
+        <div className="mb-8">
+          <p className="text-xs uppercase tracking-widest opacity-70 mb-1">
+            Nome da conta
+          </p>
+          <AnimatePresence mode="wait">
+            <motion.h3
+              key={accountData.name || "placeholder"}
+              initial={{
+                y: 20,
+                opacity: 0,
+                filter: "blur(10px)",
+              }}
+              animate={{
+                y: 0,
+                opacity: 1,
+                filter: "blur(0px)",
+              }}
+              exit={{
+                y: -20,
+                opacity: 0,
+                filter: "blur(10px)",
+              }}
+              transition={{ duration: 0.3 }}
+              className="text-2xl font-bold truncate"
+            >
+              {accountData.name || "Sua nova conta"}
+            </motion.h3>
+          </AnimatePresence>
+        </div>
+
+        {/* Balance */}
+        <div className="relative">
+          <p className="text-xs uppercase tracking-widest opacity-70 mb-1">
+            Saldo disponível
+          </p>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={displayBalance}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.2, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="text-3xl font-bold tracking-tight"
+            >
+              {displayBalance}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+
+        {/* Decorative chip */}
+        <div className="absolute bottom-0 right-0 flex items-center gap-2">
+          <motion.div
+            className="h-8 w-10 rounded-lg bg-gradient-to-br from-white/30 to-white/10"
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{
+              duration: 2,
+              repeat: Number.POSITIVE_INFINITY,
+            }}
+          />
+          <div className="flex gap-1">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-1 w-1 rounded-full bg-white/40" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  </div>
+);
+
 export default function OnboardingAnimationModal() {
   // Logic & State from existing implementation
   const { user, isLoaded, isSignedIn } = useUser();
@@ -553,6 +735,16 @@ export default function OnboardingAnimationModal() {
                       </div>
                     </motion.div>
 
+                    <motion.div
+                      variants={itemVariants}
+                      className="block md:hidden w-full mb-6"
+                    >
+                      <CardPreview
+                        accountData={accountData}
+                        displayBalance={displayBalance}
+                      />
+                    </motion.div>
+
                     <motion.div variants={itemVariants} className="space-y-2">
                       <Label
                         htmlFor="accountName"
@@ -655,184 +847,12 @@ export default function OnboardingAnimationModal() {
                     initial={{ x: 80, opacity: 0, rotateY: -15 }}
                     animate={{ x: 0, opacity: 1, rotateY: 0 }}
                     transition={{ delay: 0.4, type: "spring", stiffness: 100 }}
-                    className="flex items-center justify-center"
+                    className="hidden md:flex items-center justify-center"
                   >
-                    <div className="relative w-full max-w-xs perspective-1000">
-                      {/* Glowing orbs */}
-                      <motion.div
-                        className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-gradient-to-br from-primary/30 to-accent/20 blur-3xl"
-                        animate={{
-                          scale: [1, 1.2, 1],
-                          opacity: [0.5, 0.8, 0.5],
-                        }}
-                        transition={{
-                          duration: 4,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: "easeInOut",
-                        }}
-                      />
-                      <motion.div
-                        className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-gradient-to-tr from-accent/20 to-primary/30 blur-3xl"
-                        animate={{
-                          scale: [1.2, 1, 1.2],
-                          opacity: [0.3, 0.6, 0.3],
-                        }}
-                        transition={{
-                          duration: 5,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: "easeInOut",
-                          delay: 1,
-                        }}
-                      />
-
-                      {/* Card */}
-                      <motion.div
-                        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-accent/80 p-6 text-primary-foreground shadow-2xl shadow-primary/30"
-                        whileHover={{ scale: 1.03, rotateY: 5 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                        style={{ transformStyle: "preserve-3d" }}
-                      >
-                        {/* Animated mesh gradient */}
-                        <div className="absolute inset-0 overflow-hidden">
-                          <motion.div
-                            className="absolute -top-1/2 -right-1/2 h-full w-full rounded-full bg-white/10"
-                            animate={{ rotate: 360 }}
-                            transition={{
-                              duration: 15,
-                              repeat: Number.POSITIVE_INFINITY,
-                              ease: "linear",
-                            }}
-                          />
-                          <motion.div
-                            className="absolute -bottom-1/2 -left-1/2 h-full w-full rounded-full bg-black/10"
-                            animate={{ rotate: -360 }}
-                            transition={{
-                              duration: 20,
-                              repeat: Number.POSITIVE_INFINITY,
-                              ease: "linear",
-                            }}
-                          />
-                        </div>
-
-                        {/* Shine effect */}
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
-                          animate={{ x: ["-200%", "200%"] }}
-                          transition={{
-                            duration: 3,
-                            repeat: Number.POSITIVE_INFINITY,
-                            repeatDelay: 2,
-                          }}
-                        />
-
-                        <div className="relative">
-                          {/* Header */}
-                          <div className="mb-6 flex items-center justify-between">
-                            <AnimatePresence mode="wait">
-                              <motion.div
-                                key={accountData.type || "default"}
-                                initial={{ scale: 0.8, opacity: 0, y: -10 }}
-                                animate={{ scale: 1, opacity: 1, y: 0 }}
-                                exit={{ scale: 0.8, opacity: 0, y: 10 }}
-                                className="flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5"
-                              >
-                                {accountData.type === "investment" ? (
-                                  <TrendingUp className="h-4 w-4" />
-                                ) : (
-                                  <CreditCard className="h-4 w-4" />
-                                )}
-                                <span className="text-sm font-medium">
-                                  {accountData.type === "checking"
-                                    ? "Conta Corrente"
-                                    : accountData.type === "investment"
-                                      ? "Investimento"
-                                      : "Tipo da conta"}
-                                </span>
-                              </motion.div>
-                            </AnimatePresence>
-                            <motion.div
-                              animate={{ rotate: [0, 10, -10, 0] }}
-                              transition={{
-                                duration: 4,
-                                repeat: Number.POSITIVE_INFINITY,
-                              }}
-                            >
-                              <Wallet className="h-8 w-8 opacity-80" />
-                            </motion.div>
-                          </div>
-
-                          {/* Account Name */}
-                          <div className="mb-8">
-                            <p className="text-xs uppercase tracking-widest opacity-70 mb-1">
-                              Nome da conta
-                            </p>
-                            <AnimatePresence mode="wait">
-                              <motion.h3
-                                key={accountData.name || "placeholder"}
-                                initial={{
-                                  y: 20,
-                                  opacity: 0,
-                                  filter: "blur(10px)",
-                                }}
-                                animate={{
-                                  y: 0,
-                                  opacity: 1,
-                                  filter: "blur(0px)",
-                                }}
-                                exit={{
-                                  y: -20,
-                                  opacity: 0,
-                                  filter: "blur(10px)",
-                                }}
-                                transition={{ duration: 0.3 }}
-                                className="text-2xl font-bold truncate"
-                              >
-                                {accountData.name || "Sua nova conta"}
-                              </motion.h3>
-                            </AnimatePresence>
-                          </div>
-
-                          {/* Balance */}
-                          <div className="relative">
-                            <p className="text-xs uppercase tracking-widest opacity-70 mb-1">
-                              Saldo disponível
-                            </p>
-                            <AnimatePresence mode="wait">
-                              <motion.p
-                                key={displayBalance}
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 1.2, opacity: 0 }}
-                                transition={{ type: "spring", stiffness: 300 }}
-                                className="text-3xl font-bold tracking-tight"
-                              >
-                                {displayBalance}
-                              </motion.p>
-                            </AnimatePresence>
-                          </div>
-
-                          {/* Decorative chip */}
-                          <div className="absolute bottom-0 right-0 flex items-center gap-2">
-                            <motion.div
-                              className="h-8 w-10 rounded-lg bg-gradient-to-br from-white/30 to-white/10"
-                              animate={{ opacity: [0.3, 0.6, 0.3] }}
-                              transition={{
-                                duration: 2,
-                                repeat: Number.POSITIVE_INFINITY,
-                              }}
-                            />
-                            <div className="flex gap-1">
-                              {[...Array(4)].map((_, i) => (
-                                <div
-                                  key={i}
-                                  className="h-1 w-1 rounded-full bg-white/40"
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </div>
+                    <CardPreview
+                      accountData={accountData}
+                      displayBalance={displayBalance}
+                    />
                   </motion.div>
                 </div>
               </motion.div>
