@@ -329,7 +329,7 @@ export default function OnboardingAnimationModal() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 backdrop-blur-md p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 backdrop-blur-md p-0 md:p-4">
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
           className="absolute -top-1/2 -left-1/2 h-full w-full rounded-full bg-primary/5"
@@ -361,11 +361,11 @@ export default function OnboardingAnimationModal() {
         initial={{ scale: 0.8, opacity: 0, y: 50 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ type: "spring", duration: 0.8, bounce: 0.3 }}
-        className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-card/95 backdrop-blur-xl shadow-2xl border border-border/50"
+        className="relative w-full max-w-3xl overflow-hidden rounded-none md:rounded-3xl bg-card/95 backdrop-blur-xl shadow-2xl border-0 md:border border-border/50 flex flex-col h-full md:h-auto md:max-h-[90vh]"
       >
         {/* <FloatingParticles /> */}
 
-        <div className="relative h-1.5 w-full bg-muted overflow-hidden">
+        <div className="relative h-1.5 w-full bg-muted overflow-hidden shrink-0">
           <motion.div
             className="h-full bg-gradient-to-r from-primary via-primary to-accent"
             initial={{ width: "33%" }}
@@ -385,612 +385,622 @@ export default function OnboardingAnimationModal() {
           />
         </div>
 
-        <AnimatePresence mode="wait" custom={step}>
-          {step === 1 ? (
-            <motion.div
-              key="welcome"
-              custom={1}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="p-8 md:p-12"
-            >
+        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <AnimatePresence mode="wait" custom={step}>
+            {step === 1 ? (
               <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="flex flex-col items-center text-center"
+                key="welcome"
+                custom={1}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                className="p-6 md:p-12 min-h-full flex flex-col justify-center"
               >
-                <motion.div variants={itemVariants} className="relative mb-8">
-                  <motion.div
-                    className="absolute inset-0 rounded-full bg-primary/20"
-                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                    transition={{
-                      duration: 2,
-                      repeat: Number.POSITIVE_INFINITY,
-                    }}
-                  />
-                  <motion.div
-                    className="absolute inset-0 rounded-full bg-primary/10"
-                    animate={{ scale: [1, 2, 1], opacity: [0.3, 0, 0.3] }}
-                    transition={{
-                      duration: 2,
-                      repeat: Number.POSITIVE_INFINITY,
-                      delay: 0.3,
-                    }}
-                  />
-                  <motion.div
-                    className="relative flex h-24 w-24 items-center justify-center rounded-full  "
-                    transition={{ duration: 0.8 }}
-                  >
-                    <IconTableFilled className="h-12 w-12 text-primary" />
-                  </motion.div>
-                </motion.div>
-
-                <motion.h1
-                  variants={itemVariants}
-                  className="mb-4 text-4xl font-bold text-foreground md:text-5xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text"
-                >
-                  Bem-vindo ao Næncy!
-                </motion.h1>
-
-                <motion.p
-                  variants={itemVariants}
-                  className="mb-10 max-w-lg text-lg text-muted-foreground leading-relaxed"
-                >
-                  Sua jornada para uma vida financeira mais organizada começa
-                  agora. Gerencie suas contas com inteligência e simplicidade.
-                </motion.p>
-
-                <motion.div
-                  variants={itemVariants}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 w-full max-w-xl"
-                >
-                  {[
-                    {
-                      icon: Shield,
-                      label: "Segurança total",
-                      desc: "Seus dados protegidos",
-                    },
-                    {
-                      icon: Zap,
-                      label: "Ultra rápido",
-                      desc: "Performance em tempo real",
-                    },
-                    {
-                      icon: TrendingUp,
-                      label: "Crescimento",
-                      desc: "Acompanhe sua evolução",
-                    },
-                  ].map((item) => (
-                    <motion.div
-                      key={item.label}
-                      className="group relative overflow-hidden rounded-2xl bg-secondary/50 p-4 cursor-pointer border border-transparent hover:border-primary/20 transition-colors"
-                      whileHover={{ y: -5, scale: 1.02 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 17,
-                      }}
-                    >
-                      <motion.div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="relative">
-                        <motion.div
-                          className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 mx-auto"
-                          whileHover={{ rotate: [0, -10, 10, 0] }}
-                          transition={{ duration: 0.5 }}
-                        >
-                          <item.icon className="h-6 w-6 text-primary" />
-                        </motion.div>
-                        <h3 className="font-semibold text-foreground mb-1">
-                          {item.label}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          {item.desc}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-
-                <motion.div variants={itemVariants}>
-                  <Button
-                    size="lg"
-                    onClick={() => setStep(2)}
-                    className="group gap-3 px-10 py-6 text-lg rounded-2xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
-                  >
-                    <span>Começar agora</span>
-                    <motion.div
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{
-                        duration: 1.5,
-                        repeat: Number.POSITIVE_INFINITY,
-                      }}
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </motion.div>
-                  </Button>
-                </motion.div>
-              </motion.div>
-            </motion.div>
-          ) : step === 2 ? (
-            <motion.div
-              key="account"
-              custom={2}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="p-8 md:p-12"
-            >
-              <div className="grid gap-8 md:grid-cols-2">
-                {/* Form */}
                 <motion.div
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
-                  className="space-y-6"
+                  className="flex flex-col items-center text-center"
                 >
-                  <motion.div variants={itemVariants}>
-                    <div className="mb-2 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                        <Building2 className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-foreground">
-                          Configure sua conta
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                          Preencha os dados da sua primeira conta
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  <motion.div variants={itemVariants} className="space-y-2">
-                    <Label
-                      htmlFor="accountName"
-                      className="text-sm font-medium"
-                    >
-                      Nome da conta
-                    </Label>
-                    <Input
-                      id="accountName"
-                      placeholder="Ex: Conta Principal, Nubank..."
-                      value={accountData.name}
-                      onChange={(e) =>
-                        setAccountData((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      className="h-12 rounded-xl border-border/50 bg-secondary/30 focus:bg-background transition-colors"
+                  <motion.div variants={itemVariants} className="relative mb-8">
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-primary/20"
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                      transition={{
+                        duration: 2,
+                        repeat: Number.POSITIVE_INFINITY,
+                      }}
                     />
-                  </motion.div>
-
-                  <motion.div variants={itemVariants} className="space-y-2">
-                    <Label htmlFor="balance" className="text-sm font-medium">
-                      Saldo inicial
-                    </Label>
-                    <Input
-                      id="balance"
-                      placeholder="R$ 0,00"
-                      value={accountData.balance ? displayBalance : ""}
-                      onChange={(e) => handleBalanceChange(e.target.value)}
-                      className="h-12 rounded-xl border-border/50 bg-secondary/30 focus:bg-background transition-colors"
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-primary/10"
+                      animate={{ scale: [1, 2, 1], opacity: [0.3, 0, 0.3] }}
+                      transition={{
+                        duration: 2,
+                        repeat: Number.POSITIVE_INFINITY,
+                        delay: 0.3,
+                      }}
                     />
+                    <motion.div
+                      className="relative flex h-24 w-24 items-center justify-center rounded-full  "
+                      transition={{ duration: 0.8 }}
+                    >
+                      <IconTableFilled className="h-12 w-12 text-primary" />
+                    </motion.div>
                   </motion.div>
 
-                  <motion.div variants={itemVariants} className="space-y-2">
-                    <Label className="text-sm font-medium">Tipo da conta</Label>
-                    <Select
-                      value={accountData.type}
-                      onValueChange={(value: "checking" | "investment") =>
-                        setAccountData((prev) => ({ ...prev, type: value }))
-                      }
-                    >
-                      <SelectTrigger className="h-12 rounded-xl border-border/50 bg-secondary/30 focus:bg-background transition-colors">
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="checking">
-                          <div className="flex items-center gap-2">
-                            <CreditCard className="h-4 w-4" />
-                            <span>Conta Corrente</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="investment">
-                          <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4" />
-                            <span>Investimento</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </motion.div>
+                  <motion.h1
+                    variants={itemVariants}
+                    className="mb-4 text-3xl font-bold text-foreground md:text-4xl lg:text-5xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text"
+                  >
+                    Bem-vindo ao Næncy!
+                  </motion.h1>
+
+                  <motion.p
+                    variants={itemVariants}
+                    className="mb-10 max-w-lg text-lg text-muted-foreground leading-relaxed"
+                  >
+                    Sua jornada para uma vida financeira mais organizada começa
+                    agora. Gerencie suas contas com inteligência e simplicidade.
+                  </motion.p>
 
                   <motion.div
                     variants={itemVariants}
-                    className="flex gap-3 pt-4"
+                    className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 w-full max-w-xl"
                   >
+                    {[
+                      {
+                        icon: Shield,
+                        label: "Segurança total",
+                        desc: "Seus dados protegidos",
+                      },
+                      {
+                        icon: Zap,
+                        label: "Ultra rápido",
+                        desc: "Performance em tempo real",
+                      },
+                      {
+                        icon: TrendingUp,
+                        label: "Crescimento",
+                        desc: "Acompanhe sua evolução",
+                      },
+                    ].map((item) => (
+                      <motion.div
+                        key={item.label}
+                        className="group relative overflow-hidden rounded-2xl bg-secondary/50 p-4 cursor-pointer border border-transparent hover:border-primary/20 transition-colors"
+                        whileHover={{ y: -5, scale: 1.02 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 17,
+                        }}
+                      >
+                        <motion.div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="relative flex items-center md:block text-left md:text-center gap-4 md:gap-0">
+                          <motion.div
+                            className="mb-0 md:mb-3 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 md:mx-auto"
+                            whileHover={{ rotate: [0, -10, 10, 0] }}
+                            transition={{ duration: 0.5 }}
+                          >
+                            <item.icon className="h-6 w-6 text-primary" />
+                          </motion.div>
+                          <div>
+                            <h3 className="font-semibold text-foreground mb-1">
+                              {item.label}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              {item.desc}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+
+                  <motion.div variants={itemVariants}>
                     <Button
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      className="flex-1 h-12 rounded-xl"
-                      disabled={isCreatingAccount}
+                      size="lg"
+                      onClick={() => setStep(2)}
+                      className="group gap-3 px-10 py-6 text-lg rounded-2xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
                     >
-                      Voltar
-                    </Button>
-                    <Button
-                      className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
-                      disabled={
-                        !accountData.name ||
-                        !accountData.balance ||
-                        !accountData.type ||
-                        isCreatingAccount
-                      }
-                      onClick={handleCreateAccount}
-                    >
-                      {isCreatingAccount ? (
-                        "Criando..."
-                      ) : (
-                        <>
-                          Criar conta
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                      )}
+                      <span>Começar agora</span>
+                      <motion.div
+                        animate={{ x: [0, 5, 0] }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Number.POSITIVE_INFINITY,
+                        }}
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </motion.div>
                     </Button>
                   </motion.div>
                 </motion.div>
-
-                <motion.div
-                  initial={{ x: 80, opacity: 0, rotateY: -15 }}
-                  animate={{ x: 0, opacity: 1, rotateY: 0 }}
-                  transition={{ delay: 0.4, type: "spring", stiffness: 100 }}
-                  className="flex items-center justify-center"
-                >
-                  <div className="relative w-full max-w-xs perspective-1000">
-                    {/* Glowing orbs */}
-                    <motion.div
-                      className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-gradient-to-br from-primary/30 to-accent/20 blur-3xl"
-                      animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.5, 0.8, 0.5],
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Number.POSITIVE_INFINITY,
-                        ease: "easeInOut",
-                      }}
-                    />
-                    <motion.div
-                      className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-gradient-to-tr from-accent/20 to-primary/30 blur-3xl"
-                      animate={{
-                        scale: [1.2, 1, 1.2],
-                        opacity: [0.3, 0.6, 0.3],
-                      }}
-                      transition={{
-                        duration: 5,
-                        repeat: Number.POSITIVE_INFINITY,
-                        ease: "easeInOut",
-                        delay: 1,
-                      }}
-                    />
-
-                    {/* Card */}
-                    <motion.div
-                      className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-accent/80 p-6 text-primary-foreground shadow-2xl shadow-primary/30"
-                      whileHover={{ scale: 1.03, rotateY: 5 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                      style={{ transformStyle: "preserve-3d" }}
-                    >
-                      {/* Animated mesh gradient */}
-                      <div className="absolute inset-0 overflow-hidden">
-                        <motion.div
-                          className="absolute -top-1/2 -right-1/2 h-full w-full rounded-full bg-white/10"
-                          animate={{ rotate: 360 }}
-                          transition={{
-                            duration: 15,
-                            repeat: Number.POSITIVE_INFINITY,
-                            ease: "linear",
-                          }}
-                        />
-                        <motion.div
-                          className="absolute -bottom-1/2 -left-1/2 h-full w-full rounded-full bg-black/10"
-                          animate={{ rotate: -360 }}
-                          transition={{
-                            duration: 20,
-                            repeat: Number.POSITIVE_INFINITY,
-                            ease: "linear",
-                          }}
-                        />
+              </motion.div>
+            ) : step === 2 ? (
+              <motion.div
+                key="account"
+                custom={2}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                className="p-6 md:p-12"
+              >
+                <div className="grid gap-6 md:gap-8 md:grid-cols-2">
+                  {/* Form */}
+                  <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="space-y-6"
+                  >
+                    <motion.div variants={itemVariants}>
+                      <div className="mb-2 flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                          <Building2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold text-foreground">
+                            Configure sua conta
+                          </h2>
+                          <p className="text-sm text-muted-foreground">
+                            Preencha os dados da sua primeira conta
+                          </p>
+                        </div>
                       </div>
+                    </motion.div>
 
-                      {/* Shine effect */}
+                    <motion.div variants={itemVariants} className="space-y-2">
+                      <Label
+                        htmlFor="accountName"
+                        className="text-sm font-medium"
+                      >
+                        Nome da conta
+                      </Label>
+                      <Input
+                        id="accountName"
+                        placeholder="Ex: Conta Principal, Nubank..."
+                        value={accountData.name}
+                        onChange={(e) =>
+                          setAccountData((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        className="h-12 rounded-xl border-border/50 bg-secondary/30 focus:bg-background transition-colors"
+                      />
+                    </motion.div>
+
+                    <motion.div variants={itemVariants} className="space-y-2">
+                      <Label htmlFor="balance" className="text-sm font-medium">
+                        Saldo inicial
+                      </Label>
+                      <Input
+                        id="balance"
+                        placeholder="R$ 0,00"
+                        value={accountData.balance ? displayBalance : ""}
+                        onChange={(e) => handleBalanceChange(e.target.value)}
+                        className="h-12 rounded-xl border-border/50 bg-secondary/30 focus:bg-background transition-colors"
+                      />
+                    </motion.div>
+
+                    <motion.div variants={itemVariants} className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        Tipo da conta
+                      </Label>
+                      <Select
+                        value={accountData.type}
+                        onValueChange={(value: "checking" | "investment") =>
+                          setAccountData((prev) => ({ ...prev, type: value }))
+                        }
+                      >
+                        <SelectTrigger className="h-12 rounded-xl border-border/50 bg-secondary/30 focus:bg-background transition-colors">
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="checking">
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="h-4 w-4" />
+                              <span>Conta Corrente</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="investment">
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4" />
+                              <span>Investimento</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </motion.div>
+
+                    <motion.div
+                      variants={itemVariants}
+                      className="flex gap-3 pt-4"
+                    >
+                      <Button
+                        variant="outline"
+                        onClick={() => setStep(1)}
+                        className="flex-1 h-12 rounded-xl"
+                        disabled={isCreatingAccount}
+                      >
+                        Voltar
+                      </Button>
+                      <Button
+                        className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
+                        disabled={
+                          !accountData.name ||
+                          !accountData.balance ||
+                          !accountData.type ||
+                          isCreatingAccount
+                        }
+                        onClick={handleCreateAccount}
+                      >
+                        {isCreatingAccount ? (
+                          "Criando..."
+                        ) : (
+                          <>
+                            Criar conta
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ x: 80, opacity: 0, rotateY: -15 }}
+                    animate={{ x: 0, opacity: 1, rotateY: 0 }}
+                    transition={{ delay: 0.4, type: "spring", stiffness: 100 }}
+                    className="flex items-center justify-center"
+                  >
+                    <div className="relative w-full max-w-xs perspective-1000">
+                      {/* Glowing orbs */}
                       <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
-                        animate={{ x: ["-200%", "200%"] }}
+                        className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-gradient-to-br from-primary/30 to-accent/20 blur-3xl"
+                        animate={{
+                          scale: [1, 1.2, 1],
+                          opacity: [0.5, 0.8, 0.5],
+                        }}
                         transition={{
-                          duration: 3,
+                          duration: 4,
                           repeat: Number.POSITIVE_INFINITY,
-                          repeatDelay: 2,
+                          ease: "easeInOut",
+                        }}
+                      />
+                      <motion.div
+                        className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-gradient-to-tr from-accent/20 to-primary/30 blur-3xl"
+                        animate={{
+                          scale: [1.2, 1, 1.2],
+                          opacity: [0.3, 0.6, 0.3],
+                        }}
+                        transition={{
+                          duration: 5,
+                          repeat: Number.POSITIVE_INFINITY,
+                          ease: "easeInOut",
+                          delay: 1,
                         }}
                       />
 
-                      <div className="relative">
-                        {/* Header */}
-                        <div className="mb-6 flex items-center justify-between">
-                          <AnimatePresence mode="wait">
-                            <motion.div
-                              key={accountData.type || "default"}
-                              initial={{ scale: 0.8, opacity: 0, y: -10 }}
-                              animate={{ scale: 1, opacity: 1, y: 0 }}
-                              exit={{ scale: 0.8, opacity: 0, y: 10 }}
-                              className="flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5"
-                            >
-                              {accountData.type === "investment" ? (
-                                <TrendingUp className="h-4 w-4" />
-                              ) : (
-                                <CreditCard className="h-4 w-4" />
-                              )}
-                              <span className="text-sm font-medium">
-                                {accountData.type === "checking"
-                                  ? "Conta Corrente"
-                                  : accountData.type === "investment"
-                                    ? "Investimento"
-                                    : "Tipo da conta"}
-                              </span>
-                            </motion.div>
-                          </AnimatePresence>
+                      {/* Card */}
+                      <motion.div
+                        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-accent/80 p-6 text-primary-foreground shadow-2xl shadow-primary/30"
+                        whileHover={{ scale: 1.03, rotateY: 5 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                        style={{ transformStyle: "preserve-3d" }}
+                      >
+                        {/* Animated mesh gradient */}
+                        <div className="absolute inset-0 overflow-hidden">
                           <motion.div
-                            animate={{ rotate: [0, 10, -10, 0] }}
+                            className="absolute -top-1/2 -right-1/2 h-full w-full rounded-full bg-white/10"
+                            animate={{ rotate: 360 }}
                             transition={{
-                              duration: 4,
+                              duration: 15,
                               repeat: Number.POSITIVE_INFINITY,
-                            }}
-                          >
-                            <Wallet className="h-8 w-8 opacity-80" />
-                          </motion.div>
-                        </div>
-
-                        {/* Account Name */}
-                        <div className="mb-8">
-                          <p className="text-xs uppercase tracking-widest opacity-70 mb-1">
-                            Nome da conta
-                          </p>
-                          <AnimatePresence mode="wait">
-                            <motion.h3
-                              key={accountData.name || "placeholder"}
-                              initial={{
-                                y: 20,
-                                opacity: 0,
-                                filter: "blur(10px)",
-                              }}
-                              animate={{
-                                y: 0,
-                                opacity: 1,
-                                filter: "blur(0px)",
-                              }}
-                              exit={{
-                                y: -20,
-                                opacity: 0,
-                                filter: "blur(10px)",
-                              }}
-                              transition={{ duration: 0.3 }}
-                              className="text-2xl font-bold truncate"
-                            >
-                              {accountData.name || "Sua nova conta"}
-                            </motion.h3>
-                          </AnimatePresence>
-                        </div>
-
-                        {/* Balance */}
-                        <div className="relative">
-                          <p className="text-xs uppercase tracking-widest opacity-70 mb-1">
-                            Saldo disponível
-                          </p>
-                          <AnimatePresence mode="wait">
-                            <motion.p
-                              key={displayBalance}
-                              initial={{ scale: 0.8, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              exit={{ scale: 1.2, opacity: 0 }}
-                              transition={{ type: "spring", stiffness: 300 }}
-                              className="text-3xl font-bold tracking-tight"
-                            >
-                              {displayBalance}
-                            </motion.p>
-                          </AnimatePresence>
-                        </div>
-
-                        {/* Decorative chip */}
-                        <div className="absolute bottom-0 right-0 flex items-center gap-2">
-                          <motion.div
-                            className="h-8 w-10 rounded-lg bg-gradient-to-br from-white/30 to-white/10"
-                            animate={{ opacity: [0.3, 0.6, 0.3] }}
-                            transition={{
-                              duration: 2,
-                              repeat: Number.POSITIVE_INFINITY,
+                              ease: "linear",
                             }}
                           />
-                          <div className="flex gap-1">
-                            {[...Array(4)].map((_, i) => (
-                              <div
-                                key={i}
-                                className="h-1 w-1 rounded-full bg-white/40"
-                              />
-                            ))}
+                          <motion.div
+                            className="absolute -bottom-1/2 -left-1/2 h-full w-full rounded-full bg-black/10"
+                            animate={{ rotate: -360 }}
+                            transition={{
+                              duration: 20,
+                              repeat: Number.POSITIVE_INFINITY,
+                              ease: "linear",
+                            }}
+                          />
+                        </div>
+
+                        {/* Shine effect */}
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
+                          animate={{ x: ["-200%", "200%"] }}
+                          transition={{
+                            duration: 3,
+                            repeat: Number.POSITIVE_INFINITY,
+                            repeatDelay: 2,
+                          }}
+                        />
+
+                        <div className="relative">
+                          {/* Header */}
+                          <div className="mb-6 flex items-center justify-between">
+                            <AnimatePresence mode="wait">
+                              <motion.div
+                                key={accountData.type || "default"}
+                                initial={{ scale: 0.8, opacity: 0, y: -10 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.8, opacity: 0, y: 10 }}
+                                className="flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5"
+                              >
+                                {accountData.type === "investment" ? (
+                                  <TrendingUp className="h-4 w-4" />
+                                ) : (
+                                  <CreditCard className="h-4 w-4" />
+                                )}
+                                <span className="text-sm font-medium">
+                                  {accountData.type === "checking"
+                                    ? "Conta Corrente"
+                                    : accountData.type === "investment"
+                                      ? "Investimento"
+                                      : "Tipo da conta"}
+                                </span>
+                              </motion.div>
+                            </AnimatePresence>
+                            <motion.div
+                              animate={{ rotate: [0, 10, -10, 0] }}
+                              transition={{
+                                duration: 4,
+                                repeat: Number.POSITIVE_INFINITY,
+                              }}
+                            >
+                              <Wallet className="h-8 w-8 opacity-80" />
+                            </motion.div>
+                          </div>
+
+                          {/* Account Name */}
+                          <div className="mb-8">
+                            <p className="text-xs uppercase tracking-widest opacity-70 mb-1">
+                              Nome da conta
+                            </p>
+                            <AnimatePresence mode="wait">
+                              <motion.h3
+                                key={accountData.name || "placeholder"}
+                                initial={{
+                                  y: 20,
+                                  opacity: 0,
+                                  filter: "blur(10px)",
+                                }}
+                                animate={{
+                                  y: 0,
+                                  opacity: 1,
+                                  filter: "blur(0px)",
+                                }}
+                                exit={{
+                                  y: -20,
+                                  opacity: 0,
+                                  filter: "blur(10px)",
+                                }}
+                                transition={{ duration: 0.3 }}
+                                className="text-2xl font-bold truncate"
+                              >
+                                {accountData.name || "Sua nova conta"}
+                              </motion.h3>
+                            </AnimatePresence>
+                          </div>
+
+                          {/* Balance */}
+                          <div className="relative">
+                            <p className="text-xs uppercase tracking-widest opacity-70 mb-1">
+                              Saldo disponível
+                            </p>
+                            <AnimatePresence mode="wait">
+                              <motion.p
+                                key={displayBalance}
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 1.2, opacity: 0 }}
+                                transition={{ type: "spring", stiffness: 300 }}
+                                className="text-3xl font-bold tracking-tight"
+                              >
+                                {displayBalance}
+                              </motion.p>
+                            </AnimatePresence>
+                          </div>
+
+                          {/* Decorative chip */}
+                          <div className="absolute bottom-0 right-0 flex items-center gap-2">
+                            <motion.div
+                              className="h-8 w-10 rounded-lg bg-gradient-to-br from-white/30 to-white/10"
+                              animate={{ opacity: [0.3, 0.6, 0.3] }}
+                              transition={{
+                                duration: 2,
+                                repeat: Number.POSITIVE_INFINITY,
+                              }}
+                            />
+                            <div className="flex gap-1">
+                              {[...Array(4)].map((_, i) => (
+                                <div
+                                  key={i}
+                                  className="h-1 w-1 rounded-full bg-white/40"
+                                />
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="complete"
-              custom={3}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="p-8 md:p-12"
-            >
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                </div>
+              </motion.div>
+            ) : (
               <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="flex flex-col items-center text-center"
+                key="complete"
+                custom={3}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                className="p-6 md:p-12"
               >
-                {/* Success animation */}
-                <motion.div variants={itemVariants} className="relative mb-8">
-                  <motion.div
-                    className="absolute inset-0 rounded-full bg-green-500/20"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: [0, 2, 2.5], opacity: [1, 0.5, 0] }}
-                    transition={{ duration: 1, delay: 0.3 }}
-                  />
-                  <motion.div
-                    className="absolute inset-0 rounded-full bg-green-500/20"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: [0, 1.5, 2], opacity: [1, 0.5, 0] }}
-                    transition={{ duration: 1, delay: 0.5 }}
-                  />
-                  <motion.div
-                    className="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                  >
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="flex flex-col items-center text-center"
+                >
+                  {/* Success animation */}
+                  <motion.div variants={itemVariants} className="relative mb-8">
                     <motion.div
+                      className="absolute inset-0 rounded-full bg-green-500/20"
                       initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.6, type: "spring" }}
+                      animate={{ scale: [0, 2, 2.5], opacity: [1, 0.5, 0] }}
+                      transition={{ duration: 1, delay: 0.3 }}
+                    />
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-green-500/20"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: [0, 1.5, 2], opacity: [1, 0.5, 0] }}
+                      transition={{ duration: 1, delay: 0.5 }}
+                    />
+                    <motion.div
+                      className="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30"
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 200,
+                        delay: 0.2,
+                      }}
                     >
-                      <CheckCircle2 className="h-12 w-12 text-white" />
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.6, type: "spring" }}
+                      >
+                        <CheckCircle2 className="h-12 w-12 text-white" />
+                      </motion.div>
                     </motion.div>
                   </motion.div>
-                </motion.div>
 
-                {/* Confetti-like particles */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                  {[...Array(20)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="absolute h-3 w-3 rounded-full"
-                      style={{
-                        background: [
-                          "#10b981",
-                          "#3b82f6",
-                          "#f59e0b",
-                          "#ec4899",
-                          "#8b5cf6",
-                        ][i % 5],
-                        left: "50%",
-                        top: "30%",
-                      }}
-                      initial={{ scale: 0, x: 0, y: 0 }}
-                      animate={{
-                        scale: [0, 1, 0],
-                        x: (Math.random() - 0.5) * 400,
-                        y: (Math.random() - 0.5) * 300,
-                        rotate: Math.random() * 360,
-                      }}
-                      transition={{
-                        duration: 1.5,
-                        delay: 0.4 + i * 0.05,
-                        ease: "easeOut",
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <motion.div variants={itemVariants} className="mb-2">
-                  <PartyPopper className="h-8 w-8 text-primary mx-auto mb-4" />
-                </motion.div>
-
-                <motion.h1
-                  variants={itemVariants}
-                  className="mb-4 text-4xl font-bold text-foreground md:text-5xl"
-                >
-                  Tudo pronto!
-                </motion.h1>
-
-                <motion.p
-                  variants={itemVariants}
-                  className="mb-8 max-w-md text-lg text-muted-foreground leading-relaxed"
-                >
-                  Sua conta{" "}
-                  <span className="font-semibold text-foreground">
-                    {accountData.name}
-                  </span>{" "}
-                  foi criada com sucesso. Agora você pode começar a gerenciar
-                  suas finanças!
-                </motion.p>
-
-                {/* Account summary card */}
-                <motion.div
-                  variants={itemVariants}
-                  className="mb-10 w-full max-w-sm rounded-2xl bg-secondary/50 border border-border/50 p-6"
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Conta</span>
-                      <span className="font-semibold text-foreground">
-                        {accountData.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Tipo</span>
-                      <span className="font-semibold text-foreground">
-                        {accountData.type === "checking"
-                          ? "Conta Corrente"
-                          : "Investimento"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">
-                        Saldo inicial
-                      </span>
-                      <span className="font-bold text-primary text-lg">
-                        {displayBalance}
-                      </span>
-                    </div>
+                  {/* Confetti-like particles */}
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    {[...Array(20)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="absolute h-3 w-3 rounded-full"
+                        style={{
+                          background: [
+                            "#10b981",
+                            "#3b82f6",
+                            "#f59e0b",
+                            "#ec4899",
+                            "#8b5cf6",
+                          ][i % 5],
+                          left: "50%",
+                          top: "30%",
+                        }}
+                        initial={{ scale: 0, x: 0, y: 0 }}
+                        animate={{
+                          scale: [0, 1, 0],
+                          x: (Math.random() - 0.5) * 400,
+                          y: (Math.random() - 0.5) * 300,
+                          rotate: Math.random() * 360,
+                        }}
+                        transition={{
+                          duration: 1.5,
+                          delay: 0.4 + i * 0.05,
+                          ease: "easeOut",
+                        }}
+                      />
+                    ))}
                   </div>
-                </motion.div>
 
-                <motion.div variants={itemVariants} className="flex gap-4">
-                  {/* Option to edit account removed as it's already created */}
-                  <Button
-                    size="lg"
-                    onClick={handleGoToDashboard}
-                    className="group gap-3 px-8 h-12 rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow w-full"
+                  <motion.div variants={itemVariants} className="mb-2">
+                    <PartyPopper className="h-8 w-8 text-primary mx-auto mb-4" />
+                  </motion.div>
+
+                  <motion.h1
+                    variants={itemVariants}
+                    className="mb-4 text-3xl font-bold text-foreground md:text-4xl lg:text-5xl"
                   >
-                    <Rocket className="h-5 w-5" />
-                    <span>Ir para Dashboard</span>
-                    <motion.div
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{
-                        duration: 1.5,
-                        repeat: Number.POSITIVE_INFINITY,
-                      }}
+                    Tudo pronto!
+                  </motion.h1>
+
+                  <motion.p
+                    variants={itemVariants}
+                    className="mb-8 max-w-md text-lg text-muted-foreground leading-relaxed"
+                  >
+                    Sua conta{" "}
+                    <span className="font-semibold text-foreground">
+                      {accountData.name}
+                    </span>{" "}
+                    foi criada com sucesso. Agora você pode começar a gerenciar
+                    suas finanças!
+                  </motion.p>
+
+                  {/* Account summary card */}
+                  <motion.div
+                    variants={itemVariants}
+                    className="mb-10 w-full max-w-sm rounded-2xl bg-secondary/50 border border-border/50 p-6"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Conta</span>
+                        <span className="font-semibold text-foreground">
+                          {accountData.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Tipo</span>
+                        <span className="font-semibold text-foreground">
+                          {accountData.type === "checking"
+                            ? "Conta Corrente"
+                            : "Investimento"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">
+                          Saldo inicial
+                        </span>
+                        <span className="font-bold text-primary text-lg">
+                          {displayBalance}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  <motion.div variants={itemVariants} className="flex gap-4">
+                    {/* Option to edit account removed as it's already created */}
+                    <Button
+                      size="lg"
+                      onClick={handleGoToDashboard}
+                      className="group gap-3 px-8 h-12 rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow w-full"
                     >
-                      <ArrowRight className="h-5 w-5" />
-                    </motion.div>
-                  </Button>
+                      <Rocket className="h-5 w-5" />
+                      <span>Ir para Dashboard</span>
+                      <motion.div
+                        animate={{ x: [0, 5, 0] }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Number.POSITIVE_INFINITY,
+                        }}
+                      >
+                        <ArrowRight className="h-5 w-5" />
+                      </motion.div>
+                    </Button>
+                  </motion.div>
                 </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
+        </div>
 
-        <div className="flex justify-center gap-3 pb-8">
+        <div className="flex justify-center gap-3 py-6 shrink-0 bg-card/95 backdrop-blur-xl z-10">
           {[1, 2, 3].map((s) => (
             <motion.button
               key={s}
