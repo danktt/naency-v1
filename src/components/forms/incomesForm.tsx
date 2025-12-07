@@ -39,7 +39,6 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { useDateStore } from "@/stores/useDateStore";
-import { Tab, Tabs } from "@heroui/tabs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -50,8 +49,10 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import type { IconName } from "../DynamicIcon";
 import { Checkbox } from "../ui/checkbox";
 import { ScrollArea } from "../ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 
 const paymentMethodValues = [
   "pix",
@@ -466,6 +467,12 @@ export function IncomesForm(props: IncomesFormProps = {}) {
     [createIncomeMutation, effectiveIncome, isEditing, updateIncomeMutation],
   );
 
+  const modeTabs = [
+    { id: "unique", label: "Única", icon: "unique" },
+    { id: "installment", label: "Parcelada", icon: "installment" },
+    { id: "recurring", label: "Recorrente", icon: "recurring" },
+  ];
+
   const motionProps = {
     initial: { opacity: 0, y: -10, height: 0 },
     animate: { opacity: 1, y: 0, height: "auto" },
@@ -520,30 +527,32 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                       <FormItem>
                         <FormControl>
                           <Tabs
-                            fullWidth
-                            selectedKey={field.value}
-                            onSelectionChange={(value) => {
-                              if (isEditing) return;
-                              field.onChange(
-                                value as CreateIncomeFormValues["mode"],
-                              );
+                            value={field.value ?? "unique"}
+                            onValueChange={(value) => {
+                              if (
+                                value === "unique" ||
+                                value === "installment" ||
+                                value === "recurring"
+                              ) {
+                                field.onChange(value);
+                              }
                             }}
                           >
-                            <Tab
-                              key="unique"
-                              disabled={isEditing}
-                              title="Única"
-                            />
-                            <Tab
-                              key="installment"
-                              disabled={isEditing}
-                              title="Parcelada"
-                            />
-                            <Tab
-                              key="recurring"
-                              disabled={isEditing}
-                              title="Recorrente"
-                            />
+                            <TabsList className="w-full">
+                              {modeTabs.map((tab) => {
+                                return (
+                                  <TabsTrigger
+                                    key={tab.id}
+                                    value={tab.id}
+                                    className="flex-1 gap-2"
+                                    icon={tab.icon as IconName}
+                                    iconClassName="text-text-positive"
+                                  >
+                                    {tab.label}
+                                  </TabsTrigger>
+                                );
+                              })}
+                            </TabsList>
                           </Tabs>
                         </FormControl>
                         <FormMessage />

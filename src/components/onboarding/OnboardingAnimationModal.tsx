@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { DynamicIcon } from "../DynamicIcon";
+import { ToggleTheme } from "../ToggleTheme";
 
 // Types for TRPC integration
 type AccountType = "checking" | "credit" | "investment";
@@ -546,45 +548,15 @@ export default function OnboardingAnimationModal() {
     }),
   };
 
-  const FloatingParticles = () => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(6)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute h-2 w-2 rounded-full bg-primary/20"
-          initial={{
-            x: Math.random() * 100 + "%",
-            y: "100%",
-          }}
-          animate={{
-            y: "-20%",
-            x: [
-              Math.random() * 100 + "%",
-              Math.random() * 100 + "%",
-              Math.random() * 100 + "%",
-            ],
-            opacity: [0, 1, 0],
-          }}
-          transition={{
-            duration: 5 + Math.random() * 5,
-            repeat: Number.POSITIVE_INFINITY,
-            delay: i * 0.8,
-            ease: "easeOut",
-          }}
-        />
-      ))}
-    </div>
-  );
-
   if (!isOpen) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 backdrop-blur-md p-0 md:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-xs p-0 md:p-4">
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="absolute -top-1/2 -left-1/2 h-full w-full rounded-full bg-primary/5"
+          className="absolute -top-1/2 -left-1/2 h-full w-full rounded-full dark:bg-primary/5 bg-primary/15"
           animate={{
             scale: [1, 1.2, 1],
             rotate: [0, 180, 360],
@@ -596,7 +568,7 @@ export default function OnboardingAnimationModal() {
           }}
         />
         <motion.div
-          className="absolute -bottom-1/2 -right-1/2 h-full w-full rounded-full bg-accent/5"
+          className="absolute -bottom-1/2 -right-1/2 h-full w-full rounded-full dark:bg-primary/5 bg-primary/15"
           animate={{
             scale: [1.2, 1, 1.2],
             rotate: [360, 180, 0],
@@ -613,10 +585,8 @@ export default function OnboardingAnimationModal() {
         initial={{ scale: 0.8, opacity: 0, y: 50 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ type: "spring", duration: 0.8, bounce: 0.3 }}
-        className="relative w-full max-w-3xl overflow-hidden rounded-none md:rounded-3xl bg-card/95 backdrop-blur-xl shadow-2xl border-0 md:border border-border/50 flex flex-col h-full md:h-auto md:max-h-[90vh]"
+        className="relative w-full max-w-3xl overflow-hidden rounded-none md:rounded-3xl bg-card backdrop-blur-xl shadow-2xl border-0 md:border border-border/50 flex flex-col h-full md:h-auto md:max-h-[90vh]"
       >
-        {/* <FloatingParticles /> */}
-
         <div className="relative h-1.5 w-full bg-muted overflow-hidden shrink-0">
           <motion.div
             className="h-full bg-gradient-to-r from-primary via-primary to-accent"
@@ -636,7 +606,9 @@ export default function OnboardingAnimationModal() {
             }}
           />
         </div>
-
+        <div className="flex items-center justify-end p-4">
+          <ToggleTheme variant="ghost" />
+        </div>
         <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
           <AnimatePresence mode="wait" custom={step}>
             {step === 1 ? (
@@ -720,7 +692,7 @@ export default function OnboardingAnimationModal() {
                     ].map((item) => (
                       <motion.div
                         key={item.label}
-                        className="group relative overflow-hidden rounded-2xl bg-secondary/50 p-4 cursor-pointer border border-transparent hover:border-primary/20 transition-colors"
+                        className="group relative overflow-hidden rounded-2xl bg-card p-4 border border-transparent hover:border-primary/20 transition-colors"
                         whileHover={{ y: -5, scale: 1.02 }}
                         transition={{
                           type: "spring",
@@ -754,7 +726,7 @@ export default function OnboardingAnimationModal() {
                     <Button
                       size="lg"
                       onClick={() => setStep(2)}
-                      className="group gap-3 px-10 py-6 text-lg rounded-2xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
+                      className="group gap-3 px-10 py-6   text-lg rounded-2xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
                     >
                       <span>Começar agora</span>
                       <motion.div
@@ -779,9 +751,9 @@ export default function OnboardingAnimationModal() {
                 animate="center"
                 exit="exit"
                 transition={{ type: "spring", stiffness: 200, damping: 25 }}
-                className="p-6 md:p-12"
+                className="p-6 md:p-12 min-h-full flex flex-col justify-center"
               >
-                <div className="grid gap-6 md:gap-8 md:grid-cols-2">
+                <div className="grid gap-6 md:gap-8 md:grid-cols-2 ">
                   {/* Form */}
                   <motion.div
                     variants={containerVariants}
@@ -789,7 +761,69 @@ export default function OnboardingAnimationModal() {
                     animate="visible"
                     className="space-y-6"
                   >
-                    <motion.div variants={itemVariants}>
+                    <motion.div
+                      variants={itemVariants}
+                      className="block md:hidden flex flex-col items-center"
+                    >
+                      <div className="mb-2 flex flex-col xs:flex-row self-center items-center gap-3">
+                        <motion.div
+                          variants={itemVariants}
+                          className="relative mb-8"
+                        >
+                          <motion.div
+                            className="absolute inset-0 rounded-full bg-primary/20"
+                            animate={{
+                              scale: [1, 1.5, 1],
+                              opacity: [0.5, 0, 0.5],
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: Number.POSITIVE_INFINITY,
+                            }}
+                          />
+                          <motion.div
+                            className="absolute inset-0 rounded-full bg-primary/10"
+                            animate={{
+                              scale: [1, 2, 1],
+                              opacity: [0.3, 0, 0.3],
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: Number.POSITIVE_INFINITY,
+                              delay: 0.3,
+                            }}
+                          />
+                          <motion.div
+                            className="relative flex h-24 w-24 items-center justify-center rounded-full  "
+                            transition={{ duration: 0.8 }}
+                          >
+                            <DynamicIcon
+                              icon="bank"
+                              className="size-12 text-primary"
+                            />
+                          </motion.div>
+                        </motion.div>
+                        <div className="text-center">
+                          <motion.h1
+                            variants={itemVariants}
+                            className="mb-4 text-3xl font-bold text-foreground"
+                          >
+                            Configure sua conta
+                          </motion.h1>
+                          <motion.p
+                            variants={itemVariants}
+                            className=" max-w-md text-lg text-muted-foreground leading-relaxed"
+                          >
+                            Preencha os dados da sua primeira conta
+                          </motion.p>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      variants={itemVariants}
+                      className="hidden md:block"
+                    >
                       <div className="mb-2 flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                           <Building2 className="h-5 w-5 text-primary" />
@@ -824,7 +858,7 @@ export default function OnboardingAnimationModal() {
                       </Label>
                       <Input
                         id="accountName"
-                        placeholder="Ex: Conta Principal, Nubank..."
+                        placeholder="Ex: Conta principal, Nubank..."
                         value={accountData.name}
                         onChange={(e) =>
                           setAccountData((prev) => ({
@@ -934,7 +968,7 @@ export default function OnboardingAnimationModal() {
                 animate="center"
                 exit="exit"
                 transition={{ type: "spring", stiffness: 200, damping: 25 }}
-                className="p-6 md:p-12"
+                className="p-6 md:p-12 min-h-full flex flex-col justify-center"
               >
                 <motion.div
                   variants={containerVariants}
@@ -966,7 +1000,11 @@ export default function OnboardingAnimationModal() {
                       className="relative flex h-24 w-24 items-center justify-center rounded-full  "
                       transition={{ duration: 0.8 }}
                     >
-                      <Checkmark size={50} strokeWidth={4} color="white" />
+                      <Checkmark
+                        size={50}
+                        strokeWidth={6}
+                        className="text-primary dark:text-white"
+                      />
                     </motion.div>
                   </motion.div>
 
@@ -1058,9 +1096,9 @@ export default function OnboardingAnimationModal() {
                     <Button
                       size="lg"
                       onClick={handleGoToDashboard}
+                      icon={<Rocket className="h-5 w-5" />}
                       className="group gap-3 px-8 h-12 rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow w-full"
                     >
-                      <Rocket className="h-5 w-5" />
                       <span>Ir para Dashboard</span>
                       <motion.div
                         animate={{ x: [0, 5, 0] }}

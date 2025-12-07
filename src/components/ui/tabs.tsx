@@ -5,6 +5,7 @@ import { Tabs as TabsPrimitive } from "radix-ui";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { DynamicIcon, type IconName } from "../DynamicIcon";
 
 const TabsContext = React.createContext<{ layoutId: string } | null>(null);
 
@@ -48,8 +49,13 @@ function TabsList({
 
 function TabsTrigger({
   className,
+  icon,
+  iconClassName,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+}: React.ComponentProps<typeof TabsPrimitive.Trigger> & {
+  icon?: IconName;
+  iconClassName?: string;
+}) {
   const [isActive, setIsActive] = React.useState(false);
   const ref = React.useRef<HTMLButtonElement>(null);
   const context = React.useContext(TabsContext);
@@ -95,7 +101,8 @@ function TabsTrigger({
           }}
         />
       )}
-      <span className="relative z-10 flex items-center justify-center">
+      <span className="relative z-10 flex items-center justify-center gap-1">
+        {icon && <DynamicIcon icon={icon} className={iconClassName} />}
         {props.children}
       </span>
     </TabsPrimitive.Trigger>
