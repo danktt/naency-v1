@@ -36,6 +36,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  type ExpensesTransactionModeColorKey,
+  expensesModeColors,
+} from "@/constants/colors";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
@@ -552,12 +556,11 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                   value={tab.id}
                                   className="flex-1 gap-2"
                                   icon={tab.icon as IconName}
+                                  disabled={isEditing}
                                   iconClassName={
-                                    tab.id === "unique"
-                                      ? "text-text-negative"
-                                      : tab.id === "installment"
-                                        ? "text-amber-500"
-                                        : "text-blue-500"
+                                    expensesModeColors[
+                                      tab.id as ExpensesTransactionModeColorKey
+                                    ].className
                                   }
                                 >
                                   {tab.label}
@@ -985,7 +988,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
                   {/* === Details Section === */}
 
-                  <div className="grid gap-4  md:grid-cols-2 items-start p-1">
+                  <div className="grid gap-4 md:grid-cols-2 items-start px-1">
                     <FieldCurrencyAmount
                       control={form.control}
                       amountName="amount"

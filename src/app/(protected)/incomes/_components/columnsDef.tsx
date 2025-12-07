@@ -1,5 +1,20 @@
 "use client";
 
+import { DynamicIcon } from "@/components/DynamicIcon";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { incomesModeColors } from "@/constants/colors";
+import { formatCurrency } from "@/helpers/formatCurrency";
+import { formatDate } from "@/helpers/formatDate";
+import { cn } from "@/lib/utils";
+import type { AppRouter } from "@/server/api/root";
 import {
   IconCalendar,
   IconChecks,
@@ -13,20 +28,6 @@ import {
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { formatCurrency } from "@/helpers/formatCurrency";
-import { formatDate } from "@/helpers/formatDate";
-import { cn } from "@/lib/utils";
-import type { AppRouter } from "@/server/api/root";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 export type IncomeTableRow = RouterOutput["transactions"]["list"][number];
@@ -137,7 +138,10 @@ export function createIncomeColumns(
           return (
             <div className="flex flex-col text-muted-foreground">
               <div className="flex items-center gap-2">
-                <IconCalendar className="size-4 text-success" stroke={1.5} />
+                <DynamicIcon
+                  icon="unique"
+                  className={cn("size-4", incomesModeColors.unique.className)}
+                />
                 <span>{formatDate(tx.date)}</span>
               </div>
             </div>

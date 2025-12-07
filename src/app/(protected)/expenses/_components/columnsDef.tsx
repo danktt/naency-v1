@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { expensesModeColors } from "@/constants/colors";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,6 @@ import {
   IconPencil,
   IconReceiptRefund,
   IconRefreshDot,
-  IconRepeat,
   IconTrash,
 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -140,7 +140,12 @@ export function createExpenseColumns(
               <div className="flex items-center gap-2">
                 <DynamicIcon
                   icon="unique"
-                  className="size-4 text-icon-expense"
+                  className={cn(
+                    "size-4",
+                    tx.isPaid
+                      ? "text-gray-500"
+                      : expensesModeColors.unique.className,
+                  )}
                 />
                 <span>{formatDate(tx.date)}</span>
               </div>
@@ -154,7 +159,10 @@ export function createExpenseColumns(
               <div className="flex items-center gap-2">
                 <DynamicIcon
                   icon="installment"
-                  className="size-4 text-amber-500"
+                  className={cn(
+                    "size-4",
+                    expensesModeColors.installment.className,
+                  )}
                 />
                 <span>{formatDate(tx.date)}</span>
               </div>
@@ -168,7 +176,10 @@ export function createExpenseColumns(
               <div className="flex items-center gap-2">
                 <DynamicIcon
                   icon="recurring"
-                  className="size-4 text-blue-500"
+                  className={cn(
+                    "size-4",
+                    expensesModeColors.recurring.className,
+                  )}
                 />
                 <span>{formatDate(tx.date)}</span>
               </div>
@@ -238,22 +249,22 @@ export function createExpenseColumns(
 
           const paymentClassMap: Record<PaymentStatus, string> = {
             pending:
-              "border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1",
+              "border-text-negative /40 bg-text-negative/10 text-text-negative flex items-center gap-1",
             paidOnTime:
               "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
             paidLate:
-              "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
+              "border-text-negative/40 bg-text-negative/10 text-text-negative flex items-center gap-1",
             paidEarly:
               "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
             paid: "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
           };
 
           const paymentIconClassMap: Record<PaymentStatus, string> = {
-            pending: "fill-destructive text-destructive",
+            pending: "fill-text-income text-text-income",
             paidOnTime: "fill-gray-500 text-gray-500",
-            paidLate: "fill-gray-500 text-gray-500",
+            paidLate: "fill-text-negative text-text-negative",
             paidEarly: "fill-gray-500 text-gray-500",
-            paid: "fill-destructive text-destructive",
+            paid: "fill-gray-500 text-gray-500",
           };
 
           const statusLabels: Record<PaymentStatus, string> = {
@@ -275,19 +286,74 @@ export function createExpenseColumns(
           );
           badgeLabel = statusLabels[paymentStatus];
         } else if (isInstallment) {
-          badgeClass =
-            "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
+          const normalizeDate = (value: Date) =>
+            new Date(
+              value.getFullYear(),
+              value.getMonth(),
+              value.getDate(),
+            ).getTime();
+
+          const today = normalizeDate(new Date());
+          const date = tx.date ? normalizeDate(new Date(tx.date)) : null;
+          const isLate = !isPaid && date !== null && date < today;
+
+          const colorClass = isLate
+            ? "text-text-negative"
+            : expensesModeColors.installment.className;
+          const borderClass = isLate
+            ? "border-text-negative/40"
+            : "border-text-installment/40";
+          const bgClass = isLate
+            ? "bg-text-negative/10"
+            : "bg-text-installment/10";
+
+          badgeClass = cn(
+            borderClass,
+            bgClass,
+            "flex items-center gap-1",
+            colorClass,
+          );
           badgeIcon = (
             <IconRefreshDot
-              className="size-3 text-amber-500 shrink-0"
+              className={cn("size-3 shrink-0", colorClass)}
               stroke={1.5}
             />
           );
           badgeLabel = `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
         } else if (isRecurring) {
-          badgeClass =
-            "border-blue-400/40 bg-blue-400/10 text-blue-500 flex items-center gap-1";
-          badgeIcon = <IconRepeat className="size-3 text-blue-500 shrink-0" />;
+          const normalizeDate = (value: Date) =>
+            new Date(
+              value.getFullYear(),
+              value.getMonth(),
+              value.getDate(),
+            ).getTime();
+
+          const today = normalizeDate(new Date());
+          const date = tx.date ? normalizeDate(new Date(tx.date)) : null;
+          const isLate = !isPaid && date !== null && date < today;
+
+          const colorClass = isLate
+            ? "text-text-negative"
+            : expensesModeColors.recurring.className;
+          const borderClass = isLate
+            ? "border-text-negative/40"
+            : "border-text-recurring/40";
+          const bgClass = isLate
+            ? "bg-text-negative/10"
+            : "bg-text-recurring/10";
+
+          badgeClass = cn(
+            borderClass,
+            bgClass,
+            "flex items-center gap-1",
+            colorClass,
+          );
+          badgeIcon = (
+            <DynamicIcon
+              icon="recurring"
+              className={cn("size-4", colorClass)}
+            />
+          );
           badgeLabel = "Recorrente";
         }
 
@@ -306,8 +372,31 @@ export function createExpenseColumns(
       header: "Valor",
       cell: ({ row }) => {
         const amount = Number(row.getValue("amount"));
+        const isPaid = row.original.isPaid;
+        const tx = row.original;
+
+        const normalizeDate = (value: Date) =>
+          new Date(
+            value.getFullYear(),
+            value.getMonth(),
+            value.getDate(),
+          ).getTime();
+
+        const today = normalizeDate(new Date());
+        const date = tx.date ? normalizeDate(new Date(tx.date)) : null;
+        const isLate = !isPaid && date !== null && date < today;
+
         return (
-          <div className="font-mono font-semibold text-destructive">
+          <div
+            className={cn(
+              "font-mono font-semibold",
+              isPaid
+                ? "text-gray-500"
+                : isLate
+                  ? "text-text-negative"
+                  : "text-foreground", // Default color for pending/future
+            )}
+          >
             {formatCurrency(amount.toString())}
           </div>
         );
