@@ -18,10 +18,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   Building2,
-  CheckCircle2,
   ChevronRight,
   CreditCard,
-  PartyPopper,
   Rocket,
   Shield,
   TrendingUp,
@@ -78,6 +76,71 @@ interface AccountData {
   name: string;
   balance: string;
   type: "checking" | "investment" | "";
+}
+
+const draw = {
+  hidden: { pathLength: 0, opacity: 0 },
+  visible: (i: number) => {
+    const delay = 1 + i * 0.5;
+    return {
+      pathLength: 1,
+      opacity: 1,
+      transition: {
+        pathLength: { delay, type: "spring", duration: 1.5, bounce: 0 },
+        opacity: { delay, duration: 0.01 },
+      },
+    };
+  },
+};
+
+function Checkmark({
+  size = 100,
+  strokeWidth = 2,
+  color = "currentColor",
+  className = "",
+}: {
+  size?: number;
+  strokeWidth?: number;
+  color?: string;
+  className?: string;
+}) {
+  return (
+    <motion.svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      initial="hidden"
+      animate="visible"
+      className={className}
+    >
+      <title>Checkmark</title>
+      <motion.circle
+        cx="50"
+        cy="50"
+        r="42"
+        stroke={color}
+        variants={draw as never}
+        custom={0}
+        style={{
+          strokeWidth,
+          strokeLinecap: "round",
+          fill: "transparent",
+        }}
+      />
+      <motion.path
+        d="M32 50L45 63L68 35"
+        stroke={color}
+        variants={draw as never}
+        custom={1}
+        style={{
+          strokeWidth: strokeWidth + 0.5,
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+          fill: "transparent",
+        }}
+      />
+    </motion.svg>
+  );
 }
 
 const CardPreview = ({
@@ -214,7 +277,7 @@ const CardPreview = ({
                 opacity: 0,
                 filter: "blur(10px)",
               }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
               className="text-2xl font-bold truncate"
             >
               {accountData.name || "Sua nova conta"}
@@ -230,10 +293,22 @@ const CardPreview = ({
           <AnimatePresence mode="wait">
             <motion.p
               key={displayBalance}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.2, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300 }}
+              initial={{
+                y: 20,
+                opacity: 0,
+                filter: "blur(10px)",
+              }}
+              animate={{
+                y: 0,
+                opacity: 1,
+                filter: "blur(0px)",
+              }}
+              exit={{
+                y: -20,
+                opacity: 0,
+                filter: "blur(10px)",
+              }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
               className="text-3xl font-bold tracking-tight"
             >
               {displayBalance}
@@ -269,7 +344,7 @@ export default function OnboardingAnimationModal() {
   const [accountData, setAccountData] = useState<AccountData>({
     name: "",
     balance: "",
-    type: "",
+    type: "checking",
   });
 
   // State for visibility and logic
@@ -334,7 +409,7 @@ export default function OnboardingAnimationModal() {
     if (isUserIdChanged || !financialGroupResult) {
       setFinancialGroupResult(null);
       setStep(1);
-      setAccountData({ name: "", balance: "", type: "" });
+      setAccountData({ name: "", balance: "", type: "checking" });
     }
 
     getOrCreateGroup({
@@ -401,6 +476,10 @@ export default function OnboardingAnimationModal() {
       return;
     }
 
+    setStep(3);
+  };
+
+  const handleGoToDashboard = async () => {
     const numericBalance = accountData.balance
       ? parseInt(accountData.balance, 10) / 100
       : 0;
@@ -412,28 +491,19 @@ export default function OnboardingAnimationModal() {
         initialBalance: numericBalance,
         currency: "BRL",
       });
-      setStep(3);
-      toast.success("Conta criada com sucesso!");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível criar a conta.",
-      );
-    }
-  };
-
-  const handleGoToDashboard = async () => {
-    try {
       await completeOnboarding();
       setFinancialGroupResult((previous) =>
         previous ? { ...previous, onboardingCompleted: true } : previous,
       );
       queryClient.invalidateQueries({ queryKey: ["financialGroups"] });
       setIsOpen(false);
-      toast.success("Tudo pronto! Bem-vindo(a).");
-    } catch (_) {
-      toast.error("Erro ao finalizar onboarding. Tente novamente.");
+      toast.success("Conta criada e tudo pronto! Bem-vindo(a).");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Erro ao criar conta ou finalizar onboarding.",
+      );
     }
   };
 
@@ -789,7 +859,7 @@ export default function OnboardingAnimationModal() {
                           setAccountData((prev) => ({ ...prev, type: value }))
                         }
                       >
-                        <SelectTrigger className="h-12 rounded-xl border-border/50 bg-secondary/30 focus:bg-background transition-colors">
+                        <SelectTrigger className="h-12 rounded-xl border-border/50 bg-secondary/30 focus:bg-background transition-colors w-full">
                           <SelectValue placeholder="Selecione o tipo" />
                         </SelectTrigger>
                         <SelectContent>
@@ -825,7 +895,6 @@ export default function OnboardingAnimationModal() {
                         className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
                         disabled={
                           !accountData.name ||
-                          !accountData.balance ||
                           !accountData.type ||
                           isCreatingAccount
                         }
@@ -874,36 +943,30 @@ export default function OnboardingAnimationModal() {
                   className="flex flex-col items-center text-center"
                 >
                   {/* Success animation */}
+
                   <motion.div variants={itemVariants} className="relative mb-8">
                     <motion.div
-                      className="absolute inset-0 rounded-full bg-green-500/20"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: [0, 2, 2.5], opacity: [1, 0.5, 0] }}
-                      transition={{ duration: 1, delay: 0.3 }}
-                    />
-                    <motion.div
-                      className="absolute inset-0 rounded-full bg-green-500/20"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: [0, 1.5, 2], opacity: [1, 0.5, 0] }}
-                      transition={{ duration: 1, delay: 0.5 }}
-                    />
-                    <motion.div
-                      className="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30"
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
+                      className="absolute inset-0 rounded-full bg-primary/20"
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
                       transition={{
-                        type: "spring",
-                        stiffness: 200,
-                        delay: 0.2,
+                        duration: 2,
+                        repeat: Number.POSITIVE_INFINITY,
                       }}
+                    />
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-primary/10"
+                      animate={{ scale: [1, 2, 1], opacity: [0.3, 0, 0.3] }}
+                      transition={{
+                        duration: 2,
+                        repeat: Number.POSITIVE_INFINITY,
+                        delay: 0.3,
+                      }}
+                    />
+                    <motion.div
+                      className="relative flex h-24 w-24 items-center justify-center rounded-full  "
+                      transition={{ duration: 0.8 }}
                     >
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.6, type: "spring" }}
-                      >
-                        <CheckCircle2 className="h-12 w-12 text-white" />
-                      </motion.div>
+                      <Checkmark size={50} strokeWidth={4} color="white" />
                     </motion.div>
                   </motion.div>
 
@@ -939,10 +1002,6 @@ export default function OnboardingAnimationModal() {
                       />
                     ))}
                   </div>
-
-                  <motion.div variants={itemVariants} className="mb-2">
-                    <PartyPopper className="h-8 w-8 text-primary mx-auto mb-4" />
-                  </motion.div>
 
                   <motion.h1
                     variants={itemVariants}
@@ -1025,12 +1084,7 @@ export default function OnboardingAnimationModal() {
             <motion.button
               key={s}
               // Prevent clicking future steps
-              onClick={() => {
-                // Only allow navigating back to 1 if we haven't created the account yet (step 3)
-                if (s < step && step !== 3) {
-                  setStep(s as 1 | 2 | 3);
-                }
-              }}
+
               className={`relative h-2.5 rounded-full transition-all ${
                 s === step
                   ? "w-8 bg-primary"
