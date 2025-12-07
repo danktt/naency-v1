@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  AnimatedModal,
+  AnimatedModalBody,
+  AnimatedModalContent,
+  AnimatedModalFooter,
+  AnimatedModalHeader,
+  AnimatedModalProgress,
+} from "@/components/ui/animated-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -548,68 +556,16 @@ export default function OnboardingAnimationModal() {
     }),
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-xs p-0 md:p-4">
-      <div className="absolute inset-0 overflow-hidden">
-        <motion.div
-          className="absolute -top-1/2 -left-1/2 h-full w-full rounded-full dark:bg-primary/5 bg-primary/15"
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "linear",
-          }}
-        />
-        <motion.div
-          className="absolute -bottom-1/2 -right-1/2 h-full w-full rounded-full dark:bg-primary/5 bg-primary/15"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            rotate: [360, 180, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "linear",
-          }}
-        />
-      </div>
+    <AnimatedModal isOpen={isOpen}>
+      <AnimatedModalContent>
+        <AnimatedModalProgress value={step} max={3} />
 
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0, y: 50 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ type: "spring", duration: 0.8, bounce: 0.3 }}
-        className="relative w-full max-w-3xl overflow-hidden rounded-none md:rounded-3xl bg-card backdrop-blur-xl shadow-2xl border-0 md:border border-border/50 flex flex-col h-full md:h-auto md:max-h-[90vh]"
-      >
-        <div className="relative h-1.5 w-full bg-muted overflow-hidden shrink-0">
-          <motion.div
-            className="h-full bg-gradient-to-r from-primary via-primary to-accent"
-            initial={{ width: "33%" }}
-            animate={{
-              width: step === 1 ? "33%" : step === 2 ? "66%" : "100%",
-            }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          />
-          <motion.div
-            className="absolute top-0 h-full w-20 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-            animate={{ x: ["-100%", "500%"] }}
-            transition={{
-              duration: 2,
-              repeat: Number.POSITIVE_INFINITY,
-              ease: "linear",
-            }}
-          />
-        </div>
-        <div className="flex items-center justify-end p-4">
+        <AnimatedModalHeader className="justify-end">
           <ToggleTheme variant="ghost" />
-        </div>
-        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+        </AnimatedModalHeader>
+
+        <AnimatedModalBody>
           <AnimatePresence mode="wait" custom={step}>
             {step === 1 ? (
               <motion.div
@@ -1115,14 +1071,13 @@ export default function OnboardingAnimationModal() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </AnimatedModalBody>
 
-        <div className="flex justify-center gap-3 py-6 shrink-0 bg-card/95 backdrop-blur-xl z-10">
+        <AnimatedModalFooter>
           {[1, 2, 3].map((s) => (
             <motion.button
               key={s}
               // Prevent clicking future steps
-
               className={`relative h-2.5 rounded-full transition-all ${
                 s === step
                   ? "w-8 bg-primary"
@@ -1143,8 +1098,8 @@ export default function OnboardingAnimationModal() {
               )}
             </motion.button>
           ))}
-        </div>
-      </motion.div>
-    </div>
+        </AnimatedModalFooter>
+      </AnimatedModalContent>
+    </AnimatedModal>
   );
 }

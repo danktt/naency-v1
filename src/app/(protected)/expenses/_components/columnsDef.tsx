@@ -1,5 +1,19 @@
 "use client";
 
+import { DynamicIcon } from "@/components/DynamicIcon";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { formatCurrency } from "@/helpers/formatCurrency";
+import { formatDate } from "@/helpers/formatDate";
+import { cn } from "@/lib/utils";
+import type { AppRouter } from "@/server/api/root";
 import {
   IconCalendar,
   IconChecks,
@@ -14,20 +28,6 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
 import type * as React from "react";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { formatCurrency } from "@/helpers/formatCurrency";
-import { formatDate } from "@/helpers/formatDate";
-import { cn } from "@/lib/utils";
-import type { AppRouter } from "@/server/api/root";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 export type ExpenseTableRow = RouterOutput["transactions"]["list"][number];
@@ -138,7 +138,10 @@ export function createExpenseColumns(
           return (
             <div className="flex flex-col text-muted-foreground">
               <div className="flex items-center gap-2">
-                <IconCalendar className="size-4 text-destructive" />
+                <DynamicIcon
+                  icon="unique"
+                  className="size-4 text-icon-expense"
+                />
                 <span>{formatDate(tx.date)}</span>
               </div>
             </div>
@@ -149,9 +152,9 @@ export function createExpenseColumns(
           return (
             <div className="flex flex-col text-muted-foreground">
               <div className="flex items-center gap-2">
-                <IconRefreshDot
+                <DynamicIcon
+                  icon="installment"
                   className="size-4 text-amber-500"
-                  stroke={1.5}
                 />
                 <span>{formatDate(tx.date)}</span>
               </div>
@@ -163,7 +166,10 @@ export function createExpenseColumns(
           return (
             <div className="flex flex-col text-muted-foreground">
               <div className="flex items-center gap-2">
-                <IconRepeat className="size-4 text-blue-500" />
+                <DynamicIcon
+                  icon="recurring"
+                  className="size-4 text-blue-500"
+                />
                 <span>{formatDate(tx.date)}</span>
               </div>
             </div>

@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  IconArrowDownLeft,
+  IconArrowUpRight,
   IconBuildingBank,
   IconCalendarEvent,
   IconCalendarMonth,
@@ -33,6 +35,8 @@ export const ICON_MAP = {
   bank: IconBuildingBank,
   moon: IconMoon,
   sun: IconSun,
+  income: IconArrowDownLeft,
+  expense: IconArrowUpRight,
   ...calendarIcons,
 } as const;
 

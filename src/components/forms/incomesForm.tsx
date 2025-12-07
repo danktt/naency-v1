@@ -4,14 +4,13 @@ import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
 import { CategoriesSelect } from "@/components/Selects/CategoriesSelect";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -28,6 +27,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
@@ -50,9 +51,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import type { IconName } from "../DynamicIcon";
-import { Checkbox } from "../ui/checkbox";
-import { ScrollArea } from "../ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
+import { TransactionFormHeader } from "./TransactionFormHeader";
 
 const paymentMethodValues = [
   "pix",
@@ -507,16 +506,12 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                 className="flex flex-1 flex-col min-h-0"
               >
                 {/* Header */}
-                <div className="sm:px-4 px-4 pt-6 pb-4 space-y-4 shrink-0">
+                <div className="sm:px-6 px-4 pt-6 pb-2 space-y-4 shrink-0">
                   <DialogHeader className="px-0 text-left">
-                    <DialogTitle>
-                      {isEditing ? "Editar receita" : "Criar receita"}
-                    </DialogTitle>
-                    <DialogDescription>
-                      {isEditing
-                        ? "Atualize os dados da receita."
-                        : "Nova entrada financeira."}
-                    </DialogDescription>
+                    <TransactionFormHeader
+                      isEditing={!!isEditing}
+                      type="income"
+                    />
                   </DialogHeader>
 
                   {/* Mode Tabs */}
@@ -539,19 +534,17 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                             }}
                           >
                             <TabsList className="w-full">
-                              {modeTabs.map((tab) => {
-                                return (
-                                  <TabsTrigger
-                                    key={tab.id}
-                                    value={tab.id}
-                                    className="flex-1 gap-2"
-                                    icon={tab.icon as IconName}
-                                    iconClassName="text-text-positive"
-                                  >
-                                    {tab.label}
-                                  </TabsTrigger>
-                                );
-                              })}
+                              {modeTabs.map((tab) => (
+                                <TabsTrigger
+                                  key={tab.id}
+                                  value={tab.id}
+                                  className="flex-1 gap-2"
+                                  icon={tab.icon as IconName}
+                                  iconClassName="text-text-positive"
+                                >
+                                  {tab.label}
+                                </TabsTrigger>
+                              ))}
                             </TabsList>
                           </Tabs>
                         </FormControl>
@@ -562,8 +555,8 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                 </div>
 
                 {/* Scrollable Content */}
-                <ScrollArea className="flex-1 sm:px-4 px-4 overflow-y-auto">
-                  <div className="space-y-6 px-1 pb-1">
+                <ScrollArea className="flex-1 sm:px-6 px-4">
+                  <div className="space-y-6 px-1 pb-4 pt-2">
                     {/* === Dates Section === */}
                     <section className="space-y-2">
                       <AnimatePresence initial={false} mode="wait">
@@ -1145,7 +1138,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                 </ScrollArea>
 
                 {/* === Footer === */}
-                <div className="sm:px-4 px-4 py-4 rounded-b-lg">
+                <div className="sm:px-6 px-4 py-4 rounded-b-lg">
                   <div className="flex sm:flex-row flex-col gap-4">
                     {!isEditing && (
                       <div className="flex items-center gap-2">
@@ -1159,7 +1152,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                         />
                         <FormLabel
                           htmlFor={keepOpenId}
-                          className="text-sm text-muted-foreground whitespace-nowrap"
+                          className="text-sm text-muted-foreground whitespace-nowrap cursor-pointer"
                         >
                           Manter aberto
                         </FormLabel>
