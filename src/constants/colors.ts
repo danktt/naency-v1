@@ -1,7 +1,7 @@
 export const expensesModeColors = {
   unique: {
-    className: "text-text-negative",
-    fill: "var(--color-text-negative)",
+    className: "text-text-unique",
+    fill: "var(--color-text-unique)",
   },
   installment: {
     className: "text-text-installment",

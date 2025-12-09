@@ -10,21 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { expensesModeColors } from "@/constants/colors";
 import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
-import {
-  IconCalendar,
-  IconChecks,
-  IconCircle,
-  IconDotsVertical,
-  IconPencil,
-  IconReceiptRefund,
-  IconRefreshDot,
-  IconTrash,
-} from "@tabler/icons-react";
+import { IconChecks } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
 import type * as React from "react";
@@ -62,46 +52,6 @@ function getDateValue(tx: ExpenseTableRow): string {
   return formatDate(new Date(tx.date));
 }
 
-// Helper function to get status label for filtering
-function getStatusLabel(tx: ExpenseTableRow): string {
-  const isRecurring = Boolean(tx.recurringId);
-  const isInstallment = Boolean(tx.installmentGroupId);
-  const isPaid = Boolean(tx.isPaid);
-
-  if (isInstallment) {
-    return `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
-  }
-
-  if (isRecurring) {
-    return "Recorrente";
-  }
-
-  if (!isPaid) {
-    return "Pendente";
-  }
-
-  const expectedDate = tx.date ? new Date(tx.date) : null;
-  const paidAtDate = tx.paidAt ? new Date(tx.paidAt) : null;
-
-  if (!expectedDate || !paidAtDate) {
-    return "Pago";
-  }
-
-  const normalizeDate = (value: Date) =>
-    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
-
-  const expectedTime = normalizeDate(expectedDate);
-  const paidTime = normalizeDate(paidAtDate);
-
-  if (paidTime === expectedTime) {
-    return "Pago";
-  }
-  if (paidTime > expectedTime) {
-    return "Pago atrasado";
-  }
-  return "Pago antecipadamente";
-}
-
 export function createExpenseColumns(
   options: CreateExpenseColumnsParams,
 ): ColumnDef<ExpenseTableRow>[] {
@@ -130,240 +80,205 @@ export function createExpenseColumns(
       accessorFn: (row) => getDateValue(row),
       cell: ({ row }) => {
         const tx = row.original;
+        const isPaid = Boolean(tx.isPaid);
 
-        const isRecurring = Boolean(tx.recurringId);
-        const isInstallment = Boolean(tx.installmentGroupId);
+        const normalizeDate = (value: Date) =>
+          new Date(
+            value.getFullYear(),
+            value.getMonth(),
+            value.getDate(),
+          ).getTime();
 
-        if (!isRecurring && !isInstallment) {
+        const today = normalizeDate(new Date());
+        const date = tx.date ? normalizeDate(new Date(tx.date)) : null;
+        const isLate = !isPaid && date !== null && date < today;
+
+        if (!tx.date) {
           return (
-            <div className="flex flex-col text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <DynamicIcon
-                  icon="unique"
-                  className={cn(
-                    "size-4",
-                    tx.isPaid
-                      ? "text-gray-500"
-                      : expensesModeColors.unique.className,
-                  )}
-                />
-                <span>{formatDate(tx.date)}</span>
-              </div>
-            </div>
-          );
-        }
-
-        if (isInstallment) {
-          return (
-            <div className="flex flex-col text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <DynamicIcon
-                  icon="installment"
-                  className={cn(
-                    "size-4",
-                    expensesModeColors.installment.className,
-                  )}
-                />
-                <span>{formatDate(tx.date)}</span>
-              </div>
-            </div>
-          );
-        }
-
-        if (isRecurring) {
-          return (
-            <div className="flex flex-col text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <DynamicIcon
-                  icon="recurring"
-                  className={cn(
-                    "size-4",
-                    expensesModeColors.recurring.className,
-                  )}
-                />
-                <span>{formatDate(tx.date)}</span>
-              </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <DynamicIcon icon="calendar" className="size-4" />
+              <span>Sem data</span>
             </div>
           );
         }
 
         return (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <IconCalendar className="size-4" />
-            <span>Sem data</span>
+          <div className="flex items-center gap-2">
+            {isLate ? (
+              <DynamicIcon
+                icon="warning"
+                className="size-4 shrink-0 text-text-negative animate-pulse"
+              />
+            ) : (
+              <DynamicIcon
+                icon={isPaid ? "calendar-check" : "calendar-time"}
+                className={cn(
+                  "size-4 shrink-0",
+                  isPaid ? "text-gray-500" : "text-muted-foreground",
+                )}
+              />
+            )}
+            <span
+              className={cn(
+                isPaid ? "text-gray-500" : isLate && "text-text-negative",
+              )}
+            >
+              {formatDate(tx.date)}
+            </span>
           </div>
+        );
+      },
+    },
+    {
+      id: "type",
+      header: "Tipo",
+      cell: ({ row }) => {
+        const tx = row.original;
+        const isRecurring = Boolean(tx.recurringId);
+        const isInstallment = Boolean(tx.installmentGroupId);
+        const isUnique = !isRecurring && !isInstallment;
+        const isPaid = Boolean(tx.isPaid);
+
+        let typeLabel = "";
+        let typeIcon: React.ReactNode = null;
+        let typeClass = "";
+
+        if (isPaid) {
+          // Se pago, usa gray-500 para todos os tipos
+          if (isUnique) {
+            typeLabel = "À vista";
+            typeIcon = (
+              <DynamicIcon
+                icon="unique"
+                className="size-3 shrink-0 text-gray-500"
+              />
+            );
+            typeClass =
+              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
+          } else if (isInstallment) {
+            const installmentNumber = tx.installmentNumber ?? 1;
+            const totalInstallments = tx.totalInstallments ?? 1;
+            typeLabel = `Parcelada (${installmentNumber}/${totalInstallments})`;
+            typeIcon = (
+              <DynamicIcon
+                icon="installment"
+                className="size-3 shrink-0 text-gray-500"
+              />
+            );
+            typeClass =
+              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
+          } else if (isRecurring) {
+            typeLabel = "Recorrente";
+            typeIcon = (
+              <DynamicIcon
+                icon="recurring"
+                className="size-3 shrink-0 text-gray-500"
+              />
+            );
+            typeClass =
+              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
+          }
+        } else {
+          // Se não pago, usa as cores originais de cada tipo
+          if (isUnique) {
+            typeLabel = "À vista";
+            typeIcon = (
+              <DynamicIcon icon="unique" className="size-3 shrink-0 " />
+            );
+            typeClass =
+              "border-text-unique dark:bg-text-unique/10 bg-text-unique/20 text-text-unique  flex items-center gap-1";
+          } else if (isInstallment) {
+            const installmentNumber = tx.installmentNumber ?? 1;
+            const totalInstallments = tx.totalInstallments ?? 1;
+            typeLabel = `Parcelada (${installmentNumber}/${totalInstallments})`;
+            typeIcon = (
+              <DynamicIcon icon="installment" className="size-3 shrink-0" />
+            );
+            typeClass =
+              " border-text-installment dark:bg-text-installment/10 bg-text-installment/20 text-text-installment  flex items-center gap-1";
+          } else if (isRecurring) {
+            typeLabel = "Recorrente";
+            typeIcon = (
+              <DynamicIcon icon="recurring" className="size-3 shrink-0" />
+            );
+            typeClass =
+              "border-text-recurring dark:bg-text-recurring/10 bg-text-recurring/20 text-text-recurring  flex items-center gap-1";
+          }
+        }
+
+        return (
+          <Badge variant="outline" className={typeClass}>
+            {typeIcon}
+            {typeLabel}
+          </Badge>
         );
       },
     },
     {
       id: "status",
       header: "Status",
-      accessorFn: (row) => getStatusLabel(row),
+      accessorFn: (row) => {
+        const isPaid = Boolean(row.isPaid);
+        if (isPaid) return "Pago";
+
+        const normalizeDate = (value: Date) =>
+          new Date(
+            value.getFullYear(),
+            value.getMonth(),
+            value.getDate(),
+          ).getTime();
+
+        const today = normalizeDate(new Date());
+        const date = row.date ? normalizeDate(new Date(row.date)) : null;
+        const isPastDue = date !== null && date < today;
+
+        return isPastDue ? "Em atraso" : "Em aberto";
+      },
       cell: ({ row }) => {
         const tx = row.original;
-
-        const isRecurring = Boolean(tx.recurringId);
-        const isInstallment = Boolean(tx.installmentGroupId);
         const isPaid = Boolean(tx.isPaid);
-        const expectedDate = tx.date ? new Date(tx.date) : null;
-        const paidAtDate = tx.paidAt ? new Date(tx.paidAt) : null;
+
+        const normalizeDate = (value: Date) =>
+          new Date(
+            value.getFullYear(),
+            value.getMonth(),
+            value.getDate(),
+          ).getTime();
+
+        const today = normalizeDate(new Date());
+        const date = tx.date ? normalizeDate(new Date(tx.date)) : null;
+        const isPastDue = !isPaid && date !== null && date < today;
 
         let badgeClass = "";
         let badgeIcon: React.ReactNode = null;
         let badgeLabel = "";
 
-        if (!isRecurring && !isInstallment) {
-          type PaymentStatus =
-            | "pending"
-            | "paidOnTime"
-            | "paidLate"
-            | "paidEarly"
-            | "paid";
-
-          const normalizeDate = (value: Date) =>
-            new Date(
-              value.getFullYear(),
-              value.getMonth(),
-              value.getDate(),
-            ).getTime();
-
-          const paymentStatus: PaymentStatus = (() => {
-            if (!isPaid) {
-              return "pending";
-            }
-            if (!expectedDate || !paidAtDate) {
-              return "paid";
-            }
-
-            const expectedTime = normalizeDate(expectedDate);
-            const paidTime = normalizeDate(paidAtDate);
-
-            if (paidTime === expectedTime) {
-              return "paidOnTime";
-            }
-            if (paidTime > expectedTime) {
-              return "paidLate";
-            }
-            return "paidEarly";
-          })();
-
-          const paymentClassMap: Record<PaymentStatus, string> = {
-            pending:
-              "border-text-negative /40 bg-text-negative/10 text-text-negative flex items-center gap-1",
-            paidOnTime:
-              "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
-            paidLate:
-              "border-text-negative/40 bg-text-negative/10 text-text-negative flex items-center gap-1",
-            paidEarly:
-              "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
-            paid: "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1",
-          };
-
-          const paymentIconClassMap: Record<PaymentStatus, string> = {
-            pending: "fill-text-income text-text-income",
-            paidOnTime: "fill-gray-500 text-gray-500",
-            paidLate: "fill-text-negative text-text-negative",
-            paidEarly: "fill-gray-500 text-gray-500",
-            paid: "fill-gray-500 text-gray-500",
-          };
-
-          const statusLabels: Record<PaymentStatus, string> = {
-            pending: "Pendente",
-            paidOnTime: "Pago",
-            paidLate: "Pago atrasado",
-            paidEarly: "Pago antecipadamente",
-            paid: "Pago",
-          };
-
-          badgeClass = paymentClassMap[paymentStatus];
-          badgeIcon = (
-            <IconCircle
-              className={cn(
-                "size-2 shrink-0",
-                paymentIconClassMap[paymentStatus],
-              )}
-            />
-          );
-          badgeLabel = statusLabels[paymentStatus];
-        } else if (isInstallment) {
-          const normalizeDate = (value: Date) =>
-            new Date(
-              value.getFullYear(),
-              value.getMonth(),
-              value.getDate(),
-            ).getTime();
-
-          const today = normalizeDate(new Date());
-          const date = tx.date ? normalizeDate(new Date(tx.date)) : null;
-          const isLate = !isPaid && date !== null && date < today;
-
-          const colorClass = isLate
-            ? "text-text-negative"
-            : expensesModeColors.installment.className;
-          const borderClass = isLate
-            ? "border-text-negative/40"
-            : "border-text-installment/40";
-          const bgClass = isLate
-            ? "bg-text-negative/10"
-            : "bg-text-installment/10";
-
-          badgeClass = cn(
-            borderClass,
-            bgClass,
-            "flex items-center gap-1",
-            colorClass,
-          );
-          badgeIcon = (
-            <IconRefreshDot
-              className={cn("size-3 shrink-0", colorClass)}
-              stroke={1.5}
-            />
-          );
-          badgeLabel = `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
-        } else if (isRecurring) {
-          const normalizeDate = (value: Date) =>
-            new Date(
-              value.getFullYear(),
-              value.getMonth(),
-              value.getDate(),
-            ).getTime();
-
-          const today = normalizeDate(new Date());
-          const date = tx.date ? normalizeDate(new Date(tx.date)) : null;
-          const isLate = !isPaid && date !== null && date < today;
-
-          const colorClass = isLate
-            ? "text-text-negative"
-            : expensesModeColors.recurring.className;
-          const borderClass = isLate
-            ? "border-text-negative/40"
-            : "border-text-recurring/40";
-          const bgClass = isLate
-            ? "bg-text-negative/10"
-            : "bg-text-recurring/10";
-
-          badgeClass = cn(
-            borderClass,
-            bgClass,
-            "flex items-center gap-1",
-            colorClass,
-          );
+        if (isPaid) {
+          badgeClass =
+            "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1";
           badgeIcon = (
             <DynamicIcon
-              icon="recurring"
-              className={cn("size-4", colorClass)}
+              icon="double-check"
+              className="size-3 shrink-0 fill-gray-500 text-gray-500"
             />
           );
-          badgeLabel = "Recorrente";
+          badgeLabel = "Pago";
+        } else if (isPastDue) {
+          badgeClass = " text-white bg-text-negative flex items-center gap-1";
+
+          badgeLabel = "Em atraso";
+        } else {
+          badgeClass =
+            "border-text-negative/40 bg-text-negative/10 text-text-negative flex items-center gap-1";
+
+          badgeLabel = "Em aberto";
         }
 
         return (
-          <div className="flex flex-col gap-1">
-            <Badge variant="secondary" className={badgeClass}>
-              {badgeIcon}
-              {badgeLabel}
-            </Badge>
-          </div>
+          <Badge variant="secondary" className={badgeClass}>
+            {badgeIcon}
+            {badgeLabel}
+          </Badge>
         );
       },
     },
@@ -402,35 +317,15 @@ export function createExpenseColumns(
         );
       },
     },
-
-    {
-      accessorKey: "paidAt",
-      header: "Pago em",
-      cell: ({ row }) => {
-        const isPaid = row.original.isPaid;
-        const paidAt = row.original.paidAt
-          ? new Date(row.original.paidAt)
-          : null;
-
-        if (!isPaid) {
-          return <Badge variant="muted">Ainda não pago</Badge>;
-        }
-
-        return (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <span className="text-sm font-medium text-muted-foreground">
-              {paidAt ? formatDate(paidAt) : "-"}
-            </span>
-          </div>
-        );
-      },
-    },
     {
       accessorKey: "description",
       header: "Descrição",
       cell: ({ row }) => (
         <p
-          className="max-w-[200px] truncate capitalize"
+          className={cn(
+            "max-w-[200px] truncate capitalize",
+            row.original.isPaid && "text-gray-500",
+          )}
           title={row.getValue("description")}
         >
           {String(row.getValue("description")).toUpperCase()}
@@ -473,6 +368,28 @@ export function createExpenseColumns(
     },
   ];
 
+  // Add "Pago em" column before actions
+  columns.push({
+    accessorKey: "paidAt",
+    header: "Pago em",
+    cell: ({ row }) => {
+      const isPaid = row.original.isPaid;
+      const paidAt = row.original.paidAt ? new Date(row.original.paidAt) : null;
+
+      if (!isPaid) {
+        return null;
+      }
+
+      return (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <span className="text-sm font-medium text-muted-foreground">
+            {paidAt ? formatDate(paidAt) : "-"}
+          </span>
+        </div>
+      );
+    },
+  });
+
   if (hasActions) {
     columns.push({
       id: "actions",
@@ -485,7 +402,7 @@ export function createExpenseColumns(
               className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
               size="icon"
             >
-              <IconDotsVertical />
+              <DynamicIcon icon="dotsVertical" className="size-4" />
               <span className="sr-only">Abrir menu</span>
             </Button>
           </DropdownMenuTrigger>
@@ -497,7 +414,7 @@ export function createExpenseColumns(
                 onEditExpense?.(row.original);
               }}
             >
-              <IconPencil className="size-4" stroke={1.5} />
+              <DynamicIcon icon="edit" className="size-4" />
               Editar despesa
             </DropdownMenuItem>
             {!row.original.isPaid ? (
@@ -519,7 +436,7 @@ export function createExpenseColumns(
                   onMarkAsPending?.(row.original);
                 }}
               >
-                <IconReceiptRefund className="size-4" stroke={1.5} />
+                <DynamicIcon icon="receiptRefund" className="size-4" />
                 Marcar como pendente
               </DropdownMenuItem>
             )}
@@ -532,7 +449,7 @@ export function createExpenseColumns(
                 onDeleteExpense?.(row.original);
               }}
             >
-              <IconTrash className="size-4" stroke={1.5} />
+              <DynamicIcon icon="trash" className="size-4" />
               Deletar despesa
             </DropdownMenuItem>
           </DropdownMenuContent>

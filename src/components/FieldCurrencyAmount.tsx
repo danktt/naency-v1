@@ -1,8 +1,5 @@
 "use client";
 
-import { Calculator, Copy } from "lucide-react";
-import * as React from "react";
-import { type Control, type Path, useController } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
   FormControl,
@@ -17,7 +14,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { Calculator, Copy } from "lucide-react";
+import * as React from "react";
+import { type Control, type Path, useController } from "react-hook-form";
 
 const currencyOptions: {
   label: string;
@@ -59,6 +58,8 @@ interface FieldCurrencyAmountProps<T extends Record<string, unknown>> {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  isInstallment?: boolean;
+  totalInstallments?: number;
 }
 
 export function FieldCurrencyAmount<T extends Record<string, unknown>>({
@@ -69,6 +70,8 @@ export function FieldCurrencyAmount<T extends Record<string, unknown>>({
   required = false,
   disabled = false,
   className,
+  isInstallment = false,
+  totalInstallments = 1,
 }: FieldCurrencyAmountProps<T>) {
   const { field: amountField, fieldState: amountState } = useController({
     name: amountName,
@@ -83,6 +86,16 @@ export function FieldCurrencyAmount<T extends Record<string, unknown>>({
   const currencyValue =
     (currencyField.value as "BRL" | "USD" | undefined) ??
     currencyOptions[0].value;
+
+  // Calculate installment value if applicable
+  const installmentValue = React.useMemo(() => {
+    if (!isInstallment || !totalInstallments || totalInstallments < 2) {
+      return null;
+    }
+    const totalAmount = Number(amountField.value ?? 0) / 100;
+    const dividedAmount = totalAmount / totalInstallments;
+    return formatCentsValueOnly(Math.round(dividedAmount * 100), currencyValue);
+  }, [isInstallment, totalInstallments, amountField.value, currencyValue]);
 
   // Calculator State
   const [display, setDisplay] = React.useState("0");
@@ -260,6 +273,17 @@ export function FieldCurrencyAmount<T extends Record<string, unknown>>({
           <FormLabel>
             {label}
             {required && <span className="text-destructive"> *</span>}
+
+            <span className="text-xs text-muted-foreground">
+              {installmentValue && (
+                <span className="ml-2">
+                  (Parcela:{" "}
+                  {currencyOptions.find((opt) => opt.value === currencyValue)
+                    ?.symbol ?? ""}
+                  {installmentValue})
+                </span>
+              )}
+            </span>
           </FormLabel>
 
           {/* Prefix symbol */}

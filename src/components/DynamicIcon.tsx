@@ -1,17 +1,28 @@
 "use client";
 
 import {
+  IconAlertCircle,
   IconArrowDownLeft,
   IconArrowUpRight,
   IconBuildingBank,
+  IconCalendar,
+  IconCalendarCheck,
   IconCalendarEvent,
   IconCalendarMonth,
+  IconCalendarTime,
   IconCalendarWeek,
   IconCheck,
+  IconChecks,
+  IconCircle,
+  IconDotsVertical,
   IconMoon,
+  IconPencil,
   IconReceipt,
+  IconReceiptRefund,
+  IconRefreshDot,
   IconRepeat,
   IconSun,
+  IconTrash,
 } from "@tabler/icons-react";
 import type { ReactElement } from "react";
 
@@ -23,9 +34,12 @@ interface DynamicIconProps {
 }
 
 const calendarIcons = {
+  calendar: IconCalendar,
   "calendar-day": IconCalendarEvent,
   "calendar-week": IconCalendarWeek,
   "calendar-month": IconCalendarMonth,
+  "calendar-check": IconCalendarCheck,
+  "calendar-time": IconCalendarTime,
 };
 export const ICON_MAP = {
   unique: IconReceipt,
@@ -37,6 +51,15 @@ export const ICON_MAP = {
   sun: IconSun,
   income: IconArrowDownLeft,
   expense: IconArrowUpRight,
+  "double-check": IconChecks,
+  circle: IconCircle,
+  dotsVertical: IconDotsVertical,
+  edit: IconPencil,
+  receiptRefund: IconReceiptRefund,
+  refreshDot: IconRefreshDot,
+  trash: IconTrash,
+  warning: IconAlertCircle,
+
   ...calendarIcons,
 } as const;
 

@@ -322,7 +322,7 @@ export function createIncomeColumns(
           : null;
 
         if (!isPaid) {
-          return <Badge variant="muted">Não recebido</Badge>;
+          return <Badge variant="destructive">Não recebido</Badge>;
         }
 
         return (

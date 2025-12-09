@@ -484,7 +484,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
   );
 
   const modeTabs = [
-    { id: "unique", label: "Única", icon: "unique" },
+    { id: "unique", label: "À vista", icon: "unique" },
     { id: "installment", label: "Parcelada", icon: "installment" },
     { id: "recurring", label: "Recorrente", icon: "recurring" },
   ];
@@ -993,8 +993,10 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                       control={form.control}
                       amountName="amount"
                       currencyName="currency"
-                      label="Valor"
+                      label={isInstallment ? "Valor da total" : "Valor"}
                       required
+                      isInstallment={isInstallment}
+                      totalInstallments={form.watch("totalInstallments")}
                     />
                     <FormField
                       control={form.control}

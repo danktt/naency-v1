@@ -62,17 +62,13 @@ export function MonthlyTrendCard({
               {highlightedEntry.data.label}
             </span>
             <div className="flex items-center justify-between gap-1">
-              <span className="text-muted-foreground">
-                Receitas
-              </span>
+              <span className="text-muted-foreground">Receitas</span>
               <span className="font-bold text-foreground">
                 {formatCurrency(highlightedEntry.data.incomes)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-1">
-              <span className="text-muted-foreground">
-                Despesas
-              </span>
+              <span className="text-muted-foreground">Despesas</span>
               <span className="font-bold text-foreground">
                 {formatCurrency(highlightedEntry.data.expenses)}
               </span>
@@ -89,7 +85,6 @@ export function MonthlyTrendCard({
             accessibilityLayer
             data={data}
             onMouseLeave={() => onBarHover(null)}
-            margin={{ top: 10, right: 10, bottom: 10, left: 20 }}
           >
             <rect
               x="0"
@@ -126,7 +121,10 @@ export function MonthlyTrendCard({
                           className="h-2.5 w-1 shrink-0 rounded-[2px] bg-(--color-bg)"
                           style={
                             {
-                              "--color-bg": `var(--color-${name})`,
+                              "--color-bg":
+                                name === "incomes"
+                                  ? "var(--color-text-positive)"
+                                  : "var(--color-text-negative)",
                             } as React.CSSProperties
                           }
                         />
@@ -144,7 +142,7 @@ export function MonthlyTrendCard({
             />
             <Bar
               dataKey="incomes"
-              fill="var(--color-incomes)"
+              fill="var(--color-text-positive)"
               radius={6}
               maxBarSize={48}
             >
@@ -158,7 +156,7 @@ export function MonthlyTrendCard({
                   }
                   stroke={
                     highlightedEntry?.index === index
-                      ? "var(--color-incomes)"
+                      ? "var(--color-text-positive)"
                       : undefined
                   }
                   strokeWidth={highlightedEntry?.index === index ? 1.5 : 0}
@@ -169,7 +167,7 @@ export function MonthlyTrendCard({
             </Bar>
             <Bar
               dataKey="expenses"
-              fill="var(--color-expenses)"
+              fill="var(--color-text-negative)"
               radius={6}
               maxBarSize={48}
             >
@@ -183,7 +181,7 @@ export function MonthlyTrendCard({
                   }
                   stroke={
                     highlightedEntry?.index === index
-                      ? "var(--color-expenses)"
+                      ? "var(--color-text-negative)"
                       : undefined
                   }
                   strokeWidth={highlightedEntry?.index === index ? 1.5 : 0}
