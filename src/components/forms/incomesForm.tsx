@@ -100,8 +100,8 @@ const createIncomeFormSchema = () =>
       amount: z.number().int().min(1, "Informe um valor maior que zero."),
       currency: z.enum(["BRL", "USD", "EUR"]),
       date: z.date(),
-      accountId: z.string().uuid("Selecione uma conta."),
-      categoryId: z.string().uuid("Selecione uma categoria."),
+      accountId: z.string().optional(),
+      categoryId: z.string().min(1, "Selecione uma categoria."),
       method: z.enum(paymentMethodValues),
       attachmentUrl: z
         .string()
@@ -133,6 +133,14 @@ const createIncomeFormSchema = () =>
           message: "Informe a data de pagamento.",
         });
       }
+
+      if (!data.accountId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["accountId"],
+          message: "Selecione uma conta.",
+        });
+      }
     });
 
 type CreateIncomeFormValues = z.infer<
@@ -145,7 +153,7 @@ const getDefaultValues = (
   const now = new Date();
   const mode = overrides?.mode ?? "unique";
   const date = overrides?.date ?? now;
-  const isPaid = overrides?.isPaid ?? mode === "unique";
+  const inferredIsPaid = overrides?.isPaid ?? mode === "unique";
 
   const values: CreateIncomeFormValues = {
     description: "",
@@ -159,8 +167,8 @@ const getDefaultValues = (
     mode,
     totalInstallments: 2,
     recurrenceType: "monthly",
-    isPaid,
-    paidAt: overrides?.paidAt ?? (isPaid ? date : undefined),
+    isPaid: inferredIsPaid,
+    paidAt: overrides?.paidAt ?? (inferredIsPaid ? date : undefined),
   };
 
   const merged = {
@@ -422,13 +430,15 @@ export function IncomesForm(props: IncomesFormProps = {}) {
     }
   }, [dialogOpen, dateValue, form, isEditing, isPaidValue]);
 
+  // Set default isPaid for non-unique modes
   React.useEffect(() => {
     if (!dialogOpen || isEditing) {
       return;
     }
 
-    if (modeValue !== "unique" && form.getValues("isPaid")) {
-      form.setValue("isPaid", false, { shouldDirty: true });
+    if (modeValue !== "unique") {
+      form.setValue("isPaid", false, { shouldDirty: false });
+      form.setValue("paidAt", undefined, { shouldDirty: false });
     }
   }, [dialogOpen, form, isEditing, modeValue]);
 
@@ -442,8 +452,8 @@ export function IncomesForm(props: IncomesFormProps = {}) {
 
       const payload = {
         type: "income" as const,
-        accountId: values.accountId,
-        categoryId: values.categoryId,
+        accountId: values.accountId || undefined,
+        categoryId: values.categoryId || undefined,
         amount: amountInCents / 100,
         description: values.description,
         date: values.date,
@@ -471,7 +481,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
   );
 
   const modeTabs = [
-    { id: "unique", label: "Única", icon: "unique" },
+    { id: "unique", label: "À vista", icon: "unique" },
     { id: "installment", label: "Parcelada", icon: "installment" },
     { id: "recurring", label: "Recorrente", icon: "recurring" },
   ];
@@ -487,7 +497,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
     trigger !== undefined ? (
       trigger
     ) : isEditing ? null : (
-      <Button icon={<IconPlus className="size-4" />}>Criar receita</Button>
+      <Button icon={<IconPlus className="size-4" />}>Adicionar receita</Button>
     );
 
   return (
@@ -509,8 +519,8 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                 className="flex flex-1 flex-col min-h-0 space-y-4"
               >
                 {/* Header */}
-                <div className="sm:px-6 px-4 pt-6 pb-2 space-y-8 shrink-0">
-                  <DialogHeader className="px-0 text-left">
+                <div className="sm:px-6 px-4 pt-6  space-y-8 shrink-0">
+                  <DialogHeader>
                     <TransactionFormHeader
                       isEditing={!!isEditing}
                       type="income"
@@ -543,6 +553,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                                   value={tab.id}
                                   className="flex-1 gap-2"
                                   icon={tab.icon as IconName}
+                                  disabled={isEditing}
                                   iconClassName={
                                     incomesModeColors[
                                       tab.id as IncomesTransactionModeColorKey
@@ -567,7 +578,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                   <AnimatePresence initial={false} mode="wait">
                     {isUnique && (
                       <motion.div key="unique" {...motionProps}>
-                        <div className="flex gap-4 w-full items-end mb-4">
+                        <div className="flex flex-col sm:flex-row gap-4 w-full sm:items-end mb-4">
                           <FormField
                             control={form.control}
                             name="date"
@@ -736,7 +747,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                           name="totalInstallments"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Parcelas</FormLabel>
+                              <FormLabel>Total de parcelas</FormLabel>
                               <FormControl>
                                 <NumberInputCounter
                                   value={field.value}
@@ -758,35 +769,34 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                       <motion.div
                         key="recurring"
                         {...motionProps}
-                        className="grid gap-4 sm:grid-cols-3 mb-4"
+                        className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 mb-4"
                       >
                         <FormField
                           control={form.control}
                           name="recurrenceType"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Frequência</FormLabel>
+                              <FormLabel>Frequência da recorrência</FormLabel>
                               <Select
                                 value={field.value}
                                 onValueChange={field.onChange}
                               >
                                 <FormControl>
                                   <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Selecione" />
+                                    <SelectValue placeholder="Selecione a frequência" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="monthly">
-                                    Mensal
-                                  </SelectItem>
+                                  <SelectItem value="daily">Diária</SelectItem>
                                   <SelectItem value="weekly">
                                     Semanal
                                   </SelectItem>
-                                  <SelectItem value="daily">Diária</SelectItem>
+                                  <SelectItem value="monthly">
+                                    Mensal
+                                  </SelectItem>
                                   <SelectItem value="yearly">Anual</SelectItem>
                                 </SelectContent>
                               </Select>
-                              <FormMessage />
                             </FormItem>
                           )}
                         />
@@ -795,7 +805,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                           name="startDate"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Início</FormLabel>
+                              <FormLabel>Data de início</FormLabel>
                               <FormControl>
                                 <Popover
                                   open={isStartDatePopoverOpen}
@@ -812,10 +822,10 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                                     >
                                       <IconCalendar className="mr-2 h-4 w-4" />
                                       {field.value
-                                        ? format(field.value, "PPP", {
+                                        ? format(field.value, "PP", {
                                             locale,
                                           })
-                                        : "Data de início"}
+                                        : "Selecione uma data"}
                                       <IconChevronDown className="ml-auto h-4 w-4" />
                                     </Button>
                                   </PopoverTrigger>
@@ -838,7 +848,6 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                                   </PopoverContent>
                                 </Popover>
                               </FormControl>
-                              <FormMessage />
                             </FormItem>
                           )}
                         />
@@ -847,7 +856,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                           name="endDate"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Término (opcional)</FormLabel>
+                              <FormLabel>Data de término (opcional)</FormLabel>
                               <FormControl>
                                 <Popover
                                   open={isEndDatePopoverOpen}
@@ -864,10 +873,10 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                                     >
                                       <IconCalendar className="mr-2 h-4 w-4" />
                                       {field.value
-                                        ? format(field.value, "PPP", {
+                                        ? format(field.value, "PP", {
                                             locale,
                                           })
-                                        : "Data de término"}
+                                        : "Selecione uma data"}
                                       <IconChevronDown className="ml-auto h-4 w-4" />
                                     </Button>
                                   </PopoverTrigger>
@@ -877,7 +886,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                                   >
                                     <Calendar
                                       mode="single"
-                                      selected={field.value ?? undefined}
+                                      selected={field.value}
                                       onSelect={(next) => {
                                         field.onChange(next ?? null);
                                         setIsEndDatePopoverOpen(false);
@@ -974,8 +983,10 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                       control={form.control}
                       amountName="amount"
                       currencyName="currency"
-                      label="Valor"
+                      label={isInstallment ? "Valor da total" : "Valor"}
                       required
+                      isInstallment={isInstallment}
+                      totalInstallments={form.watch("totalInstallments")}
                     />
                     <FormField
                       control={form.control}
@@ -1156,7 +1167,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                         disabled={isSubmitting || isFormDisabled}
                         isLoading={isSubmitting}
                       >
-                        {isEditing ? "Salvar alterações" : "Criar"}
+                        {isEditing ? "Salvar alterações" : "Adicionar"}
                       </Button>
                     </DialogFooter>
                   </div>

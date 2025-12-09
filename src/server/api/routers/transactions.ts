@@ -1128,9 +1128,19 @@ export const transactionsRouter = createTRPCRouter({
         const installmentGroupId = uuidv4();
         const created: TransactionRecord[] = [];
 
+        // Divide o valor total pelo número de parcelas
+        const installmentAmount = (
+          input.amount / input.totalInstallments
+        ).toFixed(2);
+
+        // Obtém o dia do mês da data inicial para manter o mesmo dia em todas as parcelas
+        const initialDay = input.date.getDate();
+
         for (let i = 1; i <= input.totalInstallments; i++) {
           const date = new Date(input.date);
           date.setMonth(date.getMonth() + (i - 1));
+          // Garante que o dia do mês seja mantido (ex: dia 10)
+          date.setDate(initialDay);
 
           const [transaction] = await ctx.db
             .insert(transactions)
@@ -1144,7 +1154,7 @@ export const transactionsRouter = createTRPCRouter({
               user_id: user.id,
               type: input.type,
               method: input.method,
-              amount: amountValue,
+              amount: installmentAmount,
               description:
                 input.description ?? `Parcela ${i}/${input.totalInstallments}`,
               date,
