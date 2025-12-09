@@ -26,6 +26,12 @@ const badgeVariants = cva(
         info: "border-transparent bg-info text-info-foreground [a&]:hover:bg-info/90",
         muted:
           "border-transparent bg-muted text-muted-foreground [a&]:hover:bg-muted/90",
+        unique:
+          "border-text-unique/40 bg-text-unique/10 text-text-unique flex items-center gap-1 [&>svg]:text-text-unique",
+        installment:
+          "border-text-installment/40 bg-text-installment/10 text-text-installment flex items-center gap-1 [&>svg]:text-text-installment",
+        recurring:
+          "border-text-recurring/40 bg-text-recurring/10 text-text-recurring flex items-center gap-1 [&>svg]:text-text-recurring",
       },
     },
     defaultVariants: {

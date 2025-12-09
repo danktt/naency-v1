@@ -95,6 +95,30 @@ const transactionRefinement = (
       });
     }
   }
+
+  if (data.mode === "recurring") {
+    if (!data.startDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["startDate"],
+        message: "Informe a data de início da recorrência.",
+      });
+    }
+    if (!data.endDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDate"],
+        message: "Informe a data de término da recorrência.",
+      });
+    }
+    if (data.startDate && data.endDate && data.endDate < data.startDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDate"],
+        message: "A data de término deve ser posterior à data de início.",
+      });
+    }
+  }
 };
 
 const createTransactionSchema = baseTransactionSchema.superRefine(
@@ -1128,9 +1152,19 @@ export const transactionsRouter = createTRPCRouter({
         const installmentGroupId = uuidv4();
         const created: TransactionRecord[] = [];
 
+        // Divide o valor total pelo número de parcelas
+        const installmentAmount = (
+          input.amount / input.totalInstallments
+        ).toFixed(2);
+
+        // Obtém o dia do mês da data inicial para manter o mesmo dia em todas as parcelas
+        const initialDay = input.date.getDate();
+
         for (let i = 1; i <= input.totalInstallments; i++) {
           const date = new Date(input.date);
           date.setMonth(date.getMonth() + (i - 1));
+          // Garante que o dia do mês seja mantido (ex: dia 10)
+          date.setDate(initialDay);
 
           const [transaction] = await ctx.db
             .insert(transactions)
@@ -1144,7 +1178,7 @@ export const transactionsRouter = createTRPCRouter({
               user_id: user.id,
               type: input.type,
               method: input.method,
-              amount: amountValue,
+              amount: installmentAmount,
               description:
                 input.description ?? `Parcela ${i}/${input.totalInstallments}`,
               date,
@@ -1167,73 +1201,96 @@ export const transactionsRouter = createTRPCRouter({
       // 🔹 MODO 3: FIXA / RECORRENTE
       // ============================
       if (input.mode === "recurring") {
-        if (!input.recurrenceType || !input.startDate) {
+        if (!input.recurrenceType || !input.startDate || !input.endDate) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Informe o tipo e a data de início da recorrência.",
+            message:
+              "Informe o tipo, data de início e data de término da recorrência.",
           });
         }
 
-        const [recurring] = await ctx.db
-          .insert(recurring_transactions)
-          .values({
-            id: uuidv4(),
-            group_id: groupId,
-            user_id: user.id,
-            type: input.type,
-            method: input.method,
-            amount: amountValue,
-            account_id: accountId ?? "", // Recurring table might require account_id, need to check schema. If nullable, use null.
-            // Schema says account_id is NOT NULL in recurring_transactions. This is a problem for credit cards.
-            // I should probably update recurring_transactions schema too, but for now I will assume I can't.
-            // Wait, if I can't put null, what do I put?
-            // The schema says: account_id: uuid("account_id").notNull().references(() => bank_accounts.id),
-            // This means recurring transactions MUST be linked to a bank account currently.
-            // If I want to support recurring credit card expenses, I need to change the schema.
-            // Given the user request, I should probably stick to what's possible or fix the schema.
-            // For now, I will use accountId if available. If credit card, this will fail if I pass null.
-            // I'll check schema again.
-            // Line 138: account_id: uuid("account_id").notNull().references(() => bank_accounts.id),
-            // This is indeed a limitation.
-            // I will skip updating recurring for credit cards for now or handle it by not allowing recurring credit card expenses if schema prevents it.
-            // But wait, I can't change schema easily without migration.
-            // I'll assume for now I should pass accountId if available.
-            // But if method is credit, accountId is null.
-            // I'll try to pass input.accountId even if method is credit, but validation prevents it.
-            // This implies recurring transactions schema needs update.
-            // I will proceed with updating transactions table inserts which support credit_card_id.
-            category_id: input.categoryId ?? null,
-            description: input.description ?? null,
-            recurrence_type: input.recurrenceType,
-            start_date: input.startDate,
-            end_date: input.endDate ?? null,
-          })
-          .returning();
+        if (input.endDate < input.startDate) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "A data de término deve ser posterior à data de início.",
+          });
+        }
 
-        // Cria a primeira instância imediata da transação
-        const [transaction] = await ctx.db
-          .insert(transactions)
-          .values({
-            id: uuidv4(),
-            group_id: groupId,
-            account_id: accountId,
-            credit_card_id: creditCardId,
-            category_id: input.categoryId ?? null,
-            category_name_snapshot: categoryNameSnapshot,
-            user_id: user.id,
-            type: input.type,
-            method: input.method,
-            amount: amountValue,
-            description: input.description ?? null,
-            date: input.startDate,
-            attachment_url: input.attachmentUrl ?? null,
-            recurring_id: recurring.id,
-            is_paid: input.isPaid ?? false,
-            paid_at: input.isPaid && input.paidAt ? input.paidAt : null,
-          })
-          .returning();
+        const recurringId = uuidv4();
+        const createdTransactions: TransactionRecord[] = [];
 
-        return transaction;
+        // Gera todas as datas de recorrência baseado no tipo
+        const dates: Date[] = [];
+        const currentDate = new Date(input.startDate);
+        currentDate.setHours(0, 0, 0, 0);
+
+        const endDate = new Date(input.endDate);
+        endDate.setHours(23, 59, 59, 999);
+
+        while (currentDate <= endDate) {
+          dates.push(new Date(currentDate));
+
+          // Incrementa a data baseado no tipo de recorrência
+          switch (input.recurrenceType) {
+            case "daily":
+              currentDate.setDate(currentDate.getDate() + 1);
+              break;
+            case "weekly":
+              currentDate.setDate(currentDate.getDate() + 7);
+              break;
+            case "monthly":
+              currentDate.setMonth(currentDate.getMonth() + 1);
+              break;
+            case "yearly":
+              currentDate.setFullYear(currentDate.getFullYear() + 1);
+              break;
+          }
+        }
+
+        // Cria registro na tabela recurring_transactions
+        await ctx.db.insert(recurring_transactions).values({
+          id: recurringId,
+          group_id: groupId,
+          user_id: user.id,
+          type: input.type,
+          method: input.method,
+          amount: amountValue,
+          account_id: accountId ?? "",
+          category_id: input.categoryId ?? null,
+          description: input.description ?? null,
+          recurrence_type: input.recurrenceType,
+          start_date: input.startDate,
+          end_date: input.endDate,
+        });
+
+        // Cria todas as transações de uma vez
+        for (const date of dates) {
+          const [transaction] = await ctx.db
+            .insert(transactions)
+            .values({
+              id: uuidv4(),
+              group_id: groupId,
+              account_id: accountId,
+              credit_card_id: creditCardId,
+              category_id: input.categoryId ?? null,
+              category_name_snapshot: categoryNameSnapshot,
+              user_id: user.id,
+              type: input.type,
+              method: input.method,
+              amount: amountValue,
+              description: input.description ?? null,
+              date,
+              attachment_url: input.attachmentUrl ?? null,
+              recurring_id: recurringId,
+              is_paid: input.isPaid ?? false,
+              paid_at: input.isPaid && input.paidAt ? input.paidAt : null,
+            })
+            .returning();
+
+          createdTransactions.push(transaction);
+        }
+
+        return createdTransactions;
       }
 
       throw new TRPCError({

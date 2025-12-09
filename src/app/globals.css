@@ -9,8 +9,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-inter);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -52,6 +52,9 @@
   --color-icon-expense: var(--icon-expense);
   --color-text-positive: var(--text-positive);
   --color-text-negative: var(--text-negative);
+  --color-text-unique: var(--text-unique);
+  --color-text-installment: var(--text-installment);
+  --color-text-recurring: var(--text-recurring);
 }
 
 :root {
@@ -96,6 +99,9 @@
   --icon-expense: oklch(0.59 0.22 18);
   --text-positive: oklch(0.6 0.13 163);
   --text-negative: oklch(0.59 0.22 18);
+  --text-unique: oklch(0.65 0.19 41);
+  --text-installment: oklch(0.8 0.16 86);
+  --text-recurring: oklch(0.51 0.23 277);
 }
 
 .dark {
@@ -139,6 +145,9 @@
   --icon-expense: oklch(0.72 0.17 13);
   --text-positive: oklch(0.77 0.15 163);
   --text-negative: oklch(0.72 0.17 13);
+  --text-unique: oklch(0.76 0.16 56);
+  --text-installment: oklch(0.84 0.16 84);
+  --text-recurring: oklch(0.68 0.16 277);
 }
 
 @layer base {
@@ -147,6 +156,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease;
   }
 }
 

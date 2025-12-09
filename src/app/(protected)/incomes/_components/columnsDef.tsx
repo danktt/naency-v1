@@ -1,19 +1,6 @@
 "use client";
 
-import {
-  IconCalendar,
-  IconChecks,
-  IconCircle,
-  IconDotsVertical,
-  IconPencil,
-  IconReceiptRefund,
-  IconRefreshDot,
-  IconRepeat,
-  IconTrash,
-} from "@tabler/icons-react";
-import type { ColumnDef } from "@tanstack/react-table";
-import type { inferRouterOutputs } from "@trpc/server";
-
+import { DynamicIcon } from "@/components/DynamicIcon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +14,10 @@ import { formatCurrency } from "@/helpers/formatCurrency";
 import { formatDate } from "@/helpers/formatDate";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
+import { IconChecks } from "@tabler/icons-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { inferRouterOutputs } from "@trpc/server";
+import type * as React from "react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 export type IncomeTableRow = RouterOutput["transactions"]["list"][number];
@@ -61,45 +52,6 @@ function getDateValue(tx: IncomeTableRow): string {
   return formatDate(new Date(tx.date));
 }
 
-function getStatusLabel(tx: IncomeTableRow): string {
-  const isRecurring = Boolean(tx.recurringId);
-  const isInstallment = Boolean(tx.installmentGroupId);
-  const isPaid = Boolean(tx.isPaid);
-
-  if (isInstallment) {
-    return `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
-  }
-
-  if (isRecurring) {
-    return "Recorrente";
-  }
-
-  if (!isPaid) {
-    return "Pendente";
-  }
-
-  const expectedDate = tx.date ? new Date(tx.date) : null;
-  const paidAtDate = tx.paidAt ? new Date(tx.paidAt) : null;
-
-  if (!expectedDate || !paidAtDate) {
-    return "Recebido";
-  }
-
-  const normalizeDate = (value: Date) =>
-    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
-
-  const expectedTime = normalizeDate(expectedDate);
-  const paidTime = normalizeDate(paidAtDate);
-
-  if (paidTime === expectedTime) {
-    return "Recebido";
-  }
-  if (paidTime > expectedTime) {
-    return "Recebido";
-  }
-  return "Recebido";
-}
-
 export function createIncomeColumns(
   options: CreateIncomeColumnsParams,
 ): ColumnDef<IncomeTableRow>[] {
@@ -128,171 +80,121 @@ export function createIncomeColumns(
       accessorFn: (row) => getDateValue(row),
       cell: ({ row }) => {
         const tx = row.original;
+        const isPaid = Boolean(tx.isPaid);
 
-        const isRecurring = Boolean(tx.recurringId);
-        const isInstallment = Boolean(tx.installmentGroupId);
+        const normalizeDate = (value: Date) =>
+          new Date(
+            value.getFullYear(),
+            value.getMonth(),
+            value.getDate(),
+          ).getTime();
 
-        // === Unique transaction ===
-        if (!isRecurring && !isInstallment) {
+        const today = normalizeDate(new Date());
+        const date = tx.date ? normalizeDate(new Date(tx.date)) : null;
+        const isLate = !isPaid && date !== null && date < today;
+
+        if (!tx.date) {
           return (
-            <div className="flex flex-col text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <IconCalendar className="size-4 text-success" stroke={1.5} />
-                <span>{formatDate(tx.date)}</span>
-              </div>
-            </div>
-          );
-        }
-
-        // === Installment transaction ===
-        if (isInstallment) {
-          return (
-            <div className="flex flex-col text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <IconRefreshDot
-                  className="size-4 text-amber-500"
-                  stroke={1.5}
-                />
-                <span>{formatDate(tx.date)}</span>
-              </div>
-            </div>
-          );
-        }
-
-        // === Recurring transaction ===
-        if (isRecurring) {
-          return (
-            <div className="flex flex-col text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <IconRepeat className="size-4 text-blue-500" />
-                <span>{formatDate(tx.date)}</span>
-              </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <DynamicIcon icon="calendar" className="size-4" />
+              <span>Sem data</span>
             </div>
           );
         }
 
         return (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <IconCalendar className="size-4" />
-            <span>Sem data</span>
+          <div className="flex items-center gap-2">
+            {isLate ? (
+              <DynamicIcon
+                icon="warning"
+                className="size-4 shrink-0 text-red-500 animate-pulse"
+              />
+            ) : (
+              <DynamicIcon
+                icon={isPaid ? "calendar-check" : "calendar-time"}
+                className={cn(
+                  "size-4 shrink-0",
+                  isPaid ? "text-gray-500" : "text-muted-foreground",
+                )}
+              />
+            )}
+            <span
+              className={cn(
+                isPaid ? "text-gray-500" : isLate && "text-red-500",
+              )}
+            >
+              {formatDate(tx.date)}
+            </span>
           </div>
         );
       },
     },
+
     {
       id: "status",
       header: "Status",
-      accessorFn: (row) => getStatusLabel(row),
+      accessorFn: (row) => {
+        const isPaid = Boolean(row.isPaid);
+        if (isPaid) return "Recebido";
+
+        const normalizeDate = (value: Date) =>
+          new Date(
+            value.getFullYear(),
+            value.getMonth(),
+            value.getDate(),
+          ).getTime();
+
+        const today = normalizeDate(new Date());
+        const date = row.date ? normalizeDate(new Date(row.date)) : null;
+        const isPastDue = date !== null && date < today;
+
+        return isPastDue ? "Em atraso" : "À receber";
+      },
       cell: ({ row }) => {
         const tx = row.original;
-
-        const isRecurring = Boolean(tx.recurringId);
-        const isInstallment = Boolean(tx.installmentGroupId);
         const isPaid = Boolean(tx.isPaid);
-        const expectedDate = tx.date ? new Date(tx.date) : null;
-        const paidAtDate = tx.paidAt ? new Date(tx.paidAt) : null;
 
         let badgeClass = "";
         let badgeIcon: React.ReactNode = null;
         let badgeLabel = "";
 
-        if (!isRecurring && !isInstallment) {
-          type PaymentStatus =
-            | "pending"
-            | "paidOnTime"
-            | "paidLate"
-            | "paidEarly"
-            | "paid";
+        const normalizeDate = (value: Date) =>
+          new Date(
+            value.getFullYear(),
+            value.getMonth(),
+            value.getDate(),
+          ).getTime();
 
-          const normalizeDate = (value: Date) =>
-            new Date(
-              value.getFullYear(),
-              value.getMonth(),
-              value.getDate(),
-            ).getTime();
+        const today = normalizeDate(new Date());
+        const date = tx.date ? normalizeDate(new Date(tx.date)) : null;
+        const isPastDue = !isPaid && date !== null && date < today;
 
-          const paymentStatus: PaymentStatus = (() => {
-            if (!isPaid) {
-              return "pending";
-            }
-            if (!expectedDate || !paidAtDate) {
-              return "paid";
-            }
-
-            const expectedTime = normalizeDate(expectedDate);
-            const paidTime = normalizeDate(paidAtDate);
-
-            if (paidTime === expectedTime) {
-              return "paidOnTime";
-            }
-            if (paidTime > expectedTime) {
-              return "paidLate";
-            }
-            return "paidEarly";
-          })();
-
-          const paymentClassMap: Record<PaymentStatus, string> = {
-            pending:
-              "border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1",
-            paidOnTime:
-              "border-success/40 bg-success/10 text-success flex items-center gap-1",
-            paidLate:
-              "border-success/40 bg-success/10 text-success flex items-center gap-1",
-            paidEarly:
-              "border-success/40 bg-success/10 text-success flex items-center gap-1",
-            paid: "border-success/40 bg-success/10 text-success flex items-center gap-1",
-          };
-
-          const paymentIconClassMap: Record<PaymentStatus, string> = {
-            pending: "fill-destructive text-destructive",
-            paidOnTime: "fill-success text-success",
-            paidLate: "fill-success text-success",
-            paidEarly: "fill-success text-success",
-            paid: "fill-success text-success",
-          };
-
-          const statusLabels: Record<PaymentStatus, string> = {
-            pending: "Pendente",
-            paidOnTime: "Recebido",
-            paidLate: "Recebido",
-            paidEarly: "Recebido",
-            paid: "Recebido",
-          };
-
-          badgeClass = paymentClassMap[paymentStatus];
+        if (isPaid) {
+          badgeClass =
+            "border-gray-400/40 bg-gray-400/10 text-gray-500 flex items-center gap-1";
           badgeIcon = (
-            <IconCircle
-              className={cn(
-                "size-2 shrink-0",
-                paymentIconClassMap[paymentStatus],
-              )}
+            <DynamicIcon
+              icon="double-check"
+              className="size-3 shrink-0  text-text-positive"
             />
           );
-          badgeLabel = statusLabels[paymentStatus];
-        } else if (isInstallment) {
+          badgeLabel = "Recebido";
+        } else if (isPastDue) {
+          badgeClass = " text-white bg-red-500 flex items-center gap-1";
+
+          badgeLabel = "Em atraso";
+        } else {
           badgeClass =
-            "border-amber-400/40 bg-amber-400/10 text-amber-500 flex items-center gap-1";
-          badgeIcon = (
-            <IconRefreshDot
-              className="size-3 text-amber-500 shrink-0"
-              stroke={1.5}
-            />
-          );
-          badgeLabel = `Parcela ${tx.installmentNumber} de ${tx.totalInstallments}`;
-        } else if (isRecurring) {
-          badgeClass =
-            "border-blue-400/40 bg-blue-400/10 text-blue-500 flex items-center gap-1";
-          badgeIcon = <IconRepeat className="size-3 text-blue-500 shrink-0" />;
-          badgeLabel = "Recorrente";
+            "border-text-positive/40 bg-text-positive/10 text-text-positive flex items-center gap-1";
+
+          badgeLabel = "À receber";
         }
 
         return (
-          <div className="flex flex-col gap-1">
-            <Badge variant="secondary" className={badgeClass}>
-              {badgeIcon}
-              {badgeLabel}
-            </Badge>
-          </div>
+          <Badge variant="secondary" className={badgeClass}>
+            {badgeIcon}
+            {badgeLabel}
+          </Badge>
         );
       },
     },
@@ -301,30 +203,33 @@ export function createIncomeColumns(
       header: "Valor",
       cell: ({ row }) => {
         const amount = Number(row.getValue("amount"));
+        const isPaid = row.original.isPaid;
+        const tx = row.original;
+
+        const normalizeDate = (value: Date) =>
+          new Date(
+            value.getFullYear(),
+            value.getMonth(),
+            value.getDate(),
+          ).getTime();
+
+        const today = normalizeDate(new Date());
+        const date = tx.date ? normalizeDate(new Date(tx.date)) : null;
+        const isLate = !isPaid && date !== null && date < today;
+
         return (
-          <div className="font-mono font-semibold text-success">
+          <div
+            className={cn(
+              "font-mono font-semibold",
+              isPaid
+                ? "text-gray-500"
+                : isLate
+                  ? "text-red-500"
+                  : "text-foreground",
+            )}
+          >
             {formatCurrency(amount.toString())}
           </div>
-        );
-      },
-    },
-    {
-      accessorKey: "paidAt",
-      header: "Data de recebimento",
-      cell: ({ row }) => {
-        const isPaid = row.original.isPaid;
-        const paidAt = row.original.paidAt
-          ? new Date(row.original.paidAt)
-          : null;
-
-        if (!isPaid) {
-          return <Badge variant="muted">Não recebido</Badge>;
-        }
-
-        return (
-          <span className="text-sm font-medium text-muted-foreground">
-            {paidAt ? formatDate(paidAt) : "-"}
-          </span>
         );
       },
     },
@@ -333,7 +238,10 @@ export function createIncomeColumns(
       header: "Descrição",
       cell: ({ row }) => (
         <p
-          className="max-w-[200px] truncate capitalize"
+          className={cn(
+            "max-w-[200px] truncate capitalize",
+            row.original.isPaid && "text-gray-500",
+          )}
           title={row.getValue("description")}
         >
           {String(row.getValue("description")).toUpperCase()}
@@ -374,7 +282,112 @@ export function createIncomeColumns(
         return <Badge variant="muted">{label}</Badge>;
       },
     },
+    {
+      id: "type",
+      header: "Tipo",
+      cell: ({ row }) => {
+        const tx = row.original;
+        const isRecurring = Boolean(tx.recurringId);
+        const isInstallment = Boolean(tx.installmentGroupId);
+        const isUnique = !isRecurring && !isInstallment;
+        const isPaid = Boolean(tx.isPaid);
+
+        let typeLabel = "";
+        let typeIcon: React.ReactNode = null;
+        let typeClass = "";
+
+        if (isPaid) {
+          if (isUnique) {
+            typeLabel = "À vista";
+            typeIcon = (
+              <DynamicIcon
+                icon="unique"
+                className="size-3 shrink-0 text-gray-500"
+              />
+            );
+            typeClass =
+              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
+          } else if (isInstallment) {
+            const installmentNumber = tx.installmentNumber ?? 1;
+            const totalInstallments = tx.totalInstallments ?? 1;
+            typeLabel = `Parcelada (${installmentNumber}/${totalInstallments})`;
+            typeIcon = (
+              <DynamicIcon
+                icon="installment"
+                className="size-3 shrink-0 text-gray-500"
+              />
+            );
+            typeClass =
+              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
+          } else if (isRecurring) {
+            typeLabel = "Recorrente";
+            typeIcon = (
+              <DynamicIcon
+                icon="recurring"
+                className="size-3 shrink-0 text-gray-500"
+              />
+            );
+            typeClass =
+              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
+          }
+        } else {
+          if (isUnique) {
+            typeLabel = "À vista";
+            typeIcon = (
+              <DynamicIcon icon="unique" className="size-3 shrink-0 " />
+            );
+            typeClass =
+              "border-text-unique dark:bg-text-unique/10 bg-text-unique/20 text-text-unique  flex items-center gap-1";
+          } else if (isInstallment) {
+            const installmentNumber = tx.installmentNumber ?? 1;
+            const totalInstallments = tx.totalInstallments ?? 1;
+            typeLabel = `Parcelada (${installmentNumber}/${totalInstallments})`;
+            typeIcon = (
+              <DynamicIcon icon="installment" className="size-3 shrink-0" />
+            );
+            typeClass =
+              " border-text-installment dark:bg-text-installment/10 bg-text-installment/20 text-text-installment  flex items-center gap-1";
+          } else if (isRecurring) {
+            typeLabel = "Recorrente";
+            typeIcon = (
+              <DynamicIcon icon="recurring" className="size-3 shrink-0" />
+            );
+            typeClass =
+              "border-text-recurring dark:bg-text-recurring/10 bg-text-recurring/20 text-text-recurring  flex items-center gap-1";
+          }
+        }
+
+        return (
+          <Badge variant="outline" className={typeClass}>
+            {typeIcon}
+            {typeLabel}
+          </Badge>
+        );
+      },
+    },
   ];
+
+  // Add "Recebido em" column before actions
+  columns.push({
+    accessorKey: "paidAt",
+    header: "Recebido em",
+    cell: ({ row }) => {
+      const isPaid = row.original.isPaid;
+      const paidAt = row.original.paidAt ? new Date(row.original.paidAt) : null;
+
+      if (!isPaid) {
+        return null;
+      }
+
+      return (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <span className="text-sm font-medium text-muted-foreground">
+            {paidAt ? formatDate(paidAt) : "-"}
+          </span>
+        </div>
+      );
+    },
+  });
 
   if (hasActions) {
     columns.push({
@@ -388,7 +401,7 @@ export function createIncomeColumns(
               className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
               size="icon"
             >
-              <IconDotsVertical className="size-4" />
+              <DynamicIcon icon="dotsVertical" className="size-4" />
               <span className="sr-only">Abrir menu</span>
             </Button>
           </DropdownMenuTrigger>
@@ -400,7 +413,7 @@ export function createIncomeColumns(
                 onEditIncome?.(row.original);
               }}
             >
-              <IconPencil className="size-4" stroke={1.5} />
+              <DynamicIcon icon="edit" className="size-4" />
               Editar receita
             </DropdownMenuItem>
             {!row.original.isPaid ? (
@@ -422,7 +435,7 @@ export function createIncomeColumns(
                   onMarkAsPending?.(row.original);
                 }}
               >
-                <IconReceiptRefund className="size-4" stroke={1.5} />
+                <DynamicIcon icon="receiptRefund" className="size-4" />
                 Marcar como pendente
               </DropdownMenuItem>
             )}
@@ -435,7 +448,7 @@ export function createIncomeColumns(
                 onDeleteIncome?.(row.original);
               }}
             >
-              <IconTrash className="size-4" stroke={1.5} />
+              <DynamicIcon icon="trash" className="size-4" />
               Excluir receita
             </DropdownMenuItem>
           </DropdownMenuContent>

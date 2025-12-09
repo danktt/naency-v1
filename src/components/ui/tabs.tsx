@@ -5,6 +5,7 @@ import { Tabs as TabsPrimitive } from "radix-ui";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { DynamicIcon, type IconName } from "../DynamicIcon";
 
 const TabsContext = React.createContext<{ layoutId: string } | null>(null);
 
@@ -48,8 +49,13 @@ function TabsList({
 
 function TabsTrigger({
   className,
+  icon,
+  iconClassName,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+}: React.ComponentProps<typeof TabsPrimitive.Trigger> & {
+  icon?: IconName;
+  iconClassName?: string;
+}) {
   const [isActive, setIsActive] = React.useState(false);
   const ref = React.useRef<HTMLButtonElement>(null);
   const context = React.useContext(TabsContext);
@@ -78,7 +84,7 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
-        "relative inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 font-medium text-sm outline-none transition-all hover:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=active]:text-foreground [&_svg]:shrink-0",
+        "relative inline-flex cursor-pointer items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 font-medium text-sm outline-none transition-all hover:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=active]:text-foreground [&_svg]:shrink-0",
         className,
       )}
       data-slot="tabs-trigger"
@@ -95,7 +101,8 @@ function TabsTrigger({
           }}
         />
       )}
-      <span className="relative z-10 flex items-center justify-center">
+      <span className="relative z-10 flex items-center justify-center gap-1">
+        {icon && <DynamicIcon icon={icon} className={iconClassName} />}
         {props.children}
       </span>
     </TabsPrimitive.Trigger>

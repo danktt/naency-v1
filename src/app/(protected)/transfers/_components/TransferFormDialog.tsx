@@ -127,7 +127,7 @@ const draw = {
   }),
 };
 
-function Checkmark({
+export function Checkmark({
   size = 100,
   strokeWidth = 2,
   color = "currentColor",
