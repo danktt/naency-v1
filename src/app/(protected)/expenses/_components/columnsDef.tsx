@@ -107,7 +107,7 @@ export function createExpenseColumns(
             {isLate ? (
               <DynamicIcon
                 icon="warning"
-                className="size-4 shrink-0 text-text-negative animate-pulse"
+                className="size-4 shrink-0 text-red-500 animate-pulse"
               />
             ) : (
               <DynamicIcon
@@ -120,7 +120,7 @@ export function createExpenseColumns(
             )}
             <span
               className={cn(
-                isPaid ? "text-gray-500" : isLate && "text-text-negative",
+                isPaid ? "text-gray-500" : isLate && "text-red-500",
               )}
             >
               {formatDate(tx.date)}
@@ -264,12 +264,12 @@ export function createExpenseColumns(
           );
           badgeLabel = "Pago";
         } else if (isPastDue) {
-          badgeClass = " text-white bg-text-negative flex items-center gap-1";
+          badgeClass = " text-white bg-red-500 flex items-center gap-1";
 
           badgeLabel = "Em atraso";
         } else {
           badgeClass =
-            "border-text-negative/40 bg-text-negative/10 text-text-negative flex items-center gap-1";
+            "border-red-500/40 bg-red-500/10 text-red-500 flex items-center gap-1";
 
           badgeLabel = "Em aberto";
         }
@@ -308,7 +308,7 @@ export function createExpenseColumns(
               isPaid
                 ? "text-gray-500"
                 : isLate
-                  ? "text-text-negative"
+                  ? "text-red-500"
                   : "text-foreground", // Default color for pending/future
             )}
           >

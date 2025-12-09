@@ -141,6 +141,30 @@ const createIncomeFormSchema = () =>
           message: "Selecione uma conta.",
         });
       }
+
+      if (data.mode === "recurring") {
+        if (!data.startDate) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["startDate"],
+            message: "Informe a data de início.",
+          });
+        }
+        if (!data.endDate) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["endDate"],
+            message: "Informe a data de término.",
+          });
+        }
+        if (data.startDate && data.endDate && data.endDate < data.startDate) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["endDate"],
+            message: "A data de término deve ser posterior à data de início.",
+          });
+        }
+      }
     });
 
 type CreateIncomeFormValues = z.infer<
@@ -155,6 +179,28 @@ const getDefaultValues = (
   const date = overrides?.date ?? now;
   const inferredIsPaid = overrides?.isPaid ?? mode === "unique";
 
+  // Para modo recurring, startDate padrão é hoje + 1 dia
+  const defaultStartDate =
+    mode === "recurring"
+      ? (overrides?.startDate ??
+        (() => {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          return tomorrow;
+        })())
+      : undefined;
+
+  // Para modo recurring, endDate padrão é 1 mês após startDate
+  const defaultEndDate =
+    mode === "recurring"
+      ? (overrides?.endDate ??
+        (() => {
+          const endDate = new Date(defaultStartDate ?? new Date());
+          endDate.setMonth(endDate.getMonth() + 1);
+          return endDate;
+        })())
+      : undefined;
+
   const values: CreateIncomeFormValues = {
     description: "",
     amount: 0,
@@ -167,6 +213,8 @@ const getDefaultValues = (
     mode,
     totalInstallments: 2,
     recurrenceType: "monthly",
+    startDate: defaultStartDate,
+    endDate: defaultEndDate,
     isPaid: inferredIsPaid,
     paidAt: overrides?.paidAt ?? (inferredIsPaid ? date : undefined),
   };
@@ -511,9 +559,9 @@ export function IncomesForm(props: IncomesFormProps = {}) {
           "flex w-full flex-col p-0 transition-all duration-300 sm:max-w-3xl max-h-[90vh] ",
         )}
       >
-        <motion.div layout className="flex flex-1 overflow-hidden">
+        <motion.div layout className="flex flex-1 overflow-hidden ">
           <Form {...form}>
-            <div className="flex flex-1 min-h-0">
+            <div className="flex flex-1 min-h-0 ">
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="flex flex-1 flex-col min-h-0 space-y-4"
@@ -805,7 +853,10 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                           name="startDate"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Data de início</FormLabel>
+                              <FormLabel>
+                                Data de início{" "}
+                                <span className="text-destructive">*</span>
+                              </FormLabel>
                               <FormControl>
                                 <Popover
                                   open={isStartDatePopoverOpen}
@@ -842,7 +893,16 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                                           setIsStartDatePopoverOpen(false);
                                         }
                                       }}
-                                      defaultMonth={field.value ?? dateRange.to}
+                                      defaultMonth={
+                                        field.value ??
+                                        (() => {
+                                          const tomorrow = new Date();
+                                          tomorrow.setDate(
+                                            tomorrow.getDate() + 1,
+                                          );
+                                          return tomorrow;
+                                        })()
+                                      }
                                       locale={locale}
                                     />
                                   </PopoverContent>
@@ -856,7 +916,10 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                           name="endDate"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Data de término (opcional)</FormLabel>
+                              <FormLabel>
+                                Data de término{" "}
+                                <span className="text-destructive">*</span>
+                              </FormLabel>
                               <FormControl>
                                 <Popover
                                   open={isEndDatePopoverOpen}
@@ -978,7 +1041,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                   </AnimatePresence>
 
                   {/* === Details Section === */}
-                  <div className="grid gap-4 md:grid-cols-2 items-start px-1">
+                  <div className="grid gap-4 md:grid-cols-2 items-start px-1 pb-1">
                     <FieldCurrencyAmount
                       control={form.control}
                       amountName="amount"

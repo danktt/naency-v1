@@ -192,7 +192,7 @@ export function DataTable<TData>({
   toolbarActions,
   emptyMessage = "Nenhum resultado.",
   pageSizeOptions = [10, 20, 30, 40, 50],
-  defaultPageSize = 10,
+  defaultPageSize = 20,
   storageKey,
   loading = false,
 }: DataTableProps<TData>) {

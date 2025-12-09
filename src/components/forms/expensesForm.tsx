@@ -142,6 +142,30 @@ const createExpenseFormSchema = () =>
           message: "Selecione uma conta.",
         });
       }
+
+      if (data.mode === "recurring") {
+        if (!data.startDate) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["startDate"],
+            message: "Informe a data de início.",
+          });
+        }
+        if (!data.endDate) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["endDate"],
+            message: "Informe a data de término.",
+          });
+        }
+        if (data.startDate && data.endDate && data.endDate < data.startDate) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["endDate"],
+            message: "A data de término deve ser posterior à data de início.",
+          });
+        }
+      }
     });
 
 type CreateExpenseFormValues = z.infer<
@@ -156,6 +180,28 @@ const getDefaultValues = (
   const date = overrides?.date ?? now;
   const inferredIsPaid = overrides?.isPaid ?? mode === "unique";
 
+  // Para modo recurring, startDate padrão é hoje + 1 dia
+  const defaultStartDate =
+    mode === "recurring"
+      ? (overrides?.startDate ??
+        (() => {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          return tomorrow;
+        })())
+      : undefined;
+
+  // Para modo recurring, endDate padrão é 1 mês após startDate
+  const defaultEndDate =
+    mode === "recurring"
+      ? (overrides?.endDate ??
+        (() => {
+          const endDate = new Date(defaultStartDate ?? new Date());
+          endDate.setMonth(endDate.getMonth() + 1);
+          return endDate;
+        })())
+      : undefined;
+
   const values: CreateExpenseFormValues = {
     description: "",
     amount: 0,
@@ -168,6 +214,8 @@ const getDefaultValues = (
     mode,
     totalInstallments: 2,
     recurrenceType: "monthly",
+    startDate: defaultStartDate,
+    endDate: defaultEndDate,
     isPaid: inferredIsPaid,
     paidAt: overrides?.paidAt ?? (inferredIsPaid ? date : undefined),
   };
@@ -808,7 +856,10 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                             const selected = field.value;
                             return (
                               <FormItem>
-                                <FormLabel>Data de início</FormLabel>
+                                <FormLabel>
+                                  Data de início{" "}
+                                  <span className="text-destructive">*</span>
+                                </FormLabel>
                                 <FormControl>
                                   <Popover
                                     open={isStartDatePopoverOpen}
@@ -845,7 +896,16 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                                             setIsStartDatePopoverOpen(false);
                                           }
                                         }}
-                                        defaultMonth={selected ?? dateRange.to}
+                                        defaultMonth={
+                                          selected ??
+                                          (() => {
+                                            const tomorrow = new Date();
+                                            tomorrow.setDate(
+                                              tomorrow.getDate() + 1,
+                                            );
+                                            return tomorrow;
+                                          })()
+                                        }
                                         locale={locale}
                                       />
                                     </PopoverContent>
@@ -863,7 +923,8 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                             return (
                               <FormItem>
                                 <FormLabel>
-                                  Data de término (opcional)
+                                  Data de término{" "}
+                                  <span className="text-destructive">*</span>
                                 </FormLabel>
                                 <FormControl>
                                   <Popover
@@ -988,7 +1049,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
 
                   {/* === Details Section === */}
 
-                  <div className="grid gap-4 md:grid-cols-2 items-start px-1">
+                  <div className="grid gap-4 md:grid-cols-2 items-start px-1 pb-1">
                     <FieldCurrencyAmount
                       control={form.control}
                       amountName="amount"
