@@ -9,9 +9,11 @@ import { DynamicIcon } from "./DynamicIcon";
 
 export function ToggleTheme({
   className,
+  size = "icon",
   variant = "outline",
 }: {
   className?: string;
+  size?: VariantProps<typeof buttonVariants>["size"];
   variant?: VariantProps<typeof buttonVariants>["variant"];
 }) {
   const { theme, setTheme } = useTheme();
@@ -28,7 +30,12 @@ export function ToggleTheme({
   }, [theme, setTheme]);
 
   return (
-    <Button variant={variant} onClick={toggleTheme} className={className}>
+    <Button
+      variant={variant}
+      size={size}
+      onClick={toggleTheme}
+      className={className}
+    >
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={theme}

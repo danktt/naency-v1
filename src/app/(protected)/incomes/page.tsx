@@ -99,6 +99,13 @@ export default function IncomesPage() {
           const Icon = metric.icon;
           const value = formatCurrency(totalsByKey[metric.key]);
           const description = metric.changeFormat.replace("{{value}}", value);
+
+          const valueClassName =
+            metric.key === "netBalance"
+              ? totalsByKey.netBalance < 0
+                ? "text-text-negative dark:text-text-negative"
+                : "text-text-positive dark:text-text-positive"
+              : undefined;
           return (
             <GridItem
               key={metric.key}
@@ -108,6 +115,7 @@ export default function IncomesPage() {
               isLoading={isMetricsLoading}
               value={value}
               description={description}
+              valueClassName={valueClassName}
             />
           );
         })}
