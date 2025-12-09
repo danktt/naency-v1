@@ -15,7 +15,7 @@ export const expensesModeColors = {
 
 export const incomesModeColors = {
   unique: {
-    className: "text-text-positive",
+    className: "text-text-unique",
     fill: "var(--color-text-positive)",
   },
   installment: {

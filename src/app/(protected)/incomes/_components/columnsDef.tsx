@@ -129,89 +129,7 @@ export function createIncomeColumns(
         );
       },
     },
-    {
-      id: "type",
-      header: "Tipo",
-      cell: ({ row }) => {
-        const tx = row.original;
-        const isRecurring = Boolean(tx.recurringId);
-        const isInstallment = Boolean(tx.installmentGroupId);
-        const isUnique = !isRecurring && !isInstallment;
-        const isPaid = Boolean(tx.isPaid);
 
-        let typeLabel = "";
-        let typeIcon: React.ReactNode = null;
-        let typeClass = "";
-
-        if (isPaid) {
-          if (isUnique) {
-            typeLabel = "À vista";
-            typeIcon = (
-              <DynamicIcon
-                icon="unique"
-                className="size-3 shrink-0 text-gray-500"
-              />
-            );
-            typeClass =
-              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
-          } else if (isInstallment) {
-            const installmentNumber = tx.installmentNumber ?? 1;
-            const totalInstallments = tx.totalInstallments ?? 1;
-            typeLabel = `Parcelada (${installmentNumber}/${totalInstallments})`;
-            typeIcon = (
-              <DynamicIcon
-                icon="installment"
-                className="size-3 shrink-0 text-gray-500"
-              />
-            );
-            typeClass =
-              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
-          } else if (isRecurring) {
-            typeLabel = "Recorrente";
-            typeIcon = (
-              <DynamicIcon
-                icon="recurring"
-                className="size-3 shrink-0 text-gray-500"
-              />
-            );
-            typeClass =
-              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
-          }
-        } else {
-          if (isUnique) {
-            typeLabel = "À vista";
-            typeIcon = (
-              <DynamicIcon icon="unique" className="size-3 shrink-0 " />
-            );
-            typeClass =
-              "border-text-positive dark:bg-text-positive/10 bg-text-positive/20 text-text-positive  flex items-center gap-1";
-          } else if (isInstallment) {
-            const installmentNumber = tx.installmentNumber ?? 1;
-            const totalInstallments = tx.totalInstallments ?? 1;
-            typeLabel = `Parcelada (${installmentNumber}/${totalInstallments})`;
-            typeIcon = (
-              <DynamicIcon icon="installment" className="size-3 shrink-0" />
-            );
-            typeClass =
-              " border-text-installment dark:bg-text-installment/10 bg-text-installment/20 text-text-installment  flex items-center gap-1";
-          } else if (isRecurring) {
-            typeLabel = "Recorrente";
-            typeIcon = (
-              <DynamicIcon icon="recurring" className="size-3 shrink-0" />
-            );
-            typeClass =
-              "border-text-recurring dark:bg-text-recurring/10 bg-text-recurring/20 text-text-recurring  flex items-center gap-1";
-          }
-        }
-
-        return (
-          <Badge variant="outline" className={typeClass}>
-            {typeIcon}
-            {typeLabel}
-          </Badge>
-        );
-      },
-    },
     {
       id: "status",
       header: "Status",
@@ -230,7 +148,7 @@ export function createIncomeColumns(
         const date = row.date ? normalizeDate(new Date(row.date)) : null;
         const isPastDue = date !== null && date < today;
 
-        return isPastDue ? "Em atraso" : "Em aberto";
+        return isPastDue ? "Em atraso" : "À receber";
       },
       cell: ({ row }) => {
         const tx = row.original;
@@ -257,7 +175,7 @@ export function createIncomeColumns(
           badgeIcon = (
             <DynamicIcon
               icon="double-check"
-              className="size-3 shrink-0 fill-gray-500 text-gray-500"
+              className="size-3 shrink-0  text-text-positive"
             />
           );
           badgeLabel = "Recebido";
@@ -267,9 +185,9 @@ export function createIncomeColumns(
           badgeLabel = "Em atraso";
         } else {
           badgeClass =
-            "border-red-500/40 bg-red-500/10 text-red-500 flex items-center gap-1";
+            "border-text-positive/40 bg-text-positive/10 text-text-positive flex items-center gap-1";
 
-          badgeLabel = "Em aberto";
+          badgeLabel = "À receber";
         }
 
         return (
@@ -362,6 +280,89 @@ export function createIncomeColumns(
         const method = row.original.method;
         const label = method ? PAYMENT_METHODS[method] : "-";
         return <Badge variant="muted">{label}</Badge>;
+      },
+    },
+    {
+      id: "type",
+      header: "Tipo",
+      cell: ({ row }) => {
+        const tx = row.original;
+        const isRecurring = Boolean(tx.recurringId);
+        const isInstallment = Boolean(tx.installmentGroupId);
+        const isUnique = !isRecurring && !isInstallment;
+        const isPaid = Boolean(tx.isPaid);
+
+        let typeLabel = "";
+        let typeIcon: React.ReactNode = null;
+        let typeClass = "";
+
+        if (isPaid) {
+          if (isUnique) {
+            typeLabel = "À vista";
+            typeIcon = (
+              <DynamicIcon
+                icon="unique"
+                className="size-3 shrink-0 text-gray-500"
+              />
+            );
+            typeClass =
+              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
+          } else if (isInstallment) {
+            const installmentNumber = tx.installmentNumber ?? 1;
+            const totalInstallments = tx.totalInstallments ?? 1;
+            typeLabel = `Parcelada (${installmentNumber}/${totalInstallments})`;
+            typeIcon = (
+              <DynamicIcon
+                icon="installment"
+                className="size-3 shrink-0 text-gray-500"
+              />
+            );
+            typeClass =
+              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
+          } else if (isRecurring) {
+            typeLabel = "Recorrente";
+            typeIcon = (
+              <DynamicIcon
+                icon="recurring"
+                className="size-3 shrink-0 text-gray-500"
+              />
+            );
+            typeClass =
+              "border-gray-500/40 bg-gray-500/10 text-gray-500 flex items-center gap-1";
+          }
+        } else {
+          if (isUnique) {
+            typeLabel = "À vista";
+            typeIcon = (
+              <DynamicIcon icon="unique" className="size-3 shrink-0 " />
+            );
+            typeClass =
+              "border-text-unique dark:bg-text-unique/10 bg-text-unique/20 text-text-unique  flex items-center gap-1";
+          } else if (isInstallment) {
+            const installmentNumber = tx.installmentNumber ?? 1;
+            const totalInstallments = tx.totalInstallments ?? 1;
+            typeLabel = `Parcelada (${installmentNumber}/${totalInstallments})`;
+            typeIcon = (
+              <DynamicIcon icon="installment" className="size-3 shrink-0" />
+            );
+            typeClass =
+              " border-text-installment dark:bg-text-installment/10 bg-text-installment/20 text-text-installment  flex items-center gap-1";
+          } else if (isRecurring) {
+            typeLabel = "Recorrente";
+            typeIcon = (
+              <DynamicIcon icon="recurring" className="size-3 shrink-0" />
+            );
+            typeClass =
+              "border-text-recurring dark:bg-text-recurring/10 bg-text-recurring/20 text-text-recurring  flex items-center gap-1";
+          }
+        }
+
+        return (
+          <Badge variant="outline" className={typeClass}>
+            {typeIcon}
+            {typeLabel}
+          </Badge>
+        );
       },
     },
   ];
