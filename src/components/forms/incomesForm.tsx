@@ -1,6 +1,7 @@
 "use client";
 
 import { FieldCurrencyAmount } from "@/components/FieldCurrencyAmount";
+import { BankAccountSelect } from "@/components/Selects/BankAccountSelect";
 import { CategoriesSelect } from "@/components/Selects/CategoriesSelect";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -1101,39 +1102,14 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                             Conta bancária{" "}
                             <span className="text-destructive">*</span>
                           </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            onOpenChange={(openState) =>
-                              !openState && field.onBlur()
-                            }
-                            value={field.value}
-                            disabled={
-                              accountsQuery.isLoading ||
-                              !hasAccounts ||
-                              isSubmitting
-                            }
-                          >
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <SelectValue
-                                  placeholder={
-                                    accountsQuery.isLoading
-                                      ? "Carregando contas..."
-                                      : hasAccounts
-                                        ? "Selecione uma conta bancária"
-                                        : "Nenhuma conta bancária cadastrada"
-                                  }
-                                />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {accountsQuery.data?.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <BankAccountSelect
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              disabled={isSubmitting || !hasAccounts}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}

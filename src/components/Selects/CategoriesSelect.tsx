@@ -17,9 +17,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
 import * as React from "react";
 import { Fragment } from "react";
+import { DynamicIcon } from "../DynamicIcon";
+import { Icon } from "../iconMap";
 
 const CATEGORY_EMPTY_MESSAGE = "Nenhuma categoria cadastrada";
 
@@ -27,6 +29,7 @@ type CategorySource = {
   id: string;
   parent_id: string | null;
   name: string;
+  icon: string | null;
 };
 
 type CategoryGroup = {
@@ -282,7 +285,8 @@ export function CategoriesSelect({
                     onSelect={handleValueChange}
                   >
                     {/* Ícone ANTES do texto para garantir alinhamento estável */}
-                    <CheckIcon
+                    <DynamicIcon
+                      icon="check"
                       className={cn(
                         "mr-2 h-4 w-4 shrink-0",
                         value === option.value ? "opacity-100" : "opacity-0",
@@ -296,7 +300,11 @@ export function CategoriesSelect({
 
             {filteredOptions.groups.map((group) => (
               <Fragment key={group.parent.id}>
-                <CommandGroup heading={group.parent.name}>
+                <div className="px-3 py-2 text-xs font-medium text-muted-foreground flex items-center gap-2">
+                  {group.parent.icon && <Icon iconName={group.parent.icon} />}
+                  <span>{group.parent.name}</span>
+                </div>
+                <CommandGroup>
                   {group.children.map((child) => (
                     <CommandItem
                       key={child.id}
@@ -304,7 +312,8 @@ export function CategoriesSelect({
                       onSelect={handleValueChange}
                     >
                       {/* Ícone ANTES do texto */}
-                      <CheckIcon
+                      <DynamicIcon
+                        icon="check"
                         className={cn(
                           "mr-2 h-4 w-4 shrink-0",
                           value === child.id ? "opacity-100" : "opacity-0",
