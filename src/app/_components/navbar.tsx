@@ -1,4 +1,5 @@
 "use client";
+import { DynamicIcon } from "@/components/DynamicIcon";
 import { Button } from "@heroui/button";
 import { IconTableFilled } from "@tabler/icons-react";
 import Link from "next/link";
@@ -9,8 +10,8 @@ import {
   MobileNavHeader,
   MobileNavMenu,
   MobileNavToggle,
-  NavBody,
   NavbarButton,
+  NavBody,
   NavItems,
   Navbar as RNavbar,
 } from "./resizable-navbar";
@@ -69,8 +70,16 @@ export const Navbar = ({ isAuthenticated }: NavbarProps) => {
 
         <div className="relative z-20 ml-auto hidden lg:flex items-center gap-2">
           <Link href={isAuthenticated ? "/dashboard" : "/sign-in"}>
-            <Button variant="solid" className="bg-primary">
-              {isAuthenticated ? "Dashboard" : "Entrar"}
+            <Button
+              color="primary"
+              endContent={
+                <DynamicIcon
+                  icon="next"
+                  className="group-hover:translate-x-1 transition-transform duration-300"
+                />
+              }
+            >
+              {isAuthenticated ? "Página inicial" : "Entrar"}
             </Button>
           </Link>
         </div>

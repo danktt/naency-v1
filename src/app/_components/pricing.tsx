@@ -1,8 +1,8 @@
 "use client";
 
+import { DynamicIcon } from "@/components/DynamicIcon";
 import { Button } from "@heroui/react";
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
 
 const tiers = [
   {
@@ -93,7 +93,7 @@ export function Pricing() {
               } flex flex-col`}
             >
               {tier.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-primary text-white px-4 py-1 rounded-full text-sm font-medium">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-primary text-accent px-4 py-1 rounded-full text-sm font-medium">
                   Mais Popular
                 </div>
               )}
@@ -118,7 +118,7 @@ export function Pricing() {
                     key={i}
                     className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300"
                   >
-                    <Check className="w-4 h-4 text-primary" />
+                    <DynamicIcon icon="check" className="size-4 text-primary" />
                     {feature}
                   </li>
                 ))}
@@ -127,7 +127,7 @@ export function Pricing() {
               <Button
                 color={tier.popular ? "primary" : "default"}
                 variant={tier.popular ? "shadow" : "bordered"}
-                className={`w-full font-semibold ${!tier.popular && "text-black dark:text-white border-black/20 dark:border-white/20 hover:bg-black/5 dark:hover:bg-white/10"}`}
+                className={`w-full ${!tier.popular && "text-black dark:text-white border-black/20 dark:border-white/20 hover:bg-black/5 dark:hover:bg-white/10"}`}
               >
                 {tier.cta}
               </Button>

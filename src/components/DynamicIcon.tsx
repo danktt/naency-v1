@@ -14,6 +14,8 @@ import {
   IconCalendarWeek,
   IconCheck,
   IconChecks,
+  IconChevronLeft,
+  IconChevronRight,
   IconCircle,
   IconDotsVertical,
   IconMoon,
@@ -23,6 +25,7 @@ import {
   IconReceiptRefund,
   IconRefreshDot,
   IconRepeat,
+  IconRocket,
   IconSun,
   IconTrash,
 } from "@tabler/icons-react";
@@ -63,6 +66,10 @@ export const ICON_MAP = {
   warning: IconAlertCircle,
   transactions: IconArrowsDoubleNeSw,
   add: IconPlus,
+  rocket: IconRocket,
+  next: IconChevronRight,
+  previous: IconChevronLeft,
+
   ...calendarIcons,
 } as const;
 

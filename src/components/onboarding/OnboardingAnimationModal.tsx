@@ -28,7 +28,6 @@ import {
   Building2,
   ChevronRight,
   CreditCard,
-  Rocket,
   Shield,
   TrendingUp,
   Wallet,
@@ -1052,10 +1051,11 @@ export default function OnboardingAnimationModal() {
                     <Button
                       size="lg"
                       onClick={handleGoToDashboard}
-                      icon={<Rocket className="h-5 w-5" />}
+                      icon={<DynamicIcon icon="rocket" />}
+                      isLoading={isCreatingAccount}
                       className="group gap-3 px-8 h-12 rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow w-full"
                     >
-                      <span>Ir para Dashboard</span>
+                      Ir para Tela Inicial
                       <motion.div
                         animate={{ x: [0, 5, 0] }}
                         transition={{
@@ -1063,7 +1063,7 @@ export default function OnboardingAnimationModal() {
                           repeat: Number.POSITIVE_INFINITY,
                         }}
                       >
-                        <ArrowRight className="h-5 w-5" />
+                        <DynamicIcon icon="next" />
                       </motion.div>
                     </Button>
                   </motion.div>
