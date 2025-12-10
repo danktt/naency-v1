@@ -20,7 +20,7 @@ import {
   IconBuildingBank,
   IconCategory,
   IconCreditCard,
-  IconLayoutDashboard,
+  IconHome,
   IconTableFilled,
   IconTransfer,
 } from "@tabler/icons-react";
@@ -44,9 +44,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navMain = useMemo(() => {
     const routes = [
       {
-        title: "Home",
+        title: "Página inicial",
         url: "/dashboard",
-        icon: IconLayoutDashboard,
+        icon: IconHome,
       },
       {
         title: "Receitas",
@@ -74,7 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: IconCreditCard,
       },
       {
-        title: "Provisões",
+        title: "Planejamento",
         url: "/provisions",
         icon: PieChart,
       },
