@@ -80,7 +80,7 @@ export function MonthlyTrendCard({
       {isLoading ? (
         <Skeleton className="h-[320px] w-full" />
       ) : hasData ? (
-        <ChartContainer config={chartConfig}>
+        <ChartContainer config={chartConfig} className="h-full">
           <BarChart
             accessibilityLayer
             data={data}
@@ -204,20 +204,5 @@ export function MonthlyTrendCard({
         </Empty>
       )}
     </GlowCard>
-  );
-}
-
-function MonthlyTrendBackgroundPattern({ id }: { id: string }) {
-  return (
-    <pattern
-      id={id}
-      x="0"
-      y="0"
-      width="12"
-      height="12"
-      patternUnits="userSpaceOnUse"
-    >
-      <circle cx="2" cy="2" r="1" fill="hsl(var(--muted) / 0.25)" />
-    </pattern>
   );
 }

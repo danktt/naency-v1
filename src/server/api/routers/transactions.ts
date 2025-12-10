@@ -823,35 +823,49 @@ export const transactionsRouter = createTRPCRouter({
             ORDER BY DATE_TRUNC('month', t.date)
           `,
         ),
-        ctx.db
-          .select({
-            categoryId: transactions.category_id,
-            categoryNameSnapshot: transactions.category_name_snapshot,
-            categoryName: categories.name,
-            categoryColor: categories.color,
-            total: sum(transactions.amount),
-          })
-          .from(transactions)
-          .leftJoin(
-            categories,
-            and(
-              eq(categories.id, transactions.category_id),
-              eq(categories.group_id, groupId),
-            ),
-          )
-          .where(
-            and(
-              ...monthConditions,
-              eq(transactions.type, "expense"),
-              isNotNull(transactions.account_id),
-            ),
-          )
-          .groupBy(
-            transactions.category_id,
-            transactions.category_name_snapshot,
-            categories.name,
-            categories.color,
-          ),
+        (() => {
+          const parentCategories = alias(categories, "parent_categories");
+          return ctx.db
+            .select({
+              categoryId: transactions.category_id,
+              categoryNameSnapshot: transactions.category_name_snapshot,
+              categoryName: categories.name,
+              categoryColor: categories.color,
+              categoryParentId: categories.parent_id,
+              categoryParentName: parentCategories.name,
+              total: sum(transactions.amount),
+            })
+            .from(transactions)
+            .leftJoin(
+              categories,
+              and(
+                eq(categories.id, transactions.category_id),
+                eq(categories.group_id, groupId),
+              ),
+            )
+            .leftJoin(
+              parentCategories,
+              and(
+                eq(parentCategories.id, categories.parent_id),
+                eq(parentCategories.group_id, groupId),
+              ),
+            )
+            .where(
+              and(
+                ...monthConditions,
+                eq(transactions.type, "expense"),
+                isNotNull(transactions.account_id),
+              ),
+            )
+            .groupBy(
+              transactions.category_id,
+              transactions.category_name_snapshot,
+              categories.name,
+              categories.color,
+              categories.parent_id,
+              parentCategories.name,
+            );
+        })(),
         ctx.db
           .select({
             onTime: sql<number>`SUM(CASE WHEN ${transactions.is_paid} = true AND (${transactions.paid_at} IS NULL OR ${transactions.paid_at} <= ${transactions.date}) THEN 1 ELSE 0 END)`,
@@ -973,6 +987,8 @@ export const transactionsRouter = createTRPCRouter({
           categoryId: row.categoryId,
           label: row.categoryNameSnapshot ?? row.categoryName ?? null,
           color: row.categoryColor ?? "#9ca3af",
+          parentId: row.categoryParentId,
+          parentName: row.categoryParentName ?? null,
           value: toNumber(row.total),
           isUncategorized: !row.categoryId,
         }))

@@ -26,6 +26,7 @@ import { IconCalendar, IconChevronDown } from "@tabler/icons-react";
 import type { Row } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseAsString, useQueryState } from "nuqs";
 import * as React from "react";
 import { toast } from "sonner";
 
@@ -33,6 +34,10 @@ import { createExpenseColumns, type ExpenseTableRow } from "./columnsDef";
 
 export function ExpensesTable() {
   const dateRange = useDateStore((state) => state.dateRange);
+  const [editId, setEditId] = useQueryState(
+    "edit",
+    parseAsString.withDefault(""),
+  );
   const [editingExpense, setEditingExpense] =
     React.useState<ExpenseTableRow | null>(null);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
@@ -67,6 +72,20 @@ export function ExpensesTable() {
 
   const { data, isLoading, isError, refetch, isRefetching } =
     trpc.transactions.list.useQuery(queryInput);
+
+  // Abre o modal quando há editId na URL
+  React.useEffect(() => {
+    if (editId && data && !isEditOpen) {
+      const expense = data.find((item) => item.id === editId);
+      if (expense) {
+        setEditingExpense(expense as ExpenseTableRow);
+        setIsEditOpen(true);
+      } else {
+        // Se não encontrou, limpa a URL
+        void setEditId("");
+      }
+    }
+  }, [editId, data, isEditOpen, setEditId]);
   const deleteExpenseMutation = trpc.transactions.delete.useMutation({
     onSuccess: () => {
       toast("Despesa deletada com sucesso.");
@@ -108,17 +127,25 @@ export function ExpensesTable() {
       },
     });
 
-  const handleEditExpense = React.useCallback((expense: ExpenseTableRow) => {
-    setEditingExpense(expense);
-    setIsEditOpen(true);
-  }, []);
+  const handleEditExpense = React.useCallback(
+    (expense: ExpenseTableRow) => {
+      setEditingExpense(expense);
+      setIsEditOpen(true);
+      void setEditId(expense.id);
+    },
+    [setEditId],
+  );
 
-  const handleEditOpenChange = React.useCallback((nextOpen: boolean) => {
-    setIsEditOpen(nextOpen);
-    if (!nextOpen) {
-      setEditingExpense(null);
-    }
-  }, []);
+  const handleEditOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      setIsEditOpen(nextOpen);
+      if (!nextOpen) {
+        setEditingExpense(null);
+        void setEditId("");
+      }
+    },
+    [setEditId],
+  );
 
   const handleRowClick = React.useCallback(
     (row: Row<ExpenseTableRow>) => {

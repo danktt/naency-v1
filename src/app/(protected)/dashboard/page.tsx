@@ -16,10 +16,12 @@ import * as React from "react";
 import { DistributionCard } from "./_components/DistributionCard";
 import { MonthlyTrendCard } from "./_components/MonthlyTrendCard";
 import { type PaymentSection, PaymentsCard } from "./_components/PaymentsCard";
+import { RecentTransactionsCard } from "./_components/RecentTransactionsCard";
 import {
   type SnapshotCard,
   SnapshotSection,
 } from "./_components/SnapshotSection";
+import { UpcomingDueDatesCard } from "./_components/UpcomingDueDatesCard";
 
 type PaymentStatusKey = "onTime" | "late" | "pending";
 
@@ -185,6 +187,8 @@ export default function DashboardPage() {
         ...item,
         id: item.categoryId ?? `uncategorized-${index}`,
         label,
+        parentId: (item as { parentId?: string | null }).parentId ?? null,
+        parentName: (item as { parentName?: string | null }).parentName ?? null,
       };
     });
   }, [data?.expenseDistribution]);
@@ -355,6 +359,11 @@ export default function DashboardPage() {
           chartConfig={distributionChartConfig}
           isLoading={isLoadingState}
         />
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <RecentTransactionsCard isLoading={isLoadingState} />
+        <UpcomingDueDatesCard isLoading={isLoadingState} />
       </section>
     </div>
   );
