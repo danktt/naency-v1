@@ -287,8 +287,8 @@ export function FieldCurrencyAmount<T extends Record<string, unknown>>({
           </FormLabel>
 
           {/* Prefix symbol */}
-          <div className="relative flex rounded-md shadow-xs">
-            <span className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground text-sm">
+          <div className="relative flex gap-0 rounded-md shadow-xs">
+            <span className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground text-sm z-10">
               R$
             </span>
             <FormControl className="flex-1">
@@ -316,7 +316,7 @@ export function FieldCurrencyAmount<T extends Record<string, unknown>>({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="rounded-s-none border-input bg-background px-3 text-muted-foreground hover:text-foreground"
+                  className="rounded-s-none border-l-0 border-input bg-background px-3 text-muted-foreground hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus-visible:border-l-0 focus-visible:shadow-none"
                   aria-label="Abrir calculadora"
                   disabled={disabled}
                 >
@@ -345,12 +345,11 @@ export function FieldCurrencyAmount<T extends Record<string, unknown>>({
                   >
                     <Copy className="mr-1.5 h-3 w-3" />
                     <span>Copiar</span>
-                    <kbd className="ml-auto rounded border border-border bg-background px-1 text-[10px] font-mono text-muted-foreground">
+                    <kbd className="ml-auto rounded border border-border bg-background px-1 text-xs font-mono text-muted-foreground">
                       {typeof navigator !== "undefined" &&
                       navigator.platform.includes("Mac")
-                        ? "⌘"
-                        : "Ctrl"}
-                      +↵
+                        ? "⌘ + ⏎"
+                        : "Ctrl + ⏎"}
                     </kbd>
                   </Button>
                   <div className="grid grid-cols-4 gap-1">

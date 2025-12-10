@@ -26,6 +26,7 @@ import { IconCalendar, IconChevronDown } from "@tabler/icons-react";
 import type { Row } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseAsString, useQueryState } from "nuqs";
 import * as React from "react";
 import { toast } from "sonner";
 
@@ -33,6 +34,10 @@ import { createIncomeColumns, type IncomeTableRow } from "./columnsDef";
 
 export function IncomesTable() {
   const dateRange = useDateStore((state) => state.dateRange);
+  const [editId, setEditId] = useQueryState(
+    "edit",
+    parseAsString.withDefault(""),
+  );
   const [editingIncome, setEditingIncome] =
     React.useState<IncomeTableRow | null>(null);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
@@ -52,6 +57,20 @@ export function IncomesTable() {
     trpc.transactions.list.useQuery(queryInput);
   const utils = trpc.useUtils();
   const calendarLocale = ptBR;
+
+  // Abre o modal quando há editId na URL
+  React.useEffect(() => {
+    if (editId && data && !isEditOpen) {
+      const income = data.find((item) => item.id === editId);
+      if (income) {
+        setEditingIncome(income as IncomeTableRow);
+        setIsEditOpen(true);
+      } else {
+        // Se não encontrou, limpa a URL
+        void setEditId("");
+      }
+    }
+  }, [editId, data, isEditOpen, setEditId]);
 
   const [incomeToDelete, setIncomeToDelete] =
     React.useState<IncomeTableRow | null>(null);
@@ -162,17 +181,25 @@ export function IncomesTable() {
     });
   }, [incomeToMarkAsPending, markAsPendingMutation]);
 
-  const handleEditIncome = React.useCallback((income: IncomeTableRow) => {
-    setEditingIncome(income);
-    setIsEditOpen(true);
-  }, []);
+  const handleEditIncome = React.useCallback(
+    (income: IncomeTableRow) => {
+      setEditingIncome(income);
+      setIsEditOpen(true);
+      void setEditId(income.id);
+    },
+    [setEditId],
+  );
 
-  const handleEditOpenChange = React.useCallback((nextOpen: boolean) => {
-    setIsEditOpen(nextOpen);
-    if (!nextOpen) {
-      setEditingIncome(null);
-    }
-  }, []);
+  const handleEditOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      setIsEditOpen(nextOpen);
+      if (!nextOpen) {
+        setEditingIncome(null);
+        void setEditId("");
+      }
+    },
+    [setEditId],
+  );
 
   const handleRowClick = React.useCallback(
     (row: Row<IncomeTableRow>) => {
@@ -233,7 +260,6 @@ export function IncomesTable() {
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={confirmDeleteIncome}
               disabled={deleteIncomeMutation.isPending}
             >

@@ -3,6 +3,7 @@
 import {
   IconAlertCircle,
   IconArrowDownLeft,
+  IconArrowsDoubleNeSw,
   IconArrowUpRight,
   IconBuildingBank,
   IconCalendar,
@@ -59,7 +60,7 @@ export const ICON_MAP = {
   refreshDot: IconRefreshDot,
   trash: IconTrash,
   warning: IconAlertCircle,
-
+  transactions: IconArrowsDoubleNeSw,
   ...calendarIcons,
 } as const;
 

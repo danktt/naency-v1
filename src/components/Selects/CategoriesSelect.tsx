@@ -85,15 +85,21 @@ const buildCategoryOptions = (data: CategorySource[]): CategoryOptions => {
         processedChildren.add(child.id);
       });
     } else {
-      standalone.push({ value: category.id, label: category.name });
+      // Categorias pai sem filhos aparecem como grupos vazios (não selecionáveis)
+      groups.push({
+        parent: category,
+        children: [],
+      });
     }
   }
 
   for (const category of data) {
+    // Pula categorias que não têm parent_id (são pais) ou já foram processadas
     if (!category.parent_id || processedChildren.has(category.id)) {
       continue;
     }
 
+    // Esta categoria é filha (tem parent_id)
     const parent = byId.get(category.parent_id);
     if (parent) {
       const existingGroup = groups.find((g) => g.parent.id === parent.id);
@@ -107,6 +113,8 @@ const buildCategoryOptions = (data: CategorySource[]): CategoryOptions => {
       }
       processedChildren.add(category.id);
     } else {
+      // Parent não encontrado - trata como categoria standalone (filha órfã)
+      // Mas só adiciona se realmente for uma categoria filha (tem parent_id)
       standalone.push({
         value: category.id,
         label: category.name,
@@ -305,23 +313,28 @@ export function CategoriesSelect({
                   <span>{group.parent.name}</span>
                 </div>
                 <CommandGroup>
-                  {group.children.map((child) => (
-                    <CommandItem
-                      key={child.id}
-                      value={child.id}
-                      onSelect={handleValueChange}
-                    >
-                      {/* Ícone ANTES do texto */}
-                      <DynamicIcon
-                        icon="check"
-                        className={cn(
-                          "mr-2 h-4 w-4 shrink-0",
-                          value === child.id ? "opacity-100" : "opacity-0",
-                        )}
-                      />
-                      {child.name}
-                    </CommandItem>
-                  ))}
+                  {group.children.length > 0 ? (
+                    group.children.map((child) => (
+                      <CommandItem
+                        key={child.id}
+                        value={child.id}
+                        onSelect={handleValueChange}
+                      >
+                        <DynamicIcon
+                          icon="check"
+                          className={cn(
+                            "mr-2 h-4 w-4 shrink-0",
+                            value === child.id ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        {child.name}
+                      </CommandItem>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">
+                      Nenhuma subcategoria cadastrada
+                    </div>
+                  )}
                 </CommandGroup>
               </Fragment>
             ))}
