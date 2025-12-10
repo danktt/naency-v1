@@ -1,5 +1,6 @@
 "use client";
 
+import { DynamicIcon } from "@/components/DynamicIcon";
 import { Icon } from "@/components/iconMap";
 import {
   AlertDialog,
@@ -80,14 +81,11 @@ export function CategoryRow({
     "delete" | "restore" | null
   >(null);
 
-  // Uma categoria é "pai" se não é subcategoria (isChild = false)
-  // Independentemente de ter filhos ou não
   const isParent = !isChild;
   const canEdit = !(isChild && !category.is_active);
 
   const handleDeleteOrRestore = () => {
     if (isChild) {
-      // Para subcategorias, mostrar dialog de confirmação
       setPendingAction(category.is_active ? "delete" : "restore");
       setIsConfirmDialogOpen(true);
     } else {
@@ -110,22 +108,37 @@ export function CategoryRow({
     setPendingAction(null);
   };
 
+  const handleClick = () => {
+    if (hasChildren && onToggle) {
+      onToggle();
+    } else if (onEdit && canEdit) {
+      onEdit();
+    }
+  };
+
   return (
     <TooltipProvider delayDuration={300}>
-      <div
+      <button
+        type="button"
+        onClick={handleClick}
         className={cn(
-          "group grid grid-cols-[1fr_120px_100px_50px] rounded-lg gap-4 px-4 py-3 items-center transition-colors hover:bg-muted/50",
+          "group flex flex-col md:grid w-full md:grid-cols-[1fr_120px_100px_50px] rounded-lg gap-2 md:gap-4 px-3 py-3 md:px-4 items-start md:items-center transition-colors hover:bg-muted/50 relative cursor-pointer",
           isChild && "bg-muted/10",
           !category.is_active && "opacity-50",
         )}
       >
-        {/* Category Name */}
-        <div className={cn("flex items-center gap-3")}>
+        {/* Category Name & Main Info */}
+        <div
+          className={cn("flex items-center gap-2 md:gap-3 w-full md:w-auto")}
+        >
           {hasChildren ? (
             <button
               type="button"
-              onClick={onToggle}
-              className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-muted transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClick();
+              }}
+              className="flex h-8 w-8 cursor-pointer md:h-6 md:w-6 shrink-0 items-center justify-center rounded-md hover:bg-muted transition-colors"
               disabled={isProcessing}
             >
               <div className="relative h-4 w-4">
@@ -148,24 +161,34 @@ export function CategoryRow({
               </div>
             </button>
           ) : (
-            <div className="w-6" />
+            <div className="w-8 md:w-6 shrink-0" />
           )}
 
           <div
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
               isParent ? "bg-muted" : "bg-transparent",
             )}
           >
             {category.icon && <Icon iconName={category.icon} />}
           </div>
 
-          <div className="flex flex-col min-w-0">
-            <span className="text-sm font-medium text-foreground truncate">
-              {category.name}
-            </span>
+          <div className="flex flex-col min-w-0 flex-1 ml-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground truncate">
+                {category.name}
+              </span>
+              {!category.is_active && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] h-4 px-1 py-0 border-muted-foreground/40 text-muted-foreground md:hidden"
+                >
+                  Inativa
+                </Badge>
+              )}
+            </div>
             {hasChildren && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-left text-muted-foreground truncate">
                 {category.childrenCount ?? 0}{" "}
                 {category.childrenCount === 1
                   ? "subcategoria"
@@ -174,9 +197,9 @@ export function CategoryRow({
             )}
           </div>
 
-          {/* Quick Actions - Visible on Hover */}
+          {/* Quick Actions - Desktop Only */}
           {(isParent || isChild) && (
-            <div className="flex items-center gap-1 ml-2">
+            <div className="hidden md:flex items-center gap-1 ml-2">
               {isParent && onCreateSubcategory && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -233,13 +256,91 @@ export function CategoryRow({
               )}
             </div>
           )}
+
+          {/* Mobile Actions Dropdown Trigger - Always Visible */}
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground"
+                  disabled={isProcessing}
+                >
+                  <IconDots className="h-4 w-4" />
+                  <span className="sr-only">Ações</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {onEdit && (
+                  <DropdownMenuItem
+                    onClick={onEdit}
+                    disabled={isProcessing || !canEdit}
+                    className="gap-2 cursor-pointer"
+                  >
+                    <DynamicIcon icon="edit" />
+                    Editar
+                  </DropdownMenuItem>
+                )}
+                {isParent && onCreateSubcategory && (
+                  <DropdownMenuItem
+                    onClick={onCreateSubcategory}
+                    disabled={isProcessing}
+                    className="gap-2 cursor-pointer"
+                  >
+                    <DynamicIcon icon="add" />
+                    Adicionar subcategoria
+                  </DropdownMenuItem>
+                )}
+
+                {(onDelete || onRestore) && (
+                  <>
+                    {(onEdit ||
+                      onCreateSubcategory ||
+                      onDuplicate ||
+                      onMove) && <DropdownMenuSeparator />}
+                    <DropdownMenuItem
+                      onClick={handleDeleteOrRestore}
+                      disabled={isProcessing}
+                      variant={category.is_active ? "destructive" : "default"}
+                      className="gap-2 cursor-pointer"
+                    >
+                      {category.is_active ? (
+                        <>
+                          <IconEyeOff className="h-4 w-4" />
+                          Desativar
+                        </>
+                      ) : (
+                        <>
+                          <IconEye className="h-4 w-4" />
+                          Ativar
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {onDelete && category.is_active && (
+                  <DropdownMenuItem
+                    onClick={onDelete}
+                    disabled={isProcessing}
+                    variant="destructive"
+                    className="gap-2 cursor-pointer text-destructive"
+                  >
+                    <IconTrash className="h-4 w-4" />
+                    Excluir
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
-        <div>
+        {/* Desktop Status Badge */}
+        <div className="hidden md:block ">
           <Badge
             variant="secondary"
             className={cn(
-              "text-xs font-medium",
+              "text-xs font-medium ",
               category.is_active
                 ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
                 : "bg-gray-500/20 text-gray-400 hover:bg-gray-500/30",
@@ -249,8 +350,8 @@ export function CategoryRow({
           </Badge>
         </div>
 
-        {/* Actions Dropdown */}
-        <div className="flex justify-end">
+        {/* Desktop Actions Dropdown */}
+        <div className="hidden md:flex justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -270,7 +371,7 @@ export function CategoryRow({
                   disabled={isProcessing || !canEdit}
                   className="gap-2 cursor-pointer"
                 >
-                  <IconPencil className="h-4 w-4" />
+                  <DynamicIcon icon="edit" />
                   Editar
                 </DropdownMenuItem>
               )}
@@ -280,7 +381,7 @@ export function CategoryRow({
                   disabled={isProcessing}
                   className="gap-2 cursor-pointer"
                 >
-                  <IconPlus className="h-4 w-4" />
+                  <DynamicIcon icon="add" />
                   Adicionar subcategoria
                 </DropdownMenuItem>
               )}
@@ -324,7 +425,7 @@ export function CategoryRow({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
+      </button>
 
       {/* Dialog de confirmação para ativar/desativar subcategorias */}
       {isChild && (

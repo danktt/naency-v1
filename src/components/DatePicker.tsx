@@ -1,241 +1,240 @@
 "use client";
 
-import {
-  endOfMonth,
-  endOfYear,
-  format,
-  startOfMonth,
-  startOfYear,
-  subDays,
-  subMonths,
-  subYears,
-} from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { DateRange } from "react-day-picker";
-
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { useDateStore } from "@/stores/useDateStore";
+import {
+  endOfMonth,
+  endOfWeek,
+  endOfYear,
+  format,
+  startOfMonth,
+  startOfWeek,
+  startOfYear,
+  subMonths,
+  subWeeks,
+} from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import * as React from "react";
 
-type PresetRange = {
-  label: string;
-  getRange: () => { from: Date; to: Date };
-};
-
-const cloneDate = (date: Date) => new Date(date.getTime());
+const MONTHS = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
 
 export function DatePicker() {
   const { dateRange, setDateRange } = useDateStore();
-  const today = useMemo(() => new Date(), []);
-
-  const presets = useMemo<PresetRange[]>(() => {
-    const getToday = () => {
-      const base = new Date();
-      return {
-        from: cloneDate(base),
-        to: cloneDate(base),
-      };
-    };
-
-    const getYesterday = () => {
-      const base = subDays(new Date(), 1);
-      return {
-        from: cloneDate(base),
-        to: cloneDate(base),
-      };
-    };
-
-    const getLast7Days = () => {
-      const end = new Date();
-      return {
-        from: subDays(cloneDate(end), 6),
-        to: cloneDate(end),
-      };
-    };
-
-    const getLast30Days = () => {
-      const end = new Date();
-      return {
-        from: subDays(cloneDate(end), 29),
-        to: cloneDate(end),
-      };
-    };
-
-    const getMonthToDate = () => {
-      const end = new Date();
-      return {
-        from: startOfMonth(cloneDate(end)),
-        to: cloneDate(end),
-      };
-    };
-
-    const getLastMonth = () => {
-      const base = subMonths(new Date(), 1);
-      return {
-        from: startOfMonth(cloneDate(base)),
-        to: endOfMonth(cloneDate(base)),
-      };
-    };
-
-    const getYearToDate = () => {
-      const end = new Date();
-      return {
-        from: startOfYear(cloneDate(end)),
-        to: cloneDate(end),
-      };
-    };
-
-    const getLastYear = () => {
-      const base = subYears(new Date(), 1);
-      return {
-        from: startOfYear(cloneDate(base)),
-        to: endOfYear(cloneDate(base)),
-      };
-    };
-
-    return [
-      { label: "Today", getRange: getToday },
-      { label: "Yesterday", getRange: getYesterday },
-      { label: "Last 7 days", getRange: getLast7Days },
-      { label: "Last 30 days", getRange: getLast30Days },
-      { label: "Month to date", getRange: getMonthToDate },
-      { label: "Last month", getRange: getLastMonth },
-      { label: "Year to date", getRange: getYearToDate },
-      { label: "Last year", getRange: getLastYear },
-    ];
-  }, []);
-
-  const [month, setMonth] = useState<Date>(() => cloneDate(dateRange.to));
-  const [date, setDate] = useState<DateRange>(() => ({
-    from: dateRange.from,
-    to: dateRange.to,
-  }));
-
-  useEffect(() => {
-    setDate({
-      from: dateRange.from,
-      to: dateRange.to,
-    });
-    setMonth(cloneDate(dateRange.to));
-  }, [dateRange]);
-
-  const applyRange = useCallback(
-    (range: DateRange) => {
-      if (!range.from) {
-        return;
-      }
-
-      const from = range.from;
-      const to = range.to ?? from;
-      const normalized: DateRange = { from, to };
-
-      setDate(normalized);
-      setMonth(cloneDate(to));
-      setDateRange(normalized);
-    },
-    [setDateRange],
+  const [open, setOpen] = React.useState(false);
+  const [selectedYear, setSelectedYear] = React.useState(
+    new Date().getFullYear(),
   );
 
-  const handleSelect = useCallback(
-    (nextRange: DateRange | undefined) => {
-      if (!nextRange?.from) {
+  // Sincroniza o selectedYear com o dateRange atual
+  React.useEffect(() => {
+    setSelectedYear(dateRange.from.getFullYear());
+  }, [dateRange.from]);
+
+  const handleMonthSelect = (monthIndex: number) => {
+    const from = startOfMonth(new Date(selectedYear, monthIndex));
+    const to = endOfMonth(new Date(selectedYear, monthIndex));
+    const newRange = { from, to };
+    setDateRange(newRange);
+    setOpen(false);
+  };
+
+  const handleWeekSelect = (weeksAgo: number) => {
+    const now = new Date();
+    const targetWeek = subWeeks(now, weeksAgo);
+    const from = startOfWeek(targetWeek, { weekStartsOn: 0 });
+    const to = endOfWeek(targetWeek, { weekStartsOn: 0 });
+    const newRange = { from, to };
+    setDateRange(newRange);
+    setOpen(false);
+  };
+
+  const handleQuickSelect = (type: string) => {
+    const now = new Date();
+    let from: Date;
+    let to: Date;
+
+    switch (type) {
+      case "thisMonth":
+        from = startOfMonth(now);
+        to = endOfMonth(now);
+        break;
+      case "lastMonth":
+        from = startOfMonth(subMonths(now, 1));
+        to = endOfMonth(subMonths(now, 1));
+        break;
+      case "last3Months":
+        from = startOfMonth(subMonths(now, 2));
+        to = endOfMonth(now);
+        break;
+      case "thisYear":
+        from = startOfYear(now);
+        to = endOfYear(now);
+        break;
+      default:
         return;
-      }
-
-      const { from, to } = nextRange;
-
-      if (!from) {
-        return;
-      }
-
-      applyRange({
-        from,
-        to: to ?? from,
-      });
-    },
-    [applyRange],
-  );
-
-  const isActivePreset = useCallback(
-    (range: { from: Date; to: Date }) => {
-      if (!date?.from || !date?.to) {
-        return false;
-      }
-
-      return (
-        date.from.getTime() === range.from.getTime() &&
-        date.to.getTime() === range.to?.getTime()
-      );
-    },
-    [date],
-  );
-
-  const rangeLabel = useMemo(() => {
-    if (!date?.from) {
-      return "Select a period";
     }
 
-    if (!date.to) {
-      return format(date.from, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    const newRange = { from, to };
+    setDateRange(newRange);
+    setOpen(false);
+  };
+
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  const formatDisplayDate = () => {
+    const fromMonth = dateRange.from.getMonth();
+    const toMonth = dateRange.to.getMonth();
+    const fromYear = dateRange.from.getFullYear();
+    const toYear = dateRange.to.getFullYear();
+
+    if (fromMonth === toMonth && fromYear === toYear) {
+      return format(dateRange.from, "MMMM yyyy", { locale: ptBR });
     }
 
-    return `${format(date.from, "dd 'de' MMM", { locale: ptBR })} - ${format(date.to, "dd 'de' MMM 'de' yyyy", { locale: ptBR })}`;
-  }, [date]);
+    return `${format(dateRange.from, "MMM yyyy", { locale: ptBR })} - ${format(dateRange.to, "MMM yyyy", { locale: ptBR })}`;
+  };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="justify-start text-left font-normal"
+          size="sm"
+          className="gap-2 bg-card border-border hover:bg-muted capitalize"
         >
-          <CalendarIcon className="mr-2 size-4" />
-          {rangeLabel}
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span>{formatDisplayDate()}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <div className="rounded-md border">
-          <div className="flex max-sm:flex-col">
-            <div className="relative py-4 max-sm:order-1 max-sm:border-t sm:w-32">
-              <div className="h-full sm:border-e">
-                <div className="flex flex-col px-2">
-                  {presets.map((preset) => {
-                    const range = preset.getRange();
-                    const isActive = isActivePreset(range);
-
-                    return (
-                      <Button
-                        key={preset.label}
-                        variant={isActive ? "secondary" : "ghost"}
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => applyRange(range)}
-                      >
-                        {preset.label}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-            <Calendar
-              mode="range"
-              selected={date}
-              onSelect={handleSelect}
-              month={month}
-              onMonthChange={setMonth}
-              className="p-2"
-              numberOfMonths={2}
-            />
+      <PopoverContent className="w-[340px] p-0" align="end">
+        <Tabs defaultValue="month" className="w-full">
+          <div className="border-b border-border p-3">
+            <TabsList className="w-full grid grid-cols-3">
+              <TabsTrigger value="month">Mês</TabsTrigger>
+              <TabsTrigger value="week">Semana</TabsTrigger>
+              <TabsTrigger value="quick">Rápido</TabsTrigger>
+            </TabsList>
           </div>
-        </div>
+
+          <TabsContent value="month" className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setSelectedYear(selectedYear - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="font-semibold">{selectedYear}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setSelectedYear(selectedYear + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2">
+              {MONTHS.map((month, index) => {
+                const isCurrentMonth =
+                  index === currentMonth && selectedYear === currentYear;
+                const isSelected =
+                  dateRange.from.getMonth() === index &&
+                  dateRange.from.getFullYear() === selectedYear &&
+                  dateRange.to.getMonth() === index &&
+                  dateRange.to.getFullYear() === selectedYear;
+
+                return (
+                  <Button
+                    key={month}
+                    variant={isSelected ? "default" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "h-10",
+                      isCurrentMonth &&
+                        !isSelected &&
+                        "border border-primary text-primary",
+                      isSelected &&
+                        "bg-primary hover:bg-primary/90 text-primary-foreground",
+                    )}
+                    onClick={() => handleMonthSelect(index)}
+                  >
+                    {month}
+                  </Button>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="week" className="p-4 space-y-2">
+            <p className="text-sm text-muted-foreground mb-3">
+              Selecione uma semana:
+            </p>
+            {[
+              { label: "Esta semana", value: 0 },
+              { label: "Semana passada", value: 1 },
+              { label: "2 semanas atrás", value: 2 },
+              { label: "3 semanas atrás", value: 3 },
+              { label: "4 semanas atrás", value: 4 },
+            ].map((item) => (
+              <Button
+                key={item.value}
+                variant="ghost"
+                className="w-full justify-start h-10"
+                onClick={() => handleWeekSelect(item.value)}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </TabsContent>
+
+          <TabsContent value="quick" className="p-4 space-y-2">
+            <p className="text-sm text-muted-foreground mb-3">
+              Atalhos rápidos:
+            </p>
+            {[
+              { label: "Este mês", value: "thisMonth", icon: "📅" },
+              { label: "Mês passado", value: "lastMonth", icon: "⏪" },
+              { label: "Últimos 3 meses", value: "last3Months", icon: "📊" },
+              { label: "Este ano", value: "thisYear", icon: "📆" },
+            ].map((item) => (
+              <Button
+                key={item.value}
+                variant="ghost"
+                className="w-full justify-start h-10 gap-3"
+                onClick={() => handleQuickSelect(item.value)}
+              >
+                <span>{item.icon}</span>
+                {item.label}
+              </Button>
+            ))}
+          </TabsContent>
+        </Tabs>
       </PopoverContent>
     </Popover>
   );

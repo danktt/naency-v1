@@ -1,5 +1,6 @@
 "use client";
 import { DatePicker } from "@/components/DatePicker";
+import { DockMenu } from "@/components/DockMenu";
 import OnboardingAnimationModal from "@/components/onboarding/OnboardingAnimationModal";
 import { AppSidebar } from "@/components/Sidebar";
 import { ToggleTheme } from "@/components/ToggleTheme";
@@ -32,6 +33,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
             <div className="p-4 pt-0">{children}</div>
           </SidebarInset>
           <OnboardingAnimationModal />
+          <DockMenu />
         </SidebarProvider>
       </SignedIn>
       <SignedOut>

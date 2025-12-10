@@ -18,6 +18,7 @@ import {
   IconDotsVertical,
   IconMoon,
   IconPencil,
+  IconPlus,
   IconReceipt,
   IconReceiptRefund,
   IconRefreshDot,
@@ -61,6 +62,7 @@ export const ICON_MAP = {
   trash: IconTrash,
   warning: IconAlertCircle,
   transactions: IconArrowsDoubleNeSw,
+  add: IconPlus,
   ...calendarIcons,
 } as const;
 
