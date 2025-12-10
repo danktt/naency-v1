@@ -76,7 +76,7 @@ export function CategoryTreeTable({
               isProcessing={isProcessing}
             />
             {hasChildren && isExpanded && (
-              <div className="border-border/60 ml-6 space-y-2 border-l-2 pl-4">
+              <div className="border-border/60 ml-4 space-y-2 border-l-2 pl-2">
                 {renderNodes(node.children, depth + 1)}
               </div>
             )}
@@ -102,7 +102,7 @@ export function CategoryTreeTable({
         <span className="text-xs font-medium text-muted-foreground  tracking-wider">
           Categoria
         </span>
-        <span className="text-xs font-medium text-muted-foreground  tracking-wider">
+        <span className="text-xs font-medium text-center text-muted-foreground hidden md:block tracking-wider">
           Status
         </span>
       </div>
