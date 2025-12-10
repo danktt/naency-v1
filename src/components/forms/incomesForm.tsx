@@ -1126,7 +1126,7 @@ export function IncomesForm(props: IncomesFormProps = {}) {
                             onValueChange={field.onChange}
                             disabled={isSubmitting}
                           >
-                            <FormControl>
+                            <FormControl className="active:scale-[0.99]">
                               <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Selecione uma forma" />
                               </SelectTrigger>

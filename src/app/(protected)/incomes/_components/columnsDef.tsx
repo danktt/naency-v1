@@ -435,7 +435,7 @@ export function createIncomeColumns(
                   onMarkAsPending?.(row.original);
                 }}
               >
-                <DynamicIcon icon="receiptRefund" className="size-4" />
+                <DynamicIcon icon="receipt-refund" className="size-4" />
                 Marcar como pendente
               </DropdownMenuItem>
             )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { DynamicIcon } from "@/components/DynamicIcon";
 import { ICON_MAP } from "@/components/iconMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +21,14 @@ type IconSelectorProps = {
   value?: string;
   onChange: (iconName: string) => void;
   className?: string;
+  hasError?: boolean;
 };
 
 export function IconSelector({
   value,
   onChange,
   className,
+  hasError,
 }: IconSelectorProps) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -49,16 +52,28 @@ export function IconSelector({
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
-      <PopoverTrigger asChild>
+      <PopoverTrigger
+        asChild
+        className={cn(
+          "w-full ",
+          hasError
+            ? "ring-destructive/20 border-destructive dark:border-destructive"
+            : "",
+        )}
+      >
         <Button
           type="button"
+          size="icon"
           variant="outline"
-          className={cn("w-fit justify-start", className)}
+          className={cn(className)}
         >
           {SelectedIcon ? (
-            <SelectedIcon className="mr-2 h-4 w-4" />
+            <SelectedIcon />
           ) : (
-            <span>Selecione um ícone</span>
+            <DynamicIcon
+              icon="dots-horizontal"
+              className="text-muted-foreground"
+            />
           )}
         </Button>
       </PopoverTrigger>
