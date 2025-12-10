@@ -31,7 +31,6 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconPencil,
-  IconPlus,
   IconTrash,
 } from "@tabler/icons-react";
 import * as React from "react";
@@ -202,19 +201,17 @@ export function CategoryRow({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="ghost"
                       size="icon"
                       className={cn(
-                        "h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted",
+                        "h-7 w-7 ",
                         "opacity-0 -translate-x-2 transition-all duration-150 ease-out",
                         "group-hover:opacity-100 group-hover:translate-x-0",
                         "group-hover:delay-0",
                       )}
                       onClick={onCreateSubcategory}
                       disabled={isProcessing}
-                    >
-                      <IconPlus className="h-3.5 w-3.5" />
-                    </Button>
+                      icon={<DynamicIcon icon="add" />}
+                    />
                   </TooltipTrigger>
                   <TooltipContent side="top">
                     <p>Adicionar subcategoria</p>
