@@ -137,8 +137,8 @@ export function CategoryRow({
       <div
         ref={rowRef}
         className={cn(
-          "group flex flex-col md:grid w-full md:grid-cols-[1fr_120px_100px_50px] rounded-lg gap-2 md:gap-4 px-3 py-3 md:px-4 items-start md:items-center transition-all hover:bg-muted/50 relative",
-          isChild && "bg-muted/10",
+          "group flex flex-col md:grid w-full md:grid-cols-[1fr_120px_100px_50px] rounded-lg gap-2 md:gap-4 px-3 py-3 md:px-4 items-start md:items-center transition-all hover:bg-muted/50  relative",
+          isChild && "bg-muted/30",
           !category.is_active && "opacity-50",
           isHighlighted &&
             "animate-highlight ring-2 ring-primary/50 bg-primary/10",
