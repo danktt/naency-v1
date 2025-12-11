@@ -26,7 +26,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
                 </div>
                 <div className="ml-auto flex items-center gap-2">
                   <DatePicker />
-                  <ToggleTheme />
+                  <ToggleTheme size="icon-sm" />
                 </div>
               </div>
             </header>

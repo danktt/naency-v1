@@ -2,6 +2,8 @@
 
 import {
   IconAlertCircle,
+  IconAlertOctagon,
+  IconAlertTriangle,
   IconArchive,
   IconArrowDownLeft,
   IconArrowsDoubleNeSw,
@@ -19,10 +21,13 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconCircle,
+  IconCircleCheck,
   IconDots,
   IconDotsVertical,
   IconEye,
   IconEyeOff,
+  IconInfoCircle,
+  IconLoader,
   IconMoon,
   IconPencil,
   IconPlus,
@@ -43,6 +48,13 @@ interface DynamicIconProps {
   size?: number;
   stroke?: number;
 }
+const sonnerIcons = {
+  "sonner-success": IconCircleCheck,
+  "sonner-info": IconInfoCircle,
+  "sonner-warning": IconAlertTriangle,
+  "sonner-error": IconAlertOctagon,
+  "sonner-loading": IconLoader,
+} as const;
 
 const calendarIcons = {
   calendar: IconCalendar,
@@ -81,7 +93,9 @@ export const ICON_MAP = {
   eye: IconEye,
   "eye-off": IconEyeOff,
   restore: IconRestore,
+  loading: IconLoader,
   ...calendarIcons,
+  ...sonnerIcons,
 } as const;
 
 export type IconName = keyof typeof ICON_MAP;

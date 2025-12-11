@@ -1,7 +1,6 @@
 "use client";
 
 import { DynamicIcon } from "@/components/DynamicIcon";
-import { Icon } from "@/components/iconMap";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -26,11 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import {
-  IconChevronDown,
-  IconChevronRight,
-  IconPencil,
-} from "@tabler/icons-react";
+import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 import * as React from "react";
 
 type CategoryRowProps = {
@@ -169,15 +164,6 @@ export function CategoryRow({
             <div className="w-8 md:w-6 shrink-0" />
           )}
 
-          <div
-            className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-              isParent ? "bg-muted" : "bg-transparent",
-            )}
-          >
-            {category.icon && <Icon iconName={category.icon} />}
-          </div>
-
           <div className="flex flex-col min-w-0 flex-1 ml-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-foreground truncate">
@@ -201,70 +187,6 @@ export function CategoryRow({
               </span>
             )}
           </div>
-
-          {/* Quick Actions - Desktop Only */}
-          {(isParent || isChild) && (
-            <div className="flex items-center gap-1 ml-2">
-              {isParent && onCreateSubcategory && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      className={cn(
-                        "h-7 w-7 ",
-                        "opacity-0 -translate-x-2 transition-all duration-150 ease-out",
-                        "group-hover:opacity-100 group-hover:translate-x-0",
-                        "group-hover:delay-0",
-                      )}
-                      onClick={onCreateSubcategory}
-                      disabled={isProcessing || !category.is_active}
-                      icon={<DynamicIcon icon="add" />}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p>
-                      {!category.is_active
-                        ? "Não é possível adicionar subcategoria em categoria arquivada"
-                        : "Adicionar subcategoria"}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {onEdit && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted",
-                        "opacity-0 -translate-x-2 transition-all duration-150 ease-out",
-                        "group-hover:opacity-100 group-hover:translate-x-0",
-                        isParent && onCreateSubcategory
-                          ? "group-hover:delay-[50ms]"
-                          : "group-hover:delay-0",
-                      )}
-                      onClick={onEdit}
-                      disabled={isProcessing || !canEdit || !category.is_active}
-                    >
-                      <IconPencil className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p>
-                      {!category.is_active
-                        ? "Não é possível editar categoria arquivada"
-                        : !canEdit
-                          ? "Não é possível editar subcategoria inativa"
-                          : isChild
-                            ? "Editar subcategoria"
-                            : "Editar categoria"}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-          )}
 
           {/* Mobile Actions Dropdown Trigger - Always Visible */}
           <div className="md:hidden">
@@ -366,90 +288,97 @@ export function CategoryRow({
           </Badge>
         </div>
 
-        {/* Desktop Actions Dropdown */}
-        <div className="hidden md:flex justify-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground "
-                disabled={isProcessing}
-              >
-                <DynamicIcon icon="dots-vertical" />
-                <span className="sr-only">Mais ações</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {onEdit && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    if (isProcessing || !canEdit || !category.is_active) {
-                      e.preventDefault();
-                      return;
-                    }
-                    onEdit();
-                  }}
-                  disabled={isProcessing || !canEdit || !category.is_active}
+        {/* Desktop Actions - Icons with Tooltips (appear on hover) */}
+        <div className="hidden md:flex items-center gap-1 justify-center">
+          {/* Editar */}
+          {onEdit && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className={cn(
-                    "gap-2",
-                    (isProcessing || !canEdit || !category.is_active) &&
-                      "cursor-not-allowed",
+                    "h-8 w-8 text-muted-foreground hover:text-foreground",
+                    "opacity-0 translate-x-2 transition-all duration-150 ease-out",
+                    "group-hover:opacity-100 group-hover:translate-x-0",
                   )}
+                  onClick={onEdit}
+                  disabled={isProcessing || !canEdit || !category.is_active}
                 >
                   <DynamicIcon icon="edit" />
-                  Editar
-                </DropdownMenuItem>
-              )}
-              {isParent && onCreateSubcategory && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    if (isProcessing || !category.is_active) {
-                      e.preventDefault();
-                      return;
-                    }
-                    onCreateSubcategory();
-                  }}
-                  disabled={isProcessing || !category.is_active}
+                  <span className="sr-only">Editar</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {!category.is_active
+                  ? "Não é possível editar categoria arquivada"
+                  : !canEdit
+                    ? "Não é possível editar subcategoria inativa"
+                    : isChild
+                      ? "Editar subcategoria"
+                      : "Editar categoria"}
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Arquivar/Desarquivar */}
+          {(onDelete || onRestore) && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className={cn(
-                    "gap-2",
-                    (isProcessing || !category.is_active) &&
-                      "cursor-not-allowed",
+                    "h-8 w-8",
+                    category.is_active
+                      ? "text-muted-foreground hover:text-destructive"
+                      : "text-muted-foreground hover:text-foreground",
+                    "opacity-0 translate-x-2 transition-all duration-150 ease-out",
+                    "group-hover:opacity-100 group-hover:translate-x-0 group-hover:delay-[50ms]",
                   )}
+                  onClick={handleDeleteOrRestore}
+                  disabled={isProcessing}
+                >
+                  <DynamicIcon
+                    icon={category.is_active ? "archive" : "restore"}
+                  />
+                  <span className="sr-only">
+                    {category.is_active ? "Arquivar" : "Desarquivar"}
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {category.is_active ? "Arquivar" : "Desarquivar"}
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Adicionar subcategoria */}
+          {isParent && onCreateSubcategory && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 text-muted-foreground hover:text-foreground",
+                    "opacity-0 translate-x-2 transition-all duration-150 ease-out",
+                    "group-hover:opacity-100 group-hover:translate-x-0 group-hover:delay-[100ms]",
+                  )}
+                  onClick={onCreateSubcategory}
+                  disabled={isProcessing || !category.is_active}
                 >
                   <DynamicIcon icon="add" />
-                  Adicionar subcategoria
-                </DropdownMenuItem>
-              )}
-
-              {(onDelete || onRestore) && (
-                <>
-                  {(onEdit ||
-                    (isParent && onCreateSubcategory) ||
-                    onDuplicate ||
-                    onMove) && <DropdownMenuSeparator />}
-                  <DropdownMenuItem
-                    onClick={handleDeleteOrRestore}
-                    disabled={isProcessing}
-                    variant={category.is_active ? "destructive" : "default"}
-                    className="gap-2 "
-                  >
-                    {category.is_active ? (
-                      <>
-                        <DynamicIcon icon="archive" />
-                        Arquivar
-                      </>
-                    ) : (
-                      <>
-                        <DynamicIcon icon="restore" />
-                        Desarquivar
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <span className="sr-only">Adicionar subcategoria</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {!category.is_active
+                  ? "Não é possível adicionar subcategoria em categoria arquivada"
+                  : "Adicionar subcategoria"}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </div>
 

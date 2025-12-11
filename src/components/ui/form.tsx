@@ -122,7 +122,7 @@ function FormControl({
       }
       aria-invalid={!!error}
       className={cn(
-        "active:scale-[0.99] cursor-pointer transition-all duration-300",
+        "active:scale-[0.99]  transition-all duration-300",
         className,
       )}
       {...props}
