@@ -72,6 +72,14 @@ export function CategoryDialog({
   const isEdit = !!category;
   const isSubcategory = !!parentCategory || category?.parent_id !== null;
 
+  // Extrair ícones já em uso por outras categorias pai
+  const usedIcons = React.useMemo(() => {
+    if (!allCategories) return [];
+    return allCategories
+      .filter((cat) => cat.parent_id === null && cat.icon)
+      .map((cat) => cat.icon as string);
+  }, [allCategories]);
+
   const schema = React.useMemo(
     () => createCategorySchema(isSubcategory),
     [isSubcategory],
@@ -313,6 +321,7 @@ export function CategoryDialog({
                           <IconSelector
                             value={field.value}
                             onChange={field.onChange}
+                            usedIcons={usedIcons}
                           />
                         </FormControl>
                         <FormMessage />

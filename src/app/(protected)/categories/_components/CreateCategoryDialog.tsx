@@ -59,6 +59,14 @@ export function CreateCategoryDialog({
     },
   );
 
+  // Extrair ícones já em uso por outras categorias pai
+  const usedIcons = React.useMemo(() => {
+    if (!allCategories) return [];
+    return allCategories
+      .filter((cat) => cat.parent_id === null && cat.icon)
+      .map((cat) => cat.icon as string);
+  }, [allCategories]);
+
   const form = useForm<z.infer<typeof createCategorySchema>>({
     resolver: zodResolver(createCategorySchema),
     defaultValues: {
@@ -210,6 +218,7 @@ export function CreateCategoryDialog({
                           value={field.value}
                           onChange={field.onChange}
                           hasError={Boolean(form.formState.errors.icon)}
+                          usedIcons={usedIcons}
                         />
                       </FormControl>
                       <FormMessage />

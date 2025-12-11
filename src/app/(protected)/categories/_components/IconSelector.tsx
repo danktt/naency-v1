@@ -9,6 +9,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import * as React from "react";
 
@@ -22,6 +28,7 @@ type IconSelectorProps = {
   onChange: (iconName: string) => void;
   className?: string;
   hasError?: boolean;
+  usedIcons?: string[];
 };
 
 export function IconSelector({
@@ -29,12 +36,18 @@ export function IconSelector({
   onChange,
   className,
   hasError,
+  usedIcons = [],
 }: IconSelectorProps) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
 
   const selectedIconName = value as IconName | undefined;
   const SelectedIcon = selectedIconName ? ICON_MAP[selectedIconName] : null;
+
+  const usedIconsSet = React.useMemo(
+    () => new Set(usedIcons.filter((icon) => icon !== value)),
+    [usedIcons, value],
+  );
 
   const filteredIcons = React.useMemo(() => {
     if (!searchQuery) return AVAILABLE_ICONS;
@@ -86,34 +99,63 @@ export function IconSelector({
             className="h-9"
           />
         </div>
-        <div className="p-2 max-h-[300px] overflow-y-auto">
-          <div className="grid grid-cols-6 gap-2">
-            {filteredIcons.map((iconName) => {
-              const IconComponent = ICON_MAP[iconName];
-              const isSelected = selectedIconName === iconName;
+        <TooltipProvider delayDuration={300}>
+          <div className="p-2 max-h-[300px] overflow-y-auto">
+            <div className="grid grid-cols-6 gap-2">
+              {filteredIcons.map((iconName) => {
+                const IconComponent = ICON_MAP[iconName];
+                const isSelected = selectedIconName === iconName;
+                const isUsed = usedIconsSet.has(iconName);
 
-              return (
-                <button
-                  key={iconName}
-                  type="button"
-                  onClick={() => handleIconSelect(iconName)}
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-md border transition-colors hover:bg-accent hover:text-accent-foreground",
-                    isSelected && "border-primary bg-primary/10 text-primary",
-                  )}
-                  title={iconName.replace("Icon", "")}
-                >
-                  <IconComponent className="h-5 w-5" />
-                </button>
-              );
-            })}
-          </div>
-          {filteredIcons.length === 0 && (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              Nenhum ícone encontrado
+                const iconButton = (
+                  <button
+                    key={iconName}
+                    type="button"
+                    onClick={() => !isUsed && handleIconSelect(iconName)}
+                    disabled={isUsed}
+                    className={cn(
+                      "relative flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
+                      isSelected && "border-primary bg-primary/10 text-primary",
+                      isUsed
+                        ? "cursor-not-allowed opacity-50 bg-muted"
+                        : "hover:bg-accent hover:text-accent-foreground",
+                    )}
+                    title={!isUsed ? iconName.replace("Icon", "") : undefined}
+                  >
+                    <IconComponent className="h-5 w-5" />
+                    {isUsed && (
+                      <div className="absolute -bottom-1 -right-1.5 flex size-3 items-center justify-center rounded-full bg-success/90 ">
+                        <DynamicIcon
+                          icon="check"
+                          stroke={2}
+                          className="size-2 text-white "
+                        />
+                      </div>
+                    )}
+                  </button>
+                );
+
+                if (isUsed) {
+                  return (
+                    <Tooltip key={iconName}>
+                      <TooltipTrigger asChild>{iconButton}</TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Este ícone já está em uso</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                return iconButton;
+              })}
             </div>
-          )}
-        </div>
+            {filteredIcons.length === 0 && (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                Nenhum ícone encontrado
+              </div>
+            )}
+          </div>
+        </TooltipProvider>
       </PopoverContent>
     </Popover>
   );
