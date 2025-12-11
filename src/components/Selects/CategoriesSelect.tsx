@@ -8,6 +8,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -17,11 +18,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, PlusIcon } from "lucide-react";
 import * as React from "react";
 import { Fragment } from "react";
 import { DynamicIcon } from "../DynamicIcon";
 import { Icon } from "../iconMap";
+import { CreateCategoryFromSelectDialog } from "./CreateCategoryFromSelectDialog";
 
 const CATEGORY_EMPTY_MESSAGE = "Nenhuma categoria cadastrada";
 
@@ -150,6 +152,7 @@ export function CategoriesSelect({
 }: CategoriesSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
 
   const { data, isLoading, isError } = trpc.categories.list.useQuery(
     { type, includeInactive },
@@ -199,6 +202,15 @@ export function CategoriesSelect({
   const handleValueChange = React.useCallback(
     (nextValue: string) => {
       onChange?.(nextValue);
+      setOpen(false);
+      setSearch("");
+    },
+    [onChange],
+  );
+
+  const handleCategoryCreated = React.useCallback(
+    (categoryId: string) => {
+      onChange?.(categoryId);
       setOpen(false);
       setSearch("");
     },
@@ -338,9 +350,29 @@ export function CategoriesSelect({
                 </CommandGroup>
               </Fragment>
             ))}
+
+            <CommandSeparator />
+            <CommandGroup>
+              <CommandItem
+                onSelect={() => {
+                  setCreateDialogOpen(true);
+                }}
+                className="cursor-pointer"
+              >
+                <PlusIcon className="mr-2 h-4 w-4 opacity-60" />
+                Nova categoria
+              </CommandItem>
+            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
+
+      <CreateCategoryFromSelectDialog
+        type={type}
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={handleCategoryCreated}
+      />
     </Popover>
   );
 }

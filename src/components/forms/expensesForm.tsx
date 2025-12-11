@@ -46,7 +46,7 @@ import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { useDateStore } from "@/stores/useDateStore";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconCalendar, IconChevronDown, IconPlus } from "@tabler/icons-react";
+import { IconCalendar, IconChevronDown } from "@tabler/icons-react";
 import type { inferRouterOutputs } from "@trpc/server";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -55,7 +55,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import type { IconName } from "../DynamicIcon";
+import { DynamicIcon, type IconName } from "../DynamicIcon";
 import { TransactionFormHeader } from "./TransactionFormHeader";
 
 const paymentMethodValues = [
@@ -549,7 +549,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
     trigger !== undefined ? (
       trigger
     ) : isEditing ? null : (
-      <Button icon={<IconPlus className="size-4" />}>Adicionar despesa</Button>
+      <Button icon={<DynamicIcon icon="add" />}>Adicionar despesa</Button>
     );
 
   return (
@@ -1065,10 +1065,7 @@ export function ExpensesForm(props: ExpensesFormProps = {}) {
                       name="categoryId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            Categoria{" "}
-                            <span className="text-destructive">*</span>
-                          </FormLabel>
+                          <FormLabel isRequired>Categoria </FormLabel>
                           <FormControl>
                             <CategoriesSelect
                               type="expense"
