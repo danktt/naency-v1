@@ -6,7 +6,6 @@ import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -31,7 +30,6 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconPencil,
-  IconTrash,
 } from "@tabler/icons-react";
 import * as React from "react";
 
@@ -45,9 +43,11 @@ type CategoryRowProps = {
     is_active: boolean;
     childrenCount?: number;
   };
+  subcategories?: Array<{ id: string; name: string }>;
   isChild?: boolean;
   hasChildren?: boolean;
   isExpanded?: boolean;
+  hasTransactions?: boolean;
   onToggle?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -60,9 +60,11 @@ type CategoryRowProps = {
 
 export function CategoryRow({
   category,
+  subcategories = [],
   isChild = false,
   hasChildren = false,
   isExpanded = false,
+  hasTransactions = false,
   onToggle,
   onEdit,
   onDelete,
@@ -86,13 +88,19 @@ export function CategoryRow({
       setPendingAction(category.is_active ? "delete" : "restore");
       setIsConfirmDialogOpen(true);
     } else {
-      // Para categorias principais, mostrar modal ao arquivar
+      // Para categorias principais, mostrar modal ao arquivar ou desarquivar
       if (category.is_active && onDelete) {
         setPendingAction("archive");
         setIsConfirmDialogOpen(true);
       } else if (!category.is_active && onRestore) {
-        // Desarquivar pode ser direto ou com modal, vou deixar direto por enquanto
-        onRestore();
+        // Se tem filhos, mostrar modal de confirmação
+        if (hasChildren && subcategories.length > 0) {
+          setPendingAction("restore");
+          setIsConfirmDialogOpen(true);
+        } else {
+          // Se não tem filhos, desarquivar diretamente
+          onRestore();
+        }
       }
     }
   };
@@ -196,7 +204,7 @@ export function CategoryRow({
 
           {/* Quick Actions - Desktop Only */}
           {(isParent || isChild) && (
-            <div className="hidden md:flex items-center gap-1 ml-2">
+            <div className="flex items-center gap-1 ml-2">
               {isParent && onCreateSubcategory && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -209,12 +217,16 @@ export function CategoryRow({
                         "group-hover:delay-0",
                       )}
                       onClick={onCreateSubcategory}
-                      disabled={isProcessing}
+                      disabled={isProcessing || !category.is_active}
                       icon={<DynamicIcon icon="add" />}
                     />
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    <p>Adicionar subcategoria</p>
+                    <p>
+                      {!category.is_active
+                        ? "Não é possível adicionar subcategoria em categoria arquivada"
+                        : "Adicionar subcategoria"}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -233,18 +245,20 @@ export function CategoryRow({
                           : "group-hover:delay-0",
                       )}
                       onClick={onEdit}
-                      disabled={isProcessing || !canEdit}
+                      disabled={isProcessing || !canEdit || !category.is_active}
                     >
                       <IconPencil className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
                     <p>
-                      {!canEdit
-                        ? "Não é possível editar subcategoria inativa"
-                        : isChild
-                          ? "Editar subcategoria"
-                          : "Editar categoria"}
+                      {!category.is_active
+                        ? "Não é possível editar categoria arquivada"
+                        : !canEdit
+                          ? "Não é possível editar subcategoria inativa"
+                          : isChild
+                            ? "Editar subcategoria"
+                            : "Editar categoria"}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -267,9 +281,19 @@ export function CategoryRow({
               <DropdownMenuContent align="end" className="w-fit">
                 {onEdit && (
                   <DropdownMenuItem
-                    onClick={onEdit}
-                    disabled={isProcessing || !canEdit}
-                    className="gap-2 cursor-pointer"
+                    onClick={(e) => {
+                      if (isProcessing || !canEdit || !category.is_active) {
+                        e.preventDefault();
+                        return;
+                      }
+                      onEdit();
+                    }}
+                    disabled={isProcessing || !canEdit || !category.is_active}
+                    className={cn(
+                      "gap-2",
+                      (isProcessing || !canEdit || !category.is_active) &&
+                        "cursor-not-allowed",
+                    )}
                   >
                     <DynamicIcon icon="edit" />
                     Editar
@@ -277,9 +301,19 @@ export function CategoryRow({
                 )}
                 {isParent && onCreateSubcategory && (
                   <DropdownMenuItem
-                    onClick={onCreateSubcategory}
-                    disabled={isProcessing}
-                    className="gap-2 cursor-pointer text-nowrap"
+                    onClick={(e) => {
+                      if (isProcessing || !category.is_active) {
+                        e.preventDefault();
+                        return;
+                      }
+                      onCreateSubcategory();
+                    }}
+                    disabled={isProcessing || !category.is_active}
+                    className={cn(
+                      "gap-2 text-nowrap",
+                      (isProcessing || !category.is_active) &&
+                        "cursor-not-allowed",
+                    )}
                   >
                     <DynamicIcon icon="add" />
                     Adicionar subcategoria
@@ -289,14 +323,14 @@ export function CategoryRow({
                 {(onDelete || onRestore) && (
                   <>
                     {(onEdit ||
-                      onCreateSubcategory ||
+                      (isParent && onCreateSubcategory) ||
                       onDuplicate ||
                       onMove) && <DropdownMenuSeparator />}
                     <DropdownMenuItem
                       onClick={handleDeleteOrRestore}
                       disabled={isProcessing}
                       variant={category.is_active ? "destructive" : "default"}
-                      className="gap-2 cursor-pointer"
+                      className="gap-2 "
                     >
                       {category.is_active ? (
                         <>
@@ -311,17 +345,6 @@ export function CategoryRow({
                       )}
                     </DropdownMenuItem>
                   </>
-                )}
-                {onDelete && category.is_active && (
-                  <DropdownMenuItem
-                    onClick={onDelete}
-                    disabled={isProcessing}
-                    variant="destructive"
-                    className="gap-2 cursor-pointer text-destructive"
-                  >
-                    <DynamicIcon icon="trash" />
-                    Excluir
-                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -344,13 +367,13 @@ export function CategoryRow({
         </div>
 
         {/* Desktop Actions Dropdown */}
-        <div className="hidden md:flex justify-end">
+        <div className="hidden md:flex justify-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-8 w-8 text-muted-foreground "
                 disabled={isProcessing}
               >
                 <DynamicIcon icon="dots-vertical" />
@@ -360,9 +383,19 @@ export function CategoryRow({
             <DropdownMenuContent align="end" className="w-48">
               {onEdit && (
                 <DropdownMenuItem
-                  onClick={onEdit}
-                  disabled={isProcessing || !canEdit}
-                  className="gap-2 cursor-pointer"
+                  onClick={(e) => {
+                    if (isProcessing || !canEdit || !category.is_active) {
+                      e.preventDefault();
+                      return;
+                    }
+                    onEdit();
+                  }}
+                  disabled={isProcessing || !canEdit || !category.is_active}
+                  className={cn(
+                    "gap-2",
+                    (isProcessing || !canEdit || !category.is_active) &&
+                      "cursor-not-allowed",
+                  )}
                 >
                   <DynamicIcon icon="edit" />
                   Editar
@@ -370,9 +403,19 @@ export function CategoryRow({
               )}
               {isParent && onCreateSubcategory && (
                 <DropdownMenuItem
-                  onClick={onCreateSubcategory}
-                  disabled={isProcessing}
-                  className="gap-2 cursor-pointer"
+                  onClick={(e) => {
+                    if (isProcessing || !category.is_active) {
+                      e.preventDefault();
+                      return;
+                    }
+                    onCreateSubcategory();
+                  }}
+                  disabled={isProcessing || !category.is_active}
+                  className={cn(
+                    "gap-2",
+                    (isProcessing || !category.is_active) &&
+                      "cursor-not-allowed",
+                  )}
                 >
                   <DynamicIcon icon="add" />
                   Adicionar subcategoria
@@ -381,14 +424,15 @@ export function CategoryRow({
 
               {(onDelete || onRestore) && (
                 <>
-                  {(onEdit || onCreateSubcategory || onDuplicate || onMove) && (
-                    <DropdownMenuSeparator />
-                  )}
+                  {(onEdit ||
+                    (isParent && onCreateSubcategory) ||
+                    onDuplicate ||
+                    onMove) && <DropdownMenuSeparator />}
                   <DropdownMenuItem
                     onClick={handleDeleteOrRestore}
                     disabled={isProcessing}
                     variant={category.is_active ? "destructive" : "default"}
-                    className="gap-2 cursor-pointer"
+                    className="gap-2 "
                   >
                     {category.is_active ? (
                       <>
@@ -404,17 +448,6 @@ export function CategoryRow({
                   </DropdownMenuItem>
                 </>
               )}
-              {onDelete && category.is_active && (
-                <DropdownMenuItem
-                  onClick={onDelete}
-                  disabled={isProcessing}
-                  variant="destructive"
-                  className="gap-2 cursor-pointer text-destructive"
-                >
-                  <IconTrash className="h-4 w-4" />
-                  Excluir
-                </DropdownMenuItem>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -425,22 +458,99 @@ export function CategoryRow({
         open={isConfirmDialogOpen}
         onOpenChange={setIsConfirmDialogOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>
               {pendingAction === "archive"
                 ? "Arquivar categoria?"
                 : pendingAction === "delete"
                   ? "Arquivar subcategoria?"
-                  : "Desarquivar subcategoria?"}
+                  : isChild
+                    ? "Desarquivar subcategoria?"
+                    : "Desarquivar categoria?"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingAction === "archive"
-                ? `Tem certeza que deseja arquivar a categoria "${category.name}"? Ela ficará oculta mas não será excluída.`
-                : pendingAction === "delete"
-                  ? `Tem certeza que deseja desativar a subcategoria "${category.name}"?`
-                  : `Tem certeza que deseja ativar a subcategoria "${category.name}"?`}
-            </AlertDialogDescription>
+            <div className="text-muted-foreground text-sm space-y-3">
+              {pendingAction === "archive" &&
+              hasChildren &&
+              subcategories.length > 0 ? (
+                <>
+                  <p>
+                    Tem certeza que deseja arquivar a categoria{" "}
+                    <strong>"{category.name}"</strong>?
+                  </p>
+                  <div className="rounded-md bg-muted/50 p-3 space-y-2 text-left">
+                    <p className="text-sm font-medium">
+                      As seguintes subcategorias também serão arquivadas:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {subcategories.map((subcategory) => (
+                        <li key={subcategory.id}>{subcategory.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Importante:</strong> Os lançamentos feitos com essas
+                    categorias anteriormente não serão alterados. Apenas novas
+                    transações não poderão usar categorias arquivadas.
+                  </p>
+                </>
+              ) : pendingAction === "archive" ? (
+                <>
+                  <p>
+                    Tem certeza que deseja arquivar a categoria{" "}
+                    <strong>"{category.name}"</strong>? Ela ficará oculta mas
+                    não será excluída.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Importante:</strong> Os lançamentos feitos com essa
+                    categoria anteriormente não serão alterados. Apenas novas
+                    transações não poderão usar categorias arquivadas.
+                  </p>
+                </>
+              ) : pendingAction === "delete" ? (
+                <>
+                  <p>
+                    Tem certeza que deseja arquivar a subcategoria{" "}
+                    <strong>"{category.name}"</strong>?
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Importante:</strong> Os lançamentos feitos com essa
+                    subcategoria anteriormente não serão alterados. Apenas novas
+                    transações não poderão usar subcategorias arquivadas.
+                  </p>
+                </>
+              ) : pendingAction === "restore" &&
+                hasChildren &&
+                subcategories.length > 0 ? (
+                <>
+                  <p>
+                    Tem certeza que deseja desarquivar a categoria{" "}
+                    <strong>"{category.name}"</strong>?
+                  </p>
+                  <div className="rounded-md bg-muted/50 p-3 space-y-2 text-left">
+                    <p className="text-sm font-medium">
+                      As seguintes subcategorias também serão desarquivadas:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {subcategories.map((subcategory) => (
+                        <li key={subcategory.id}>{subcategory.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Importante:</strong> Os lançamentos feitos com essas
+                    categorias anteriormente não serão alterados. As categorias
+                    desarquivadas poderão ser usadas em novas transações.
+                  </p>
+                </>
+              ) : (
+                <p>
+                  Tem certeza que deseja desarquivar{" "}
+                  {isChild ? "a subcategoria" : "a categoria"}{" "}
+                  <strong>"{category.name}"</strong>?
+                </p>
+              )}
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel

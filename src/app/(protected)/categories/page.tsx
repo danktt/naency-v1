@@ -1,5 +1,6 @@
 "use client";
 
+import { DynamicIcon } from "@/components/DynamicIcon";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toggle } from "@/components/ui/toggle";
@@ -9,7 +10,6 @@ import { trpc } from "@/lib/trpc/client";
 import {
   IconArrowDownLeft,
   IconArrowUpRight,
-  IconLabelOff,
   IconPlus,
 } from "@tabler/icons-react";
 import { parseAsStringEnum, useQueryState } from "nuqs";
@@ -54,11 +54,9 @@ export default function CategoriesPage() {
   const deleteMutation = trpc.categories.delete.useMutation({
     onSuccess: async () => {
       await utils.categories.list.invalidate();
-      toast.success("Categoria excluída com sucesso.");
-      setProcessingId(null);
     },
     onError: () => {
-      toast.error("Não foi possível excluir a categoria.");
+      toast.error("Não foi possível arquivar a categoria.");
       setProcessingId(null);
     },
   });
@@ -102,15 +100,127 @@ export default function CategoriesPage() {
     },
   ] as const;
 
+  const getAllChildIds = (node: CategoryNode): string[] => {
+    const ids: string[] = [];
+    node.children.forEach((child) => {
+      ids.push(child.id);
+      ids.push(...getAllChildIds(child));
+    });
+    return ids;
+  };
+
   const handleDelete = (category: CategoryNode) => {
     setProcessingId(category.id);
-    deleteMutation.mutate({ id: category.id });
+
+    // Se a categoria tem filhos, arquivar todos os filhos também
+    if (category.children.length > 0) {
+      const childIds = getAllChildIds(category);
+      const allIds = [category.id, ...childIds];
+      let completed = 0;
+      let hasError = false;
+
+      // Arquivar todas as categorias (pai + filhos)
+      allIds.forEach((id) => {
+        deleteMutation.mutate(
+          { id },
+          {
+            onSuccess: async () => {
+              completed++;
+              if (completed === allIds.length) {
+                await utils.categories.list.invalidate();
+                if (!hasError) {
+                  toast.success(
+                    "Categoria e subcategorias arquivadas com sucesso.",
+                  );
+                }
+                setProcessingId(null);
+              }
+            },
+            onError: () => {
+              hasError = true;
+              completed++;
+              if (completed === allIds.length) {
+                toast.error("Erro ao arquivar algumas categorias.");
+                setProcessingId(null);
+              }
+            },
+          },
+        );
+      });
+    } else {
+      // Se não tem filhos, arquivar apenas a categoria
+      deleteMutation.mutate(
+        { id: category.id },
+        {
+          onSuccess: async () => {
+            await utils.categories.list.invalidate();
+            toast.success("Categoria arquivada com sucesso.");
+            setProcessingId(null);
+          },
+          onError: () => {
+            toast.error("Não foi possível arquivar a categoria.");
+            setProcessingId(null);
+          },
+        },
+      );
+    }
   };
 
   const handleRestore = (category: CategoryNode) => {
     setProcessingId(category.id);
-    // Use delete mutation to toggle (it toggles is_active, so inactive becomes active)
-    deleteMutation.mutate({ id: category.id });
+
+    // Se a categoria tem filhos, desarquivar todos os filhos também
+    if (category.children.length > 0) {
+      const childIds = getAllChildIds(category);
+      const allIds = [category.id, ...childIds];
+      let completed = 0;
+      let hasError = false;
+
+      // Desarquivar todas as categorias (pai + filhos)
+      allIds.forEach((id) => {
+        deleteMutation.mutate(
+          { id },
+          {
+            onSuccess: async () => {
+              completed++;
+              if (completed === allIds.length) {
+                await utils.categories.list.invalidate();
+                if (!hasError) {
+                  toast.success(
+                    "Categoria e subcategorias desarquivadas com sucesso.",
+                  );
+                }
+                setProcessingId(null);
+              }
+            },
+            onError: () => {
+              hasError = true;
+              completed++;
+              if (completed === allIds.length) {
+                toast.error("Erro ao desarquivar algumas categorias.");
+                setProcessingId(null);
+              }
+            },
+          },
+        );
+      });
+    } else {
+      // Se não tem filhos, desarquivar apenas a categoria
+      deleteMutation.mutate(
+        { id: category.id },
+        {
+          onSuccess: async () => {
+            await utils.categories.list.invalidate();
+            toast.success("Categoria desarquivada com sucesso.");
+            setProcessingId(null);
+          },
+          onError: () => {
+            toast.error("Não foi possível desarquivar a categoria.");
+            setProcessingId(null);
+          },
+        },
+      );
+    }
   };
 
   const handleCreateSubcategory = (category: CategoryNode) => {
@@ -190,8 +300,8 @@ export default function CategoriesPage() {
               onPressedChange={setIncludeInactive}
               className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-primary data-[state=on]:*:[svg]:stroke-primary"
             >
-              <IconLabelOff />
-              Inativas
+              <DynamicIcon icon="archive" />
+              Arquivadas
             </Toggle>
           </div>
         </div>
