@@ -65,6 +65,9 @@ export default function CategoriesPage() {
   const [parentCategory, setParentCategory] =
     React.useState<CategoryNode | null>(null);
   const [processingId, setProcessingId] = React.useState<string | null>(null);
+  const [highlightedCategoryId, setHighlightedCategoryId] = React.useState<
+    string | null
+  >(null);
 
   // Queries
   const {
@@ -76,11 +79,12 @@ export default function CategoriesPage() {
     includeInactive,
   });
 
-  const { categoryTree, expandedCategories, toggleCategory } = useCategoryTree({
-    categories: categories ?? [],
-    selectedType: selectedTab ?? "income",
-    includeInactive,
-  });
+  const { categoryTree, expandedCategories, toggleCategory, expandCategory } =
+    useCategoryTree({
+      categories: categories ?? [],
+      selectedType: selectedTab ?? "income",
+      includeInactive,
+    });
 
   const utils = trpc.useUtils();
 
@@ -169,11 +173,25 @@ export default function CategoriesPage() {
     [],
   );
 
-  const handleDialogSuccess = React.useCallback(() => {
-    setCategoryDialogOpen(false);
-    setSelectedCategory(null);
-    setParentCategory(null);
-  }, []);
+  const handleDialogSuccess = React.useCallback(
+    (createdId?: string) => {
+      // Se criou subcategoria, expande a categoria pai e destaca a nova subcategoria
+      if (createdId && parentCategory) {
+        expandCategory(parentCategory.id);
+        setHighlightedCategoryId(createdId);
+
+        // Remove o highlight após a animação
+        setTimeout(() => {
+          setHighlightedCategoryId(null);
+        }, 2000);
+      }
+
+      setCategoryDialogOpen(false);
+      setSelectedCategory(null);
+      setParentCategory(null);
+    },
+    [parentCategory, expandCategory],
+  );
 
   const handleDialogClose = React.useCallback((open: boolean) => {
     setCategoryDialogOpen(open);
@@ -295,6 +313,7 @@ export default function CategoriesPage() {
             onDuplicate={handleDuplicate}
             onMove={handleMove}
             processingId={processingId}
+            highlightedCategoryId={highlightedCategoryId}
           />
         )}
       </section>

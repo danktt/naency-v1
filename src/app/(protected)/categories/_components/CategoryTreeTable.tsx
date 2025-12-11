@@ -22,6 +22,7 @@ type CategoryTreeTableProps = {
   onDuplicate?: (category: CategoryNode) => void;
   onMove?: (category: CategoryNode) => void;
   processingId: string | null;
+  highlightedCategoryId?: string | null;
 };
 
 export function CategoryTreeTable({
@@ -37,6 +38,7 @@ export function CategoryTreeTable({
   onDuplicate,
   onMove,
   processingId,
+  highlightedCategoryId,
 }: CategoryTreeTableProps) {
   const renderNodes = React.useCallback(
     (nodes: CategoryNode[], depth = 0): React.ReactNode =>
@@ -69,6 +71,7 @@ export function CategoryTreeTable({
               hasChildren={hasChildren}
               isExpanded={isExpanded}
               hasTransactions={false}
+              isHighlighted={highlightedCategoryId === node.id}
               onToggle={
                 hasChildren ? () => onToggleCategory(node.id) : undefined
               }
@@ -102,6 +105,7 @@ export function CategoryTreeTable({
       onDuplicate,
       onMove,
       processingId,
+      highlightedCategoryId,
     ],
   );
 

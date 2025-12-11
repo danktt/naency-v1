@@ -1,6 +1,7 @@
 "use client";
 
 import { DynamicIcon } from "@/components/DynamicIcon";
+import { Icon } from "@/components/iconMap";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -43,6 +44,7 @@ type CategoryRowProps = {
   hasChildren?: boolean;
   isExpanded?: boolean;
   hasTransactions?: boolean;
+  isHighlighted?: boolean;
   onToggle?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -60,6 +62,7 @@ export function CategoryRow({
   hasChildren = false,
   isExpanded = false,
   hasTransactions = false,
+  isHighlighted = false,
   onToggle,
   onEdit,
   onDelete,
@@ -69,6 +72,7 @@ export function CategoryRow({
   onMove,
   isProcessing = false,
 }: CategoryRowProps) {
+  const rowRef = React.useRef<HTMLDivElement>(null);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = React.useState(false);
   const [pendingAction, setPendingAction] = React.useState<
     "delete" | "restore" | "archive" | null
@@ -76,6 +80,16 @@ export function CategoryRow({
 
   const isParent = !isChild;
   const canEdit = !(isChild && !category.is_active);
+
+  // Scroll e focus na subcategoria recém-criada
+  React.useEffect(() => {
+    if (isHighlighted && rowRef.current) {
+      rowRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [isHighlighted]);
 
   const handleDeleteOrRestore = () => {
     if (isChild) {
@@ -121,10 +135,13 @@ export function CategoryRow({
   return (
     <TooltipProvider delayDuration={300}>
       <div
+        ref={rowRef}
         className={cn(
-          "group flex flex-col md:grid w-full md:grid-cols-[1fr_120px_100px_50px] rounded-lg gap-2 md:gap-4 px-3 py-3 md:px-4 items-start md:items-center transition-colors hover:bg-muted/50 relative",
+          "group flex flex-col md:grid w-full md:grid-cols-[1fr_120px_100px_50px] rounded-lg gap-2 md:gap-4 px-3 py-3 md:px-4 items-start md:items-center transition-all hover:bg-muted/50 relative",
           isChild && "bg-muted/10",
           !category.is_active && "opacity-50",
+          isHighlighted &&
+            "animate-highlight ring-2 ring-primary/50 bg-primary/10",
         )}
       >
         {/* Category Name & Main Info */}
@@ -163,7 +180,16 @@ export function CategoryRow({
           ) : (
             <div className="w-8 md:w-6 shrink-0" />
           )}
-
+          {isParent && (
+            <div
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                isParent ? "bg-muted" : "bg-transparent",
+              )}
+            >
+              {category.icon && <Icon iconName={category.icon} />}
+            </div>
+          )}
           <div className="flex flex-col min-w-0 flex-1 ml-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-foreground truncate">
@@ -361,7 +387,7 @@ export function CategoryRow({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "h-8 w-8 text-muted-foreground hover:text-foreground",
+                    "h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-primary/50",
                     "opacity-0 translate-x-2 transition-all duration-150 ease-out",
                     "group-hover:opacity-100 group-hover:translate-x-0 group-hover:delay-[100ms]",
                   )}

@@ -54,6 +54,14 @@ export function useCategoryTree({
     });
   }, []);
 
+  const expandCategory = React.useCallback((categoryId: string) => {
+    setExpandedCategories((previous) => {
+      const next = new Set(previous);
+      next.add(categoryId);
+      return next;
+    });
+  }, []);
+
   const expandAll = React.useCallback(() => {
     const allIds = new Set(categories.map((cat) => cat.id));
     setExpandedCategories(allIds);
@@ -113,6 +121,7 @@ export function useCategoryTree({
     categoryTree,
     expandedCategories,
     toggleCategory,
+    expandCategory,
     expandAll,
     collapseAll,
   };
