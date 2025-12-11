@@ -322,6 +322,9 @@ export function CategoryDialog({
                             value={field.value}
                             onChange={field.onChange}
                             usedIcons={usedIcons}
+                            editingCategoryIcon={
+                              isEdit ? (category?.icon ?? undefined) : undefined
+                            }
                           />
                         </FormControl>
                         <FormMessage />

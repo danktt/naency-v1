@@ -29,6 +29,8 @@ type IconSelectorProps = {
   className?: string;
   hasError?: boolean;
   usedIcons?: string[];
+  /** Ícone original da categoria sendo editada - permanece habilitado durante toda a edição */
+  editingCategoryIcon?: string;
 };
 
 export function IconSelector({
@@ -37,6 +39,7 @@ export function IconSelector({
   className,
   hasError,
   usedIcons = [],
+  editingCategoryIcon,
 }: IconSelectorProps) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -44,9 +47,10 @@ export function IconSelector({
   const selectedIconName = value as IconName | undefined;
   const SelectedIcon = selectedIconName ? ICON_MAP[selectedIconName] : null;
 
+  // Exclui o ícone original da categoria sendo editada da lista de usados
   const usedIconsSet = React.useMemo(
-    () => new Set(usedIcons.filter((icon) => icon !== value)),
-    [usedIcons, value],
+    () => new Set(usedIcons.filter((icon) => icon !== editingCategoryIcon)),
+    [usedIcons, editingCategoryIcon],
   );
 
   const filteredIcons = React.useMemo(() => {
