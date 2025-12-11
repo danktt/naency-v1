@@ -72,14 +72,19 @@ export const Navbar = ({ isAuthenticated }: NavbarProps) => {
           <Link href={isAuthenticated ? "/dashboard" : "/sign-in"}>
             <Button
               color="primary"
+              startContent={
+                !isAuthenticated ? <DynamicIcon icon="login" /> : undefined
+              }
               endContent={
-                <DynamicIcon
-                  icon="next"
-                  className="group-hover:translate-x-1 transition-transform duration-300"
-                />
+                isAuthenticated ? (
+                  <DynamicIcon
+                    icon="next"
+                    className="group-hover:translate-x-1 transition-transform duration-300"
+                  />
+                ) : undefined
               }
             >
-              {isAuthenticated ? "Página inicial" : "Entrar"}
+              {isAuthenticated ? "Página inicial" : "Iniciar sessão"}
             </Button>
           </Link>
         </div>

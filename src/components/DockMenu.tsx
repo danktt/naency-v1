@@ -14,7 +14,7 @@ import {
   IconArrowDownLeft,
   IconArrowUpRight,
   IconCategory,
-  IconDashboard,
+  IconHome,
   IconPlus,
   IconX,
 } from "@tabler/icons-react";
@@ -26,7 +26,7 @@ export type IconProps = React.HTMLAttributes<SVGElement>;
 
 const DATA = {
   navbar: [
-    { href: "/dashboard", icon: IconDashboard, label: "Página inicial" },
+    { href: "/dashboard", icon: IconHome, label: "Página inicial" },
     { href: "/expenses", icon: IconArrowUpRight, label: "Despesas" },
     { href: "#", icon: IconPlus, label: "Adicionar transação" },
     { href: "/incomes", icon: IconArrowDownLeft, label: "Receitas" },
