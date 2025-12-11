@@ -14,9 +14,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calculator, Copy } from "lucide-react";
+import { Copy } from "lucide-react";
 import * as React from "react";
 import { type Control, type Path, useController } from "react-hook-form";
+import { DynamicIcon } from "./DynamicIcon";
 
 const currencyOptions: {
   label: string;
@@ -103,6 +104,7 @@ export function FieldCurrencyAmount<T extends Record<string, unknown>>({
   const [operator, setOperator] = React.useState<string | null>(null);
   const [waitingForOperand, setWaitingForOperand] = React.useState(false);
   const [open, setOpen] = React.useState(false);
+  const calculatorButtonRef = React.useRef<HTMLButtonElement>(null);
 
   React.useEffect(() => {
     if (open) {
@@ -287,7 +289,7 @@ export function FieldCurrencyAmount<T extends Record<string, unknown>>({
           </FormLabel>
 
           {/* Prefix symbol */}
-          <div className="relative flex gap-0 rounded-md shadow-xs">
+          <div className="relative flex gap-0 rounded-md shadow-xs group">
             <span className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground text-sm z-10">
               R$
             </span>
@@ -304,7 +306,7 @@ export function FieldCurrencyAmount<T extends Record<string, unknown>>({
                 onBlur={amountField.onBlur}
                 inputMode="numeric"
                 disabled={disabled}
-                className="-me-px rounded-e-none ps-8 shadow-none"
+                className="-me-px rounded-e-none ps-8 shadow-none "
                 aria-invalid={Boolean(amountState.error)}
               />
             </FormControl>
@@ -313,15 +315,15 @@ export function FieldCurrencyAmount<T extends Record<string, unknown>>({
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  ref={calculatorButtonRef}
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="rounded-s-none border-l-0 border-input bg-background px-3 text-muted-foreground hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus-visible:border-l-0 focus-visible:shadow-none"
+                  className=" group-focus-within:ring-ring/50 rounded-s-none shadow-none group-focus-within:focus:border-ring group-focus-within:focus:ring-ring/50 group-focus-within:focus:ring-[3px] "
                   aria-label="Abrir calculadora"
                   disabled={disabled}
-                >
-                  <Calculator className="h-4 w-4" />
-                </Button>
+                  icon={<DynamicIcon icon="calculator" />}
+                />
               </PopoverTrigger>
               <PopoverContent
                 className="w-52 p-2"

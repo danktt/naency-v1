@@ -24,3 +24,7 @@ export function getCategoryColor(index: number, total: number): string {
   // Mantém chroma e hue constantes
   return `oklch(${lightness.toFixed(3)} ${baseChroma} ${baseHue})`;
 }
+
+
+
+

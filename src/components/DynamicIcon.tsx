@@ -2,10 +2,14 @@
 
 import {
   IconAlertCircle,
+  IconAlertOctagon,
+  IconAlertTriangle,
+  IconArchive,
   IconArrowDownLeft,
   IconArrowsDoubleNeSw,
   IconArrowUpRight,
   IconBuildingBank,
+  IconCalculator,
   IconCalendar,
   IconCalendarCheck,
   IconCalendarEvent,
@@ -14,8 +18,16 @@ import {
   IconCalendarWeek,
   IconCheck,
   IconChecks,
+  IconChevronLeft,
+  IconChevronRight,
   IconCircle,
+  IconCircleCheck,
+  IconDots,
   IconDotsVertical,
+  IconEye,
+  IconEyeOff,
+  IconInfoCircle,
+  IconLoader,
   IconMoon,
   IconPencil,
   IconPlus,
@@ -23,6 +35,8 @@ import {
   IconReceiptRefund,
   IconRefreshDot,
   IconRepeat,
+  IconRestore,
+  IconRocket,
   IconSun,
   IconTrash,
 } from "@tabler/icons-react";
@@ -34,6 +48,13 @@ interface DynamicIconProps {
   size?: number;
   stroke?: number;
 }
+const sonnerIcons = {
+  "sonner-success": IconCircleCheck,
+  "sonner-info": IconInfoCircle,
+  "sonner-warning": IconAlertTriangle,
+  "sonner-error": IconAlertOctagon,
+  "sonner-loading": IconLoader,
+} as const;
 
 const calendarIcons = {
   calendar: IconCalendar,
@@ -45,6 +66,7 @@ const calendarIcons = {
 };
 export const ICON_MAP = {
   unique: IconReceipt,
+  archive: IconArchive,
   installment: calendarIcons["calendar-day"],
   recurring: IconRepeat,
   check: IconCheck,
@@ -55,15 +77,25 @@ export const ICON_MAP = {
   expense: IconArrowUpRight,
   "double-check": IconChecks,
   circle: IconCircle,
-  dotsVertical: IconDotsVertical,
+  "dots-horizontal": IconDots,
+  "dots-vertical": IconDotsVertical,
   edit: IconPencil,
-  receiptRefund: IconReceiptRefund,
-  refreshDot: IconRefreshDot,
+  "receipt-refund": IconReceiptRefund,
+  "refresh-dot": IconRefreshDot,
   trash: IconTrash,
   warning: IconAlertCircle,
   transactions: IconArrowsDoubleNeSw,
   add: IconPlus,
+  rocket: IconRocket,
+  next: IconChevronRight,
+  previous: IconChevronLeft,
+  calculator: IconCalculator,
+  eye: IconEye,
+  "eye-off": IconEyeOff,
+  restore: IconRestore,
+  loading: IconLoader,
   ...calendarIcons,
+  ...sonnerIcons,
 } as const;
 
 export type IconName = keyof typeof ICON_MAP;

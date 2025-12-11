@@ -1,8 +1,9 @@
 "use client";
 
+import { DynamicIcon } from "@/components/DynamicIcon";
 import { Button } from "@heroui/react";
 import { motion } from "framer-motion";
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import Link from "next/link";
 
 export function Hero() {
@@ -48,10 +49,14 @@ export function Hero() {
             <Button
               size="lg"
               color="primary"
-              endContent={<ArrowRight className="w-4 h-4" />}
-              className="font-semibold"
+              endContent={
+                <DynamicIcon
+                  icon="next"
+                  className="group-hover:translate-x-1 transition-transform duration-300"
+                />
+              }
             >
-              Começar Grátis
+              Começar grátis
             </Button>
           </Link>
           <Button

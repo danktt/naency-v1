@@ -401,7 +401,7 @@ export function createIncomeColumns(
               className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
               size="icon"
             >
-              <DynamicIcon icon="dotsVertical" className="size-4" />
+              <DynamicIcon icon="dots-vertical" className="size-4" />
               <span className="sr-only">Abrir menu</span>
             </Button>
           </DropdownMenuTrigger>
@@ -435,7 +435,7 @@ export function createIncomeColumns(
                   onMarkAsPending?.(row.original);
                 }}
               >
-                <DynamicIcon icon="receiptRefund" className="size-4" />
+                <DynamicIcon icon="receipt-refund" className="size-4" />
                 Marcar como pendente
               </DropdownMenuItem>
             )}

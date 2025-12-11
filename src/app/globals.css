@@ -173,4 +173,24 @@
   .no-spinner[type="number"] {
     -moz-appearance: textfield;
   }
+
+  /* Animação de highlight para categorias recém-criadas */
+  .animate-highlight {
+    animation: highlight-pulse 2s ease-out;
+  }
+
+  @keyframes highlight-pulse {
+    0% {
+      background-color: oklch(from var(--primary) l c h / 0.2);
+      box-shadow: 0 0 0 4px oklch(from var(--primary) l c h / 0.3);
+    }
+    50% {
+      background-color: oklch(from var(--primary) l c h / 0.15);
+      box-shadow: 0 0 0 2px oklch(from var(--primary) l c h / 0.2);
+    }
+    100% {
+      background-color: transparent;
+      box-shadow: none;
+    }
+  }
 }

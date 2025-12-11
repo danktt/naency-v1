@@ -39,7 +39,7 @@ type CategoryDialogProps = {
   onOpenChange: (open: boolean) => void;
   category?: CategoryNode | null;
   parentCategory?: CategoryNode | null;
-  onSuccess?: () => void;
+  onSuccess?: (createdId?: string) => void;
 };
 
 const createCategorySchema = (isSubcategory: boolean) =>
@@ -72,6 +72,14 @@ export function CategoryDialog({
   const isEdit = !!category;
   const isSubcategory = !!parentCategory || category?.parent_id !== null;
 
+  // Extrair ícones já em uso por outras categorias pai
+  const usedIcons = React.useMemo(() => {
+    if (!allCategories) return [];
+    return allCategories
+      .filter((cat) => cat.parent_id === null && cat.icon)
+      .map((cat) => cat.icon as string);
+  }, [allCategories]);
+
   const schema = React.useMemo(
     () => createCategorySchema(isSubcategory),
     [isSubcategory],
@@ -103,13 +111,13 @@ export function CategoryDialog({
   }, [open, category, parentCategory, form]);
 
   const createMutation = trpc.categories.create.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       // Invalida todas as queries de categorias para atualizar a página
       await utils.categories.list.invalidate();
       toast.success("Categoria criada com sucesso.");
       onOpenChange(false);
       form.reset();
-      onSuccess?.();
+      onSuccess?.(data?.id);
     },
     onError: (error) => {
       toast.error("Não foi possível criar a categoria.");
@@ -313,6 +321,10 @@ export function CategoryDialog({
                           <IconSelector
                             value={field.value}
                             onChange={field.onChange}
+                            usedIcons={usedIcons}
+                            editingCategoryIcon={
+                              isEdit ? (category?.icon ?? undefined) : undefined
+                            }
                           />
                         </FormControl>
                         <FormMessage />

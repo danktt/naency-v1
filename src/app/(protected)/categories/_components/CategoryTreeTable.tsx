@@ -22,11 +22,12 @@ type CategoryTreeTableProps = {
   onDuplicate?: (category: CategoryNode) => void;
   onMove?: (category: CategoryNode) => void;
   processingId: string | null;
+  highlightedCategoryId?: string | null;
 };
 
 export function CategoryTreeTable({
   categories,
-  headers,
+  headers: _headers,
   emptyMessage,
   expandedCategories,
   onToggleCategory,
@@ -37,6 +38,7 @@ export function CategoryTreeTable({
   onDuplicate,
   onMove,
   processingId,
+  highlightedCategoryId,
 }: CategoryTreeTableProps) {
   const renderNodes = React.useCallback(
     (nodes: CategoryNode[], depth = 0): React.ReactNode =>
@@ -57,9 +59,19 @@ export function CategoryTreeTable({
                 is_active: node.is_active,
                 childrenCount: node.children.length,
               }}
+              subcategories={
+                hasChildren
+                  ? node.children.map((child) => ({
+                      id: child.id,
+                      name: child.name,
+                    }))
+                  : []
+              }
               isChild={depth > 0}
               hasChildren={hasChildren}
               isExpanded={isExpanded}
+              hasTransactions={false}
+              isHighlighted={highlightedCategoryId === node.id}
               onToggle={
                 hasChildren ? () => onToggleCategory(node.id) : undefined
               }
@@ -76,7 +88,7 @@ export function CategoryTreeTable({
               isProcessing={isProcessing}
             />
             {hasChildren && isExpanded && (
-              <div className="border-border/60 ml-4 space-y-2 border-l-2 pl-2">
+              <div className="border-border/60 ml-7 space-y-2 border-l-2 pl-8">
                 {renderNodes(node.children, depth + 1)}
               </div>
             )}
@@ -93,6 +105,7 @@ export function CategoryTreeTable({
       onDuplicate,
       onMove,
       processingId,
+      highlightedCategoryId,
     ],
   );
 
@@ -102,8 +115,11 @@ export function CategoryTreeTable({
         <span className="text-xs font-medium text-muted-foreground  tracking-wider">
           Categoria
         </span>
-        <span className="text-xs font-medium text-center text-muted-foreground hidden md:block tracking-wider">
+        <span className="text-xs hidden md:block font-medium text-muted-foreground  tracking-wider">
           Status
+        </span>
+        <span className="text-xs text-end md:text-center md:col-span-1 col-span-3  font-medium text-muted-foreground  tracking-wider">
+          Ações
         </span>
       </div>
       <div>

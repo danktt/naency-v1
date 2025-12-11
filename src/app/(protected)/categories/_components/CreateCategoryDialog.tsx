@@ -22,6 +22,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconArrowDownLeft, IconArrowUpRight } from "@tabler/icons-react";
+import { useSearchParams } from "next/navigation";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -46,7 +47,9 @@ export function CreateCategoryDialog({
   onSuccess,
 }: CreateCategoryDialogProps) {
   const utils = trpc.useUtils();
-
+  const searchParams = useSearchParams();
+  const tab = searchParams.get("tab");
+  console.log(tab);
   const { data: allCategories } = trpc.categories.list.useQuery(
     {
       includeInactive: false,
@@ -56,11 +59,19 @@ export function CreateCategoryDialog({
     },
   );
 
+  // Extrair ícones já em uso por outras categorias pai
+  const usedIcons = React.useMemo(() => {
+    if (!allCategories) return [];
+    return allCategories
+      .filter((cat) => cat.parent_id === null && cat.icon)
+      .map((cat) => cat.icon as string);
+  }, [allCategories]);
+
   const form = useForm<z.infer<typeof createCategorySchema>>({
     resolver: zodResolver(createCategorySchema),
     defaultValues: {
       name: "",
-      type: "income",
+      type: tab ? "expense" : "income",
       icon: "",
     },
   });
@@ -69,7 +80,7 @@ export function CreateCategoryDialog({
     if (open) {
       form.reset({
         name: "",
-        type: "income",
+        type: tab ? "expense" : "income",
         icon: "",
       });
     }
@@ -90,13 +101,12 @@ export function CreateCategoryDialog({
   });
 
   const onSubmit = (values: z.infer<typeof createCategorySchema>) => {
-    // Verificar se já existe uma categoria com o mesmo nome e tipo
     if (allCategories) {
       const existingCategory = allCategories.find(
         (cat) =>
           cat.name.toLowerCase().trim() === values.name.toLowerCase().trim() &&
           cat.type === values.type &&
-          cat.parent_id === null, // Apenas categorias pai
+          cat.parent_id === null,
       );
 
       if (existingCategory) {
@@ -110,7 +120,7 @@ export function CreateCategoryDialog({
 
     createMutation.mutate({
       ...values,
-      parent_id: null, // Sempre null para categorias pai
+      parent_id: null,
     });
   };
 
@@ -178,7 +188,7 @@ export function CreateCategoryDialog({
                   control={form.control}
                   name="name"
                   render={({ field }) => (
-                    <FormItem className="w-full">
+                    <FormItem className="flex-1">
                       <FormLabel>
                         Nome
                         <span className="text-destructive">*</span>
@@ -207,6 +217,8 @@ export function CreateCategoryDialog({
                         <IconSelector
                           value={field.value}
                           onChange={field.onChange}
+                          hasError={Boolean(form.formState.errors.icon)}
+                          usedIcons={usedIcons}
                         />
                       </FormControl>
                       <FormMessage />
