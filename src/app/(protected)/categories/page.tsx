@@ -51,6 +51,17 @@ export default function CategoriesPage() {
 
   const utils = trpc.useUtils();
 
+  // Limpar processingId quando os dados mudarem (após arquivar/desarquivar)
+  React.useEffect(() => {
+    if (processingId && categories && !isCategoriesLoading) {
+      // Aguardar um pouco para garantir que a query foi atualizada
+      const timer = setTimeout(() => {
+        setProcessingId(null);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [categories, processingId, isCategoriesLoading]);
+
   const deleteMutation = trpc.categories.delete.useMutation({
     onSuccess: async () => {
       await utils.categories.list.invalidate();
