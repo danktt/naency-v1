@@ -387,8 +387,8 @@ export function CategoryRow({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-primary/50",
-                    "opacity-0 translate-x-2 transition-all duration-150 ease-out",
+                    "h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-primary/50 dark:hover:bg-primary/30 transition-all duration-300",
+                    "opacity-0 translate-x-2 transition-all ease-out",
                     "group-hover:opacity-100 group-hover:translate-x-0 group-hover:delay-[100ms]",
                   )}
                   onClick={onCreateSubcategory}

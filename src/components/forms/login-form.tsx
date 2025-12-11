@@ -1,19 +1,13 @@
 "use client";
 
 import { useAuth, useSignIn } from "@clerk/nextjs";
-import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-} from "@/components/ui/field";
+import { Field, FieldGroup } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 import { AppleIcon, GoogleIcon } from "../Icon";
 
@@ -123,21 +117,13 @@ export function LoginForm({
             className="relative gap-2"
             disabled={isButtonDisabled}
             onClick={() => handleProviderClick("google")}
+            icon={<GoogleIcon />}
+            isLoading={pendingProvider === "google"}
           >
             {lastProvider === "google" && !pendingProvider && (
               <LastProviderBadge />
             )}
-            {pendingProvider === "google" ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Redirecionando...
-              </>
-            ) : (
-              <>
-                <GoogleIcon />
-                Continuar com Google
-              </>
-            )}
+            Continuar com Google
           </Button>
           <Button
             variant="outline"
@@ -145,34 +131,15 @@ export function LoginForm({
             className="relative gap-2"
             disabled={isButtonDisabled}
             onClick={() => handleProviderClick("apple")}
+            icon={<AppleIcon />}
+            isLoading={pendingProvider === "apple"}
           >
             {lastProvider === "apple" && !pendingProvider && (
               <LastProviderBadge />
             )}
-            {pendingProvider === "apple" ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Redirecionando...
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <AppleIcon />
-                Continuar com Apple
-              </div>
-            )}
+            Continuar com Apple
           </Button>
         </Field>
-        {errorMessage ? (
-          <FieldError className="text-center" role="alert">
-            {errorMessage}
-          </FieldError>
-        ) : null}
-        <FieldDescription className="text-center">
-          Não possui uma conta?{" "}
-          <a href="/sign-up" className="underline underline-offset-4">
-            Cadastre-se
-          </a>
-        </FieldDescription>
       </FieldGroup>
     </form>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useClerk } from "@clerk/nextjs";
-import { BadgeCheck, ChevronsUpDown, LogOut } from "lucide-react";
+import { BadgeCheck, ChevronsUpDown } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -19,6 +19,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { DynamicIcon } from "../DynamicIcon";
 
 export function NavUser({
   user,
@@ -101,7 +102,7 @@ export function NavUser({
                 void signOut({ redirectUrl: "/sign-in" });
               }}
             >
-              <LogOut />
+              <DynamicIcon icon="logout" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
